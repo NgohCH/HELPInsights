@@ -17,7 +17,7 @@ import { digest, jsonBody, writeClientError } from "./surveys.ts";
 
 const collection = "/api/v1/live-sessions";
 const roomPath =
-  /^\/api\/v1\/live-sessions\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:\/(socket|commands|answers))?$/i;
+  /^\/api\/v1\/live-sessions\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:\/(socket|commands|answers|results))?$/i;
 const denied = () => new HttpError(403, "FORBIDDEN", "Live room unavailable");
 const snapshotColumns =
   'id, mode, state, revision, quiz_version_id AS "quizVersionId"';
@@ -146,6 +146,7 @@ export function createLiveQuiz(
         "archive",
         "next_question",
         "close_question",
+        "release_scores",
       ].includes(body.command) ||
       typeof revision !== "string" ||
       !/^[1-9][0-9]{0,9}$/.test(revision) ||
@@ -154,12 +155,21 @@ export function createLiveQuiz(
       throw new InvalidInput("Choose a valid command and revision");
 
     const updated = await withActor(pool, proof.hash, async (client) => {
+      const release = body.command === "release_scores";
+      const commandQuery = release
+        ? "SELECT public.release_live_game_scores($1, $2, $3, $4) AS result"
+        : "SELECT public.command_live_room($1, $2, $3, $4, $5) AS result";
+      const params = release
+        ? [gameShowEnabled]
+        : [body.command, gameShowEnabled];
       const {
         rows: [outcome],
-      } = await client.query<{ result: string }>(
-        "SELECT public.command_live_room($1, $2, $3, $4, $5) AS result",
-        [proof.hash, id, Number(revision), body.command, gameShowEnabled],
-      );
+      } = await client.query<{ result: string }>(commandQuery, [
+        proof.hash,
+        id,
+        Number(revision),
+        ...params,
+      ]);
       if (outcome.result === "unauthorised")
         throw new HttpError(401, "UNAUTHORISED", "A valid session is required");
       if (outcome.result === "forbidden") throw denied();
@@ -238,6 +248,23 @@ export function createLiveQuiz(
     return receipt;
   }
 
+  async function readOwnScore(id: string, authorization: unknown) {
+    const proof = credentials(authorization);
+    if (proof.isHost) throw denied();
+    const {
+      rows: [score],
+    } = await pool.query<{ result: string; points: number | null }>(
+      "SELECT * FROM public.read_live_game_score($1, $2, $3)",
+      [id, proof.hash, gameShowEnabled],
+    );
+    if (score.result === "forbidden") throw denied();
+    if (score.result === "unreleased")
+      throw new HttpError(409, "CONFLICT", "Scores have not been released");
+    if (score.points === null)
+      throw new HttpError(404, "NOT_FOUND", "No score was recorded");
+    return { points: score.points };
+  }
+
   async function route(
     request: IncomingMessage,
     response: ServerResponse,
@@ -250,7 +277,8 @@ export function createLiveQuiz(
       return false;
     try {
       if (request.headers.origin && !originAllowed(request)) throw denied();
-      const expectedMethod = room && !room[2] ? "GET" : "POST";
+      const expectedMethod =
+        room && (!room[2] || room[2] === "results") ? "GET" : "POST";
       if (request.method !== expectedMethod) {
         response.setHeader("Allow", expectedMethod);
         throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method not allowed");
@@ -262,7 +290,12 @@ export function createLiveQuiz(
             ? await command(id, request)
             : room[2] === "answers"
               ? await vote(id, request)
-              : await snapshot(id, credentials(request.headers.authorization));
+              : room[2] === "results"
+                ? await readOwnScore(id, request.headers.authorization)
+                : await snapshot(
+                    id,
+                    credentials(request.headers.authorization),
+                  );
         sendJson(response, 200, body);
         return true;
       }

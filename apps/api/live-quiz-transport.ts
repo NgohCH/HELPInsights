@@ -12,6 +12,7 @@ export type LiveSnapshot = {
   state: "lobby" | "running" | "paused" | "ended" | "archived";
   revision: number;
   quizVersionId?: string;
+  scoresReleased?: true;
   question?: {
     id: string;
     title: string;

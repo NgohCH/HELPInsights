@@ -44,6 +44,7 @@ export function LiveQuiz({
   const [hostLobby, setHostLobby] = useState<HostLobby>();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [privatePoints, setPrivatePoints] = useState<number>();
   const showingGame = gameShow || snapshot?.mode === "game_show";
 
   async function run(operation: () => Promise<void>) {
@@ -100,7 +101,11 @@ export function LiveQuiz({
   }
 
   function sendCommand(
-    command: keyof typeof buttonLabels | "next_question" | "close_question",
+    command:
+      | keyof typeof buttonLabels
+      | "next_question"
+      | "close_question"
+      | "release_scores",
   ) {
     if (!access || !snapshot || connection !== "connected") return;
     void run(async () => {
@@ -109,6 +114,19 @@ export function LiveQuiz({
         method: "POST",
         body: { command, expectedRevision: String(snapshot.revision) },
       });
+    });
+  }
+
+  function viewScore() {
+    if (!access) return;
+    void run(async () => {
+      const { data } = await api<{ points: number }>(
+        "/live-sessions/" + access.id + "/results",
+        {
+          headers: { Authorization: access.authorization },
+        },
+      );
+      setPrivatePoints(data.points);
     });
   }
 
@@ -172,6 +190,31 @@ export function LiveQuiz({
                 Close question
               </button>
             )}
+            {isHost &&
+              showingGame &&
+              snapshot?.state === "ended" &&
+              !snapshot.scoresReleased && (
+                <button
+                  disabled={pending || connection !== "connected"}
+                  onClick={() => sendCommand("release_scores")}
+                >
+                  Release scores
+                </button>
+              )}
+            {isHost && snapshot?.scoresReleased && <p>Scores released</p>}
+            {!isHost &&
+              showingGame &&
+              (snapshot?.state === "ended" || snapshot?.state === "archived") &&
+              (privatePoints === undefined ? (
+                <button
+                  disabled={pending || connection !== "connected"}
+                  onClick={viewScore}
+                >
+                  View my score
+                </button>
+              ) : (
+                <p>Your score is {privatePoints} points</p>
+              ))}
             {snapshot?.question && (
               <LivePollQuestion
                 key={

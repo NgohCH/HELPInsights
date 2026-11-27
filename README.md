@@ -127,9 +127,9 @@ The presenter can start, pause, resume, end and archive the poll. The presenter 
 
 The disposable test stack opts in to Game Show through LIVE_GAME_SHOW_ENABLED. Open /live/game-host and supply a published version with one unconditional single-choice question. The presenter enters its exact correct option code and sets an answer time of 5 to 120 seconds. Guests join at /live/join.
 
-Opening the question starts the PostgreSQL clock. A pause prevents new answers while the deadline continues. Resuming and reconnecting keep the same deadline. The private accuracy_v1 rule records 1000 points for a correct answer and zero otherwise. Participants receive their own answer receipt. Scores and the answer key stay private in this slice.
+Opening the question starts the PostgreSQL clock. A pause prevents new answers while the deadline continues. Resuming and reconnecting keep the same deadline. The private accuracy_v1 rule records 1000 points for a correct answer and zero otherwise. Participants receive their own answer receipt. After ending the game, the presenter can choose Release scores. An admitted guest can then use View my score to retrieve their own points. The answer key and other guests' scores stay private.
 
-An anonymous room requires an open distribution. The Registry and research consent integration must establish that a source version permits anonymous reuse before activation. See the [Game Show verification criteria](docs/GAME_SHOW_SCORING_TEST_CRITERIA.md).
+An anonymous room requires an open distribution. The Registry and research consent integration must establish that a source version permits anonymous reuse before activation. See the [Game Show scoring criteria](docs/GAME_SHOW_SCORING_TEST_CRITERIA.md) and [private score release criteria](docs/GAME_SHOW_SCORE_RELEASE_TEST_CRITERIA.md).
 
 ## Product governance
 
