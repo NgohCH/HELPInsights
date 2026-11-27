@@ -109,6 +109,8 @@ The source repository on GitHub is the single source of truth. See [GitHub, loca
 
 The local development workflow creates and publishes a single-choice survey, collects anonymous responses, and displays results and an authenticated JASP CSV export. It uses a React browser client, PostgreSQL and a separate export worker.
 
+The disposable test runtime also supports a versioned, fixed synthetic consent notice on opted-in single-choice surveys. Declining leaves no response. Academic studies, governed research retention, and production activation require separate release evidence. [Research acceptance scope](docs/FEATURE_MATRIX.md#synthetic-research-consent-development-slice)
+
 Follow the [development runbook](docs/progress/ENG-001-002-setup.md) to install the locked dependencies and Chromium. Run the full synthetic demonstration from the survey workflow branch:
 
 ```sh

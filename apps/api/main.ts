@@ -5,6 +5,7 @@ import { sessionRoutes } from "./sessions.ts";
 import { surveyRoutes } from "./surveys.ts";
 import { respondentRoutes } from "./respond.ts";
 import { reportRoutes } from "./reports.ts";
+import { syntheticConsentEnabled } from "./research-consent.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -21,8 +22,9 @@ const pool = new pg.Pool({
 pool.on("error", () => console.error("Idle PostgreSQL connection interrupted"));
 
 const sessions = sessionRoutes(pool);
-const surveys = surveyRoutes(pool);
-const respondents = respondentRoutes(pool);
+const syntheticResearchConsent = syntheticConsentEnabled(process.env);
+const surveys = surveyRoutes(pool, syntheticResearchConsent);
+const respondents = respondentRoutes(pool, syntheticResearchConsent);
 const reports = reportRoutes(pool);
 const [javascript, stylesheet] = await Promise.all([
   readFile(new URL("../../dist/web/main.js", import.meta.url)),

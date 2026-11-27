@@ -8,18 +8,30 @@ import {
   uuid,
 } from "../../packages/survey-runtime/definition.ts";
 import { sendJson } from "./application.ts";
+import type { ResearchConsent } from "./research-consent.ts";
 import { HttpError } from "./sessions.ts";
 import { digest, jsonBody, tokenPattern, writeClientError } from "./surveys.ts";
 
-type PublishedLink = { surveyVersionId: string; definition: SurveyDefinition };
+type PublishedLink = {
+  surveyVersionId: string;
+  definition: SurveyDefinition;
+  researchConsent: ResearchConsent | null;
+};
 type Receipt = {
-  outcome: "closed" | "accepted" | "retry" | "conflict";
+  outcome: "closed" | "accepted" | "retry" | "conflict" | "consent_required";
   receiptId: string;
   acceptedAt: Date;
 };
 const notFound = () => new HttpError(404, "NOT_FOUND", "Survey not found");
 
-export function respondentRoutes(pool: Pool) {
+const consentRequired = () =>
+  new HttpError(
+    403,
+    "FORBIDDEN",
+    "Agree to the current study consent notice before submitting",
+  );
+
+export function respondentRoutes(pool: Pool, syntheticResearchConsent = false) {
   return async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -38,13 +50,29 @@ export function respondentRoutes(pool: Pool) {
       }
       const tokenHash = digest(token);
       const { rows } = await pool.query<PublishedLink>(
-        'SELECT id AS "surveyVersionId", definition FROM public.resolve_distribution($1)',
+        `SELECT l.id AS "surveyVersionId", l.definition,
+          CASE WHEN c.id IS NULL THEN NULL ELSE jsonb_build_object(
+            'id', c.id, 'studyKey', c.study_key, 'revision', c.revision, 'notice', c.notice
+          ) END AS "researchConsent"
+         FROM public.resolve_distribution($1) l
+         LEFT JOIN public.resolve_research_consent($1) c ON true`,
         [tokenHash],
       );
       const link = rows[0];
       if (!link) throw notFound();
+      const { surveyVersionId, definition, researchConsent } = link;
+      if (researchConsent && !syntheticResearchConsent)
+        throw new HttpError(
+          503,
+          "UNAVAILABLE",
+          "Synthetic research consent is unavailable",
+        );
       if (!submit) {
-        sendJson(response, 200, link);
+        sendJson(response, 200, {
+          surveyVersionId,
+          definition,
+          ...(researchConsent ? { researchConsent } : {}),
+        });
         return true;
       }
 
@@ -55,7 +83,20 @@ export function respondentRoutes(pool: Pool) {
       const body = object(await jsonBody(request), [
         "surveyVersionId",
         "answers",
+        "consent",
       ]);
+      if (researchConsent) {
+        if (body.consent === undefined) throw consentRequired();
+        const consent = object(body.consent, ["versionId", "accepted"]);
+        if (
+          consent.versionId !== researchConsent.id ||
+          consent.accepted !== true
+        )
+          throw consentRequired();
+      } else if (body.consent !== undefined) {
+        throw new InvalidInput("This survey does not request research consent");
+      }
+
       const version = uuid(body.surveyVersionId, "Survey version");
       if (version !== link.surveyVersionId)
         throw new InvalidInput(
@@ -64,12 +105,27 @@ export function respondentRoutes(pool: Pool) {
       const answers = JSON.stringify(
         parseAnswers(link.definition, body.answers),
       );
+      const parameters = [
+        tokenHash,
+        version,
+        digest(key),
+        digest(answers),
+        answers,
+      ];
+      const columns =
+        'outcome, receipt_id AS "receiptId", accepted_at AS "acceptedAt"';
       const {
         rows: [receipt],
-      } = await pool.query<Receipt>(
-        'SELECT outcome, receipt_id AS "receiptId", accepted_at AS "acceptedAt" FROM public.accept_response($1, $2, $3, $4, $5)',
-        [tokenHash, version, digest(key), digest(answers), answers],
-      );
+      } = researchConsent
+        ? await pool.query<Receipt>(
+            `SELECT ${columns} FROM public.accept_research_response($1, $2, $3, $4, $5, $6)`,
+            [...parameters, researchConsent.id],
+          )
+        : await pool.query<Receipt>(
+            `SELECT ${columns} FROM public.accept_response($1, $2, $3, $4, $5)`,
+            parameters,
+          );
+      if (receipt.outcome === "consent_required") throw consentRequired();
       if (receipt.outcome === "closed") throw notFound();
       if (receipt.outcome === "conflict")
         throw new HttpError(

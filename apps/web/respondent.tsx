@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
 import { api } from "./api.ts";
+import type { ResearchConsent } from "../api/research-consent.ts";
 
 type PublishedSurvey = {
   surveyVersionId: string;
   definition: SurveyDefinition;
+  researchConsent?: ResearchConsent;
 };
 
 export function Respondent({ token }: { token: string }) {
   const [survey, setSurvey] = useState<PublishedSurvey | null>(null);
   const [pending, setPending] = useState(false);
+  const [decision, setDecision] = useState<{
+    versionId: string;
+    accepted: boolean;
+  } | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const submissionKey = useRef<string>(null);
@@ -32,6 +38,12 @@ export function Respondent({ token }: { token: string }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!survey) return;
+    const { researchConsent } = survey;
+    if (
+      researchConsent &&
+      (decision?.versionId !== researchConsent.id || !decision.accepted)
+    )
+      return;
     const form = new FormData(event.currentTarget);
     const answers = survey.definition.pages
       .flatMap(({ questions }) => questions)
@@ -52,7 +64,11 @@ export function Respondent({ token }: { token: string }) {
       await api("/public/s/" + token + "/responses", {
         method: "POST",
         headers: { "Idempotency-Key": submissionKey.current },
-        body: { surveyVersionId: survey.surveyVersionId, answers },
+        body: {
+          surveyVersionId: survey.surveyVersionId,
+          answers,
+          ...(researchConsent ? { consent: decision } : {}),
+        },
       });
       setSubmitted(true);
     } catch (failure) {
@@ -64,6 +80,9 @@ export function Respondent({ token }: { token: string }) {
     }
   }
 
+  const consent = survey?.researchConsent;
+  const decided = !!consent && decision?.versionId === consent.id;
+  const declined = decided && decision?.accepted === false;
   return (
     <main className="shell respondent">
       <header className="brand">HELPInsights</header>
@@ -73,12 +92,44 @@ export function Respondent({ token }: { token: string }) {
           <p>{survey.definition.description}</p>
         )}
         {!survey && !error && <p>Loading survey…</p>}
+        {consent && !decided && (
+          <section aria-labelledby="synthetic-consent">
+            <h2 id="synthetic-consent">Synthetic study consent</h2>
+            <p>{consent.notice}</p>
+            <p>Notice revision {consent.revision}</p>
+            <div className="actions">
+              <button
+                type="button"
+                onClick={() =>
+                  setDecision({ versionId: consent.id, accepted: true })
+                }
+              >
+                I agree to participate
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() =>
+                  setDecision({ versionId: consent.id, accepted: false })
+                }
+              >
+                Decline
+              </button>
+            </div>
+          </section>
+        )}
+        {declined && (
+          <p className="message" role="status">
+            You declined. No answer was sent.
+          </p>
+        )}
         {submitted ? (
           <p className="message" role="status">
             Response submitted
           </p>
         ) : (
-          survey && (
+          survey &&
+          (!consent || (decided && !declined)) && (
             <form onSubmit={submit}>
               {survey.definition.pages.map((page) => (
                 <section key={page.id} aria-label={page.title || undefined}>

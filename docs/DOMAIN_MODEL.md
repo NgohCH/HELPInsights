@@ -13,6 +13,8 @@
 | LiveSession | Ephemeral hosted game referencing a published quiz version; server authoritative transitions. |
 | LiveAnswer | Participant/session/question attempt with unique constraints; server timestamp and scoring. |
 | ResearchStudy | Study consent, governance and approved retention settings; may have waves. |
+| SyntheticConsentVersion | A fixed test notice snapshot bound to one published distribution. Its revision follows the survey version. |
+| SyntheticConsentOptIn | A private affirmative event linked to the consent version. No respondent or response pointer is stored. |
 | CaseHandoff | Privacy-reviewed outbox event and delivery receipt, not an internal ticket. |
 | RetentionHold | Authorised limited-time exception, reason/review date, audit and policy control. |
 | Incident | Immutable operational detection/recovery/action history; redacted, no response content. |
