@@ -17,7 +17,7 @@ tags:
 - name: Notices
 - name: Administration
 - name: Live Quiz Arena
-  description: Development Live Poll and opt-in Game Show rooms, private scoring, and the snapshot stream. Score release and historical results describe planned features.
+  description: Development Live Poll and opt-in Game Show rooms, private scoring, and the snapshot stream. A presenter can release private individual Game Show scores after ending the room.
 paths:
   /health/live:
     get:
@@ -612,7 +612,7 @@ paths:
         Commands require the host and the current revision. Start moves a lobby
         to running. Pause and resume switch between running and paused. End
         closes a lobby, running or paused session. Archive archives an ended
-        session. Next question opens the next published choice question in order. Close question closes voting. Accepted transitions advance the persisted revision once.
+        session. Next question opens the next published choice question in order. Close question closes voting. Release scores is a presenter command for ended Game Show rooms. Accepted transitions advance the persisted revision once.
       parameters:
       - *id002
       requestBody:
@@ -625,7 +625,7 @@ paths:
               properties:
                 command:
                   type: string
-                  enum: [start, pause, resume, end, archive, next_question, close_question]
+                  enum: [start, pause, resume, end, archive, next_question, close_question, release_scores]
                 expectedRevision:
                   type: string
                   pattern: '^[1-9][0-9]{0,9}$'
@@ -692,21 +692,33 @@ paths:
         '422': *id001
   /live-sessions/{sessionId}/results:
     get:
-      tags:
-      - Live Quiz Arena
+      tags: [Live Quiz Arena]
       operationId: getLiveQuizResults
+      summary: Retrieve your own Game Show score after presenter release
+      description: >
+        A valid Participant capability is required. The response contains only
+        the score recorded for that participant. The response uses Cache-Control no-store.
+      security:
+      - liveParticipantAuth: []
       parameters:
       - *id002
       responses:
         '200':
-          description: Policy-authorised live results
+          description: The authenticated guest's own score
           content:
             application/json:
               schema:
                 type: object
-                additionalProperties: true
+                required: [points]
+                properties:
+                  points: { type: integer, enum: [0, 1000] }
+                additionalProperties: false
+        '401': *id001
         '403': *id001
-        '404': *id001
+        '404':
+          description: The authenticated guest did not record an attempt.
+        '409':
+          description: The presenter has not released scores.
 components:
   securitySchemes:
     bearerAuth:
@@ -790,6 +802,9 @@ components:
         state: { enum: [lobby, running, paused, ended, archived] }
         revision: { type: integer, minimum: 1 }
         quizVersionId: { type: string, format: uuid }
+        scoresReleased:
+          const: true
+          description: Presenter only. Present after a Game Show score release.
         question:
           type: object
           required: [id, title, options, openedRevision, open]

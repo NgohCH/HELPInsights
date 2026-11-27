@@ -8,7 +8,7 @@ function nextSocket(page: Page) {
   });
 }
 
-test("Game Show presenter and mobile guest see a deadline and private receipt on real sockets", async ({
+test("Game Show mobile guest reconnects, then sees only their own score after presenter release", async ({
   page,
   browser,
 }) => {
@@ -71,6 +71,34 @@ test("Game Show presenter and mobile guest see a deadline and private receipt on
     expect(recovered.question.closesAt).toBe(opened.question.closesAt);
     expect(recovered.hasVoted).toBe(true);
     expect(recovered.points).toBeUndefined();
+    await page.getByRole("button", { name: "End game" }).click();
+    await expect(
+      guest.getByRole("heading", { name: "Game Show ended" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Release scores" }),
+    ).toBeVisible({ timeout: 5000 });
+    await guest.getByRole("button", { name: "View my score" }).click();
+    await expect(guest.getByRole("alert")).toHaveText(
+      "Scores have not been released",
+    );
+    const hostRelease = host.waitForEvent("framereceived");
+    const guestRelease = reconnected.waitForEvent("framereceived");
+    await page.getByRole("button", { name: "Release scores" }).click();
+    const hostState = JSON.parse(String((await hostRelease).payload)).snapshot;
+    const guestState = JSON.parse(
+      String((await guestRelease).payload),
+    ).snapshot;
+    expect(hostState.scoresReleased).toBe(true);
+    expect(hostState.points).toBeUndefined();
+    expect(guestState.scoresReleased).toBeUndefined();
+    expect(guestState.points).toBeUndefined();
+    await expect(
+      page.getByText("Scores released", { exact: true }),
+    ).toBeVisible();
+    await guest.getByRole("button", { name: "View my score" }).click();
+    await expect(guest.getByText("Your score is 1000 points")).toBeVisible();
+    await expect(page.getByText("Your score is 1000 points")).toHaveCount(0);
     expect(
       sql(
         `SELECT points, rule_version FROM public.live_game_attempts WHERE session_id = '${opened.id}'`,
