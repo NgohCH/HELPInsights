@@ -17,19 +17,22 @@ export class HttpError extends Error {
   }
 }
 
-export async function withActor<T>(
-  pool: Pool,
-  request: IncomingMessage,
-  run: (client: PoolClient, actor: Actor) => Promise<T>,
-): Promise<T> {
+const unauthorized = () =>
+  new HttpError(401, "UNAUTHORISED", "A valid session is required");
+
+export function readSessionProof(request: IncomingMessage) {
   const credential = /^Bearer ([A-Za-z0-9_-]{43})$/i.exec(
     request.headers.authorization ?? "",
   );
-  const unauthorized = () =>
-    new HttpError(401, "UNAUTHORISED", "A valid session is required");
   if (!credential) throw unauthorized();
+  return createHash("sha256").update(credential[1]).digest();
+}
 
-  const hash = createHash("sha256").update(credential[1]).digest();
+export async function withActor<T>(
+  pool: Pool,
+  hash: Buffer,
+  run: (client: PoolClient, actor: Actor) => Promise<T>,
+): Promise<T> {
   const client = await pool.connect();
   let discard = false;
   try {
@@ -77,13 +80,23 @@ export function sessionRoutes(pool: Pool) {
     }
 
     try {
-      const data = await withActor(pool, request, async (client, actor) => {
-        if (path === "/api/v1/me") return actor;
-        const { rows } = await client.query(
-          'SELECT id, organisation_id AS "organisationId", name FROM public.workspaces ORDER BY name, id',
-        );
-        return rows;
-      });
+      const data = await withActor(
+        pool,
+        readSessionProof(request),
+        async (client, actor) => {
+          if (path === "/api/v1/me") return actor;
+          const { rows } = await client.query(
+            `SELECT w.id, w.organisation_id AS "organisationId", w.name, p.id AS "defaultRetentionPolicyId"
+           FROM public.workspaces w LEFT JOIN public.retention_policies p ON p.workspace_id = w.id
+           ORDER BY w.name, w.id`,
+          );
+          return rows.map(({ defaultRetentionPolicyId, ...row }) =>
+            defaultRetentionPolicyId
+              ? { ...row, defaultRetentionPolicyId }
+              : row,
+          );
+        },
+      );
       sendJson(response, 200, data);
     } catch (error) {
       if (!(error instanceof HttpError)) throw error;

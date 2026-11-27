@@ -40,5 +40,14 @@ test("local provisioning blocks reused database roles that could bypass row-leve
     sql("REVOKE pg_read_all_data FROM helpinsights_runtime");
   }
 
+  sql("GRANT SELECT (token_hash) ON public.sessions TO helpinsights_app");
+  try {
+    assert.throws(() => compose("run", "--rm", "--no-deps", "migrate"), {
+      status: 1,
+    });
+  } finally {
+    sql("REVOKE SELECT (token_hash) ON public.sessions FROM helpinsights_app");
+  }
+
   compose("run", "--rm", "--no-deps", "migrate");
 });

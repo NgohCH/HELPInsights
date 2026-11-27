@@ -54,7 +54,7 @@ export function runningTestStack() {
   if (!context || !project)
     throw new Error("Start integration tests via pnpm test:stack");
   const stack = testDocker(localDockerContext(context), project);
-  for (const service of ["postgres", "app"]) {
+  for (const service of ["postgres", "app", "worker"]) {
     const id = stack.compose("ps", "--quiet", service).trim();
     if (!/^[a-f0-9]{12,64}$/.test(id))
       throw new Error("Missing disposable service: " + service);

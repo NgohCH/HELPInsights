@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.3-development
-  description: The local runtime implements health, profile, workspaces, draft, publication, close and public questionnaire retrieval.
+  version: 0.2.4-development
+  description: The development runtime supports anonymous survey creation, publication, submission, analytics and CSV exports. The remaining design endpoints describe planned features.
 servers:
 - url: https://survey.example.org/api/v1
   description: Example only
@@ -288,6 +288,8 @@ paths:
                 $ref: '#/components/schemas/ResponseReceipt'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
         '429':
@@ -353,6 +355,28 @@ paths:
                 $ref: '#/components/schemas/ExportJob'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /exports/{exportId}/download:
+    parameters:
+    - name: exportId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    get:
+      tags: [Reporting]
+      operationId: downloadExport
+      description: Download an unexpired archive belonging to the authenticated requester.
+      responses:
+        '200':
+          description: ZIP archive
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
         '404':
           $ref: '#/components/responses/NotFound'
   /me/notices:
@@ -753,6 +777,10 @@ components:
           format: uuid
         name:
           type: string
+        defaultRetentionPolicyId:
+          type: string
+          format: uuid
+          description: Default retention policy when configured.
     CreateSurveyRequest:
       type: object
       additionalProperties: false
@@ -991,6 +1019,9 @@ components:
         surveyId:
           type: string
           format: uuid
+        surveyVersionId:
+          type: string
+          format: uuid
         responseCount:
           type: integer
           minimum: 0
@@ -1005,6 +1036,21 @@ components:
                 type: integer
               suppressed:
                 type: boolean
+              title:
+                type: string
+              categories:
+                type: array
+                items:
+                  type: object
+                  required: [code, label, count]
+                  properties:
+                    code:
+                      type: string
+                    label:
+                      type: string
+                    count:
+                      type: integer
+                      minimum: 0
     ExportRequest:
       type: object
       required:
@@ -1017,8 +1063,13 @@ components:
           - jasp_csv_bundle
           description: Stage 1 JASP bundle is ZIP of UTF-8 responses.csv, codebook.csv, manifest.json and IMPORT_IN_JASP.md.
             SPSS .sav reserved for Stage 3.
+        surveyVersionId:
+          type: string
+          format: uuid
+          description: Pin the export to a published version of this survey. Defaults to the latest version.
         includeAttachments:
           type: boolean
+          const: false
           default: false
     ExportJob:
       type: object
@@ -1046,9 +1097,8 @@ components:
           type:
           - string
           - 'null'
-          format: uri
-          description: Ephemeral
-          only if completed and authorised: null
+          format: uri-reference
+          description: Authenticated relative download path. Available for 15 minutes after completion.
     Notice:
       type: object
       required:

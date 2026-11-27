@@ -107,7 +107,15 @@ The source repository on GitHub is the single source of truth. See [GitHub, loca
 
 ## Getting started
 
-The development bootstrap serves a HELPInsights home page and two health endpoints backed by PostgreSQL. Start and verify the local stack using the [bootstrap runbook](docs/progress/ENG-001-002-setup.md). The survey journey is tracked in [build status](docs/BUILD_STATUS.md).
+The local development workflow creates and publishes a single-choice survey, collects anonymous responses, and displays results and an authenticated JASP CSV export. It uses a React browser client, PostgreSQL and a separate export worker.
+
+Follow the [development runbook](docs/progress/ENG-001-002-setup.md) to install the locked dependencies and Chromium. Run the full synthetic demonstration from the survey workflow branch:
+
+```sh
+corepack pnpm test:stack
+```
+
+The Playwright journey creates its own development session and workspace, submits answers, restarts PostgreSQL, checks stored answers directly in SQL, and reconciles the browser chart and downloaded ZIP. The test retains the chart screenshot and sample archive under `test-results/`. See [build status](docs/BUILD_STATUS.md) for implementation and release scope.
 
 ## Product governance
 

@@ -10,7 +10,7 @@ import {
   uuid,
 } from "../../packages/survey-runtime/definition.ts";
 import { sendJson } from "./application.ts";
-import { HttpError, withActor } from "./sessions.ts";
+import { HttpError, readSessionProof, withActor } from "./sessions.ts";
 
 export const digest = (value: string) =>
   createHash("sha256").update(value).digest();
@@ -117,28 +117,20 @@ export function surveyRoutes(pool: Pool) {
       /^\/api\/v1\/surveys(?:\/([^/]+)(?:\/(draft|publish|versions|close))?)?$/.exec(
         path,
       );
-    const publicLink = /^\/api\/v1\/public\/s\/([^/]+)$/.exec(path);
-    if (!route && !publicLink) return false;
+    if (!route) return false;
 
     try {
-      if (publicLink) {
-        if (request.method !== "GET" || !tokenPattern.test(publicLink[1]))
-          throw missing();
-        const { rows } = await pool.query(
-          'SELECT id AS "surveyVersionId", definition FROM public.resolve_distribution($1)',
-          [digest(publicLink[1])],
-        );
-        if (!rows[0]) throw missing();
-        sendJson(response, 200, rows[0]);
-        return true;
-      }
-
-      const [, surveyId, action] = route!;
+      const [, surveyId, action] = route;
       const { method } = request;
-      await withActor(pool, request, async (client) => {
+      const proof = readSessionProof(request);
+      const readsBody =
+        (!surveyId && method === "POST") ||
+        (action === "draft" && method === "PUT");
+      const submitted = readsBody ? await jsonBody(request) : undefined;
+      await withActor(pool, proof, async (client) => {
         if (!surveyId) {
           if (method === "POST") {
-            const body = object(await jsonBody(request), [
+            const body = object(submitted, [
               "workspaceId",
               "title",
               "privacyMode",
@@ -198,6 +190,16 @@ export function surveyRoutes(pool: Pool) {
 
         const id = uuid(surveyId, "Survey");
         const write = method === "PUT" || method === "POST";
+        if (write) {
+          const {
+            rows: [visible],
+          } = await client.query<{ workspace_id: string }>(
+            "SELECT workspace_id FROM public.surveys WHERE id = $1",
+            [id],
+          );
+          if (!visible) throw missing();
+          await requireEditor(client, visible.workspace_id);
+        }
         const {
           rows: [survey],
         } = await client.query<SurveyRow>(
@@ -217,7 +219,6 @@ export function surveyRoutes(pool: Pool) {
           );
           return { status: 200, body: rows };
         }
-        if (write) await requireEditor(client, survey.workspaceId);
 
         if (action === "draft" && method === "PUT") {
           if (
@@ -225,7 +226,7 @@ export function surveyRoutes(pool: Pool) {
             survey.status === "closed"
           )
             throw conflict();
-          const draft = parseDefinition(await jsonBody(request));
+          const draft = parseDefinition(submitted);
           await client.query(
             "UPDATE public.surveys SET draft = $2, title = $3, draft_revision = draft_revision + 1 WHERE id = $1",
             [id, JSON.stringify(draft), draft.title],
@@ -237,7 +238,8 @@ export function surveyRoutes(pool: Pool) {
           };
         }
         if (action === "publish" && method === "POST") {
-          const draft = survey.draft;
+          const draft =
+            survey.draft === null ? null : parseDefinition(survey.draft);
           if (survey.status === "closed") throw conflict();
           if (!draft?.pages.some((page) => page.questions.length))
             throw new InvalidInput("Add a question before publishing");

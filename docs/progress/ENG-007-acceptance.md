@@ -1,0 +1,5 @@
+# Results and CSV export acceptance
+
+Use an anonymous published version with a coded choice and a short text question. Submit ten synthetic responses with independently known counts. Keep a breakdown hidden while either nonzero category has fewer than five responses. After the first submission, the results can show one total response and keep the question breakdown hidden. With sufficient responses, the category chart must reconcile with PostgreSQL. A separate tenant cannot view results, queue an export, read job status or download the output.
+
+Queue a JASP CSV export, have the worker complete it, and download the authenticated short-lived archive. Assert fixed ASCII column codes, UTF-8 text, escaped spreadsheet formulas, codebook/value alignment, manifest counts and file checksums. Anonymous response records and the export omit respondent identifiers. An expired link returns no file. A separate Playwright journey downloads the archive and verifies its contents. Opening the bundle in JASP desktop remains a release gate.

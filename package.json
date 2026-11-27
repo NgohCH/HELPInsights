@@ -7,6 +7,7 @@
     "node": "24.x"
   },
   "scripts": {
+    "build:web": "esbuild apps/web/main.tsx apps/web/main.css --bundle --minify --jsx=automatic --outdir=dist/web",
     "start": "node apps/api/main.ts",
     "lint": "prettier --check apps packages scripts/*.ts tests playwright.config.ts package.json tsconfig.json",
     "typecheck": "tsc --noEmit",
@@ -17,13 +18,19 @@
     "test:stack": "node scripts/test-stack.ts"
   },
   "dependencies": {
-    "pg": "8.23.1"
+    "fflate": "0.8.3",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@playwright/test": "1.65.1",
     "@types/node": "24.19.4",
     "@types/pg": "8.23.1",
+    "@types/react": "19.3.3",
+    "@types/react-dom": "19.3.0",
     "ajv": "8.20.0",
+    "esbuild": "0.28.2",
     "prettier": "3.10.1",
     "typescript": "7.0.2",
     "yaml": "2.9.1"

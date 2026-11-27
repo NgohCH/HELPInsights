@@ -1,7 +1,10 @@
+import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { createApplication } from "./application.ts";
 import { sessionRoutes } from "./sessions.ts";
 import { surveyRoutes } from "./surveys.ts";
+import { respondentRoutes } from "./respond.ts";
+import { reportRoutes } from "./reports.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -19,9 +22,20 @@ pool.on("error", () => console.error("Idle PostgreSQL connection interrupted"));
 
 const sessions = sessionRoutes(pool);
 const surveys = surveyRoutes(pool);
+const respondents = respondentRoutes(pool);
+const reports = reportRoutes(pool);
+const [javascript, stylesheet] = await Promise.all([
+  readFile(new URL("../../dist/web/main.js", import.meta.url)),
+  readFile(new URL("../../dist/web/main.css", import.meta.url)),
+]);
 const server = createApplication(
   () => hasCurrentSchema(pool, migrations),
-  async (...args) => (await sessions(...args)) || (await surveys(...args)),
+  async (...args) =>
+    (await sessions(...args)) ||
+    (await surveys(...args)) ||
+    (await respondents(...args)) ||
+    (await reports(...args)),
+  { javascript, stylesheet },
 );
 server.listen(3000, "0.0.0.0", () =>
   console.log("HELPInsights listening on port 3000"),

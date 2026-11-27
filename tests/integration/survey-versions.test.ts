@@ -113,4 +113,45 @@ test("only workspace creators can modify drafts and published versions remain im
     ),
     "Workshop feedback\nRevised feedback",
   );
+  const newer = { ...definition, title: "Edited together" };
+  const edits = await Promise.all(
+    Array.from({ length: 2 }, () =>
+      fetch(draftUrl, json(ownerToken, "PUT", newer, '"3"')),
+    ),
+  );
+  assert.deepEqual(edits.map((edit) => edit.status).sort(), [200, 409]);
+
+  sql(
+    "UPDATE public.surveys SET draft = jsonb_set(draft, '{pages,0,questions,0,type}', to_jsonb('unsupported'::text)) WHERE id = '" +
+      id +
+      "'",
+  );
+  const corrupt = await fetch(
+    base + "/surveys/" + id + "/publish",
+    json(ownerToken, "POST"),
+  );
+  assert.equal(corrupt.status, 400);
+  assert.equal(
+    sql(
+      "SELECT count(*) FROM public.survey_versions WHERE survey_id = '" +
+        id +
+        "'",
+    ),
+    "2",
+  );
+  assert.equal(
+    sql(
+      "SELECT count(*) FROM public.distributions d JOIN public.survey_versions v ON v.id = d.survey_version_id WHERE v.survey_id = '" +
+        id +
+        "'",
+    ),
+    "2",
+  );
+
+  assert.equal(
+    sql(
+      "SET ROLE helpinsights_runtime; SELECT has_any_column_privilege('public.survey_versions', 'UPDATE'), has_table_privilege('public.survey_versions', 'DELETE')",
+    ),
+    "f|f",
+  );
 });
