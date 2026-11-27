@@ -37,3 +37,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Tested revision `b01153004e2de19c015bcb9e5b373cfeb143f205` on isolated PostgreSQL 16.16 and Chromium. The stack passed 15 integration tests, 2 security tests and 4 browser tests. See the [exact-SHA verification record](../evidence/ENG-017a/b01153004e2de19c015bcb9e5b373cfeb143f205.md).
 - A checked-out database interruption led to a committed export and an operator-visible matched incident pair, with no restart. Durable outage buffering, escalation and notice routing remain separate.
+
+## ENG-017b in-app worker recovery notices
+
+- Tested revision `3a7766ec6e1dc843ea32a790928c98fd3ce9e946` on isolated PostgreSQL 16.16 and Chromium. The stack passed 17 integration tests, 2 security tests and 5 browser tests. See the [exact-SHA verification record](../evidence/ENG-017b/3a7766ec6e1dc843ea32a790928c98fd3ce9e946.md).
+- Explicit operators can acknowledge recent redacted worker recoveries in the development-enabled inbox. The receipt is private and repeat-safe, and survives database restore. Production enablement, receipt lifecycle, assignment, escalation and outbound routing remain open.
