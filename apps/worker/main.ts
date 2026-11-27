@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import pg from "pg";
+import { withTransaction } from "../../packages/database/transaction.ts";
 import {
   createExport,
   type ExportSource,
@@ -14,18 +16,41 @@ const pool = new pg.Pool({
   connectionTimeoutMillis: 2_000,
   statement_timeout: 10_000,
 });
-pool.on("error", () => console.error("Export worker connection interrupted"));
+const recordIncidents = process.env.HELPINSIGHTS_EXPORT_INCIDENTS === "1";
+const transportCodes = new Set([
+  "08000",
+  "08001",
+  "08003",
+  "08006",
+  "57P01",
+  "57P02",
+  "57P03",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EPIPE",
+  "ETIMEDOUT",
+]);
+let pendingEpisode: { id: string; detectedAt: Date } | undefined;
+
+function observeTransportFailure(error: unknown) {
+  const code = (error as { code?: unknown })?.code;
+  if (recordIncidents && typeof code === "string" && transportCodes.has(code)) {
+    pendingEpisode ??= { id: randomUUID(), detectedAt: new Date() };
+  }
+}
+
+pool.on("error", (error) => {
+  observeTransportFailure(error);
+  console.error("Export worker connection interrupted");
+});
 
 const shutdown = new AbortController();
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => shutdown.abort());
 }
 
-async function processExport() {
-  const client = await pool.connect();
-  let discard = false;
-  try {
-    await client.query("BEGIN");
+function processExport() {
+  return withTransaction(pool, async (client) => {
     await client.query(`
       WITH expired AS (
         SELECT id FROM public.export_jobs WHERE status = 'completed' AND expires_at <= now()
@@ -91,33 +116,41 @@ async function processExport() {
         );
       }
     }
-    await client.query("COMMIT");
-  } catch (error) {
-    try {
-      await client.query("ROLLBACK");
-    } catch {
-      discard = true;
-    }
-    throw error;
-  } finally {
-    client.release(discard);
-  }
+  });
 }
 
 try {
+  let pollDelay = 300;
   while (!shutdown.signal.aborted) {
     try {
-      await processExport();
+      await processExport().catch((error: unknown) => {
+        observeTransportFailure(error);
+        throw error;
+      });
       await writeFile(
         "/tmp/helpinsights-export-worker.ready",
         String(Date.now()),
       );
+      const episode = pendingEpisode;
+      if (episode && !shutdown.signal.aborted) {
+        await withTransaction(pool, (client) =>
+          client.query("SELECT public.record_export_worker_recovery($1, $2)", [
+            episode.id,
+            episode.detectedAt,
+          ]),
+        );
+        pendingEpisode = undefined;
+      }
+      pollDelay = 300;
     } catch {
       console.error("Export worker could not finish a polling cycle");
+      pollDelay = pendingEpisode ? Math.min(pollDelay * 2, 2_400) : 300;
     }
-    await delay(300, undefined, { signal: shutdown.signal }).catch((error) => {
-      if (!shutdown.signal.aborted) throw error;
-    });
+    await delay(pollDelay, undefined, { signal: shutdown.signal }).catch(
+      (error) => {
+        if (!shutdown.signal.aborted) throw error;
+      },
+    );
   }
 } finally {
   await pool.end();

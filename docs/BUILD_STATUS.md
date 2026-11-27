@@ -2,11 +2,12 @@
 
 | Scope | Status | Evidence |
 | --- | --- | --- |
-| Environment entry gate | PASS | The clean baseline `5d5e443d13328a07a71810cd90eb3a9785a3c902` matched the GitHub remote. Docker PostgreSQL 16 persisted the SQL fixture across restart. |
-| ENG-001 and ENG-002 development bootstrap | VERIFIED_INTEGRATION | Exact revision `07c70a4627556bf6b8684609982289ae2356ea5a` passed the local runtime, real SQL, outage, migration, restore, secret scan and Chromium checks. |
-| ENG-003 session and tenant boundary | NOT_STARTED | The isolated workflow branch has the test-first criteria. |
-| Remaining ENG-004–ENG-019 scopes | NOT_STARTED | The first complete survey workflow and later modules await the dependencies in [the task graph](TASK_GRAPH.md). |
+| Environment entry gate | PASS | Clean source baseline `5d5e443d13328a07a71810cd90eb3a9785a3c902`. Docker PostgreSQL persisted SQL across restart. |
+| ENG-001 and ENG-002 development bootstrap | VERIFIED_INTEGRATION | Local and GitHub documentation and runtime checks passed on the [bootstrap draft PR](https://github.com/NgohCH/HELPInsights/pull/1). |
+| ENG-003 through ENG-007 first anonymous survey slice | VERIFIED_INTEGRATION | Exact commit `838fa64abe0f4bebb515abe666434145304ad662` passed real PostgreSQL and Chromium create, publish, respond, restart, results and JASP ZIP checks, with independent review. |
+| Guided and expert authoring, later modules and Live Quiz Arena | NOT_STARTED | Remaining implementation and release scope is governed by [the task graph](TASK_GRAPH.md). |
 | ENG-009a operations roles, health and incident history | VERIFIED_INTEGRATION | Exact revision `3bf00776434715cdf34d6c3673ff40ca5363e398` passed PostgreSQL permissions, restart, upgrade, restore and Chromium. See the [verification record](../evidence/ENG-009a/3bf00776434715cdf34d6c3673ff40ca5363e398.md). |
-| Merge and production release | BLOCKED | GitHub reported no active main branch protection. Human release approval is pending. |
+| ENG-017a export worker detection and recovery | VERIFIED_INTEGRATION | Exact revision `b01153004e2de19c015bcb9e5b373cfeb143f205` passed a real worker PostgreSQL disconnect, same-process export recovery, redacted incident SQL and Chromium. See the [verification record](../evidence/ENG-017a/b01153004e2de19c015bcb9e5b373cfeb143f205.md). |
+| Merge and production release | BLOCKED | GitHub reported no active main branch protection. Production approval and remaining release evidence are pending. |
 
-See [the evidence ledger](EVIDENCE_LEDGER.md) for commands and scope.
+The verified slice uses synthetic development sessions. See the [evidence ledger](EVIDENCE_LEDGER.md) for exact scope and remaining review risks.

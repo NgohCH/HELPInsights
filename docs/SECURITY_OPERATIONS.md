@@ -48,8 +48,8 @@ containing a fixed component, state and severity. PostgreSQL adds server time,
 event ID and authenticated audit attribution. API responses omit the audit
 actor and the database schema accepts only fixed event codes. Platform
 operations membership is empty at installation and gives no workspace or
-survey permissions. Automated detection, incident lifecycle correlation,
-notices and role provisioning are later scopes.
+survey permissions. Production notice routing and role provisioning
+remain separate scopes.
 
 The application database role can append the three event fields and select the
 redacted projection under row-level security. Mutation of history or audit
@@ -57,6 +57,35 @@ attribution requires database-owner privileges. The migration is additive.
 Retain both tables when reverting the application. The previous runtime
 compares exact migration history for readiness, so a rollback needs a
 compatible build or a coordinated, explicitly approved database restore.
+
+## Export worker interruption record
+
+ENG-017a observes an allowlisted PostgreSQL transport failure in the
+export worker. The worker retains one in-memory episode and retries its
+existing polling cycle with a backoff capped at 2.4 seconds. The polling
+transaction must commit successfully before the worker records recovery.
+A restricted database function appends both fixed events in one
+transaction. The pair shares an episode ID and includes observed times.
+The operator can see the pair in the existing Operations history.
+
+The worker records no error strings, connection details, survey or job
+identifiers, answer data, or session credentials. The exporter role can
+execute the specific writer and has no direct incident-table privileges.
+The application role continues to write operator-attributed manual events.
+
+The test configuration opts in to recording. The default runtime leaves
+recording disabled. The worker stops retrying on shutdown and never
+restarts a process or changes access policy. Its existing three-attempt
+budget for individual export jobs is separate. During an outage,
+the episode stays in memory and the database cannot show it until
+recovery. If the process exits first, the pending observation may be
+lost. Errors outside the transport allowlist, including driver failures
+without a usable code, may leave no episode. If the recorder loses its
+commit acknowledgement, a surviving worker retries the same episode ID.
+The unique episode/state keys keep those writes idempotent. A prolonged
+outage has no total reconnect-attempt limit. Durable outage buffering,
+escalation for prolonged outages, notice
+routing and outbound delivery remain separate scopes.
 
 ## Safe operational workflows
 

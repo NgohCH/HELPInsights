@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.5-development
+  version: 0.2.6-development
   description: The development runtime supports anonymous survey creation, publication, submission, analytics, CSV exports and platform operations health and incident history. The remaining design endpoints describe planned features.
 servers:
 - url: https://survey.example.org/api/v1
@@ -1262,6 +1262,21 @@ components:
         recordedAt:
           type: string
           format: date-time
+        source:
+          const: export_worker
+          description: Returned for automatic worker incident entries.
+        episodeId:
+          type: string
+          format: uuid
+          description: Correlates the detection and recovery of a worker interruption.
+        observedAt:
+          type: string
+          format: date-time
+          description: Detection time from the worker clock, or database verification time for recovery.
+      dependentRequired:
+        source: [episodeId, observedAt]
+        episodeId: [source, observedAt]
+        observedAt: [source, episodeId]
     RetentionStatus:
       type: object
       required:

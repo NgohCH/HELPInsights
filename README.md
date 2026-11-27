@@ -29,6 +29,10 @@ operations role. Operators can record allowlisted incident events through
 the API. Workspace ownership and survey access use separate permissions. See
 [Operations and security](docs/SECURITY_OPERATIONS.md).
 
+The test stack also shows export-worker database interruption and recovery
+in Operations. The worker verifies a successful poll before recording the
+redacted incident. The default runtime leaves automated recording off.
+
 ## Non-negotiable principles
 
 - Intuitive for non-technical staff, accessible, fast on mobile and consistent across workflows.

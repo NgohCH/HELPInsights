@@ -10,3 +10,5 @@ services:
   worker:
     labels:
       org.helpinsights.test-run: ${HELPINSIGHTS_TEST_PROJECT:?Run pnpm test:stack}
+    environment:
+      HELPINSIGHTS_EXPORT_INCIDENTS: "1"
