@@ -123,6 +123,7 @@ function socketSnapshot(
     socket.once("message", (message) => {
       try {
         frame = JSON.parse(message.toString());
+        socket.close(1000);
       } catch (error) {
         reject(error);
       }
@@ -149,13 +150,24 @@ test(
     assert.equal(joined.status, 200);
     const { participantToken, snapshot } = await joined.json();
 
+    const started = await api(
+      "/live-sessions/" + id + "/commands",
+      "POST",
+      { command: "start", expectedRevision: "1" },
+      owner,
+    );
+    assert.equal(started.status, 200);
+    const running = { ...snapshot, state: "running", revision: 2 };
     const before = stack.baseUrl();
     const guest = "Participant " + participantToken;
     const expectedHost = {
       code: 1000,
-      frame: { type: "snapshot", snapshot: { ...snapshot, quizVersionId } },
+      frame: { type: "snapshot", snapshot: { ...running, quizVersionId } },
     };
-    const expectedGuest = { code: 1000, frame: { type: "snapshot", snapshot } };
+    const expectedGuest = {
+      code: 1000,
+      frame: { type: "snapshot", snapshot: running },
+    };
     assert.deepEqual(await socketSnapshot(before, id, owner), expectedHost);
     assert.deepEqual(await socketSnapshot(before, id, guest), expectedGuest);
     assert.deepEqual(await socketSnapshot(before, id, outsider), {

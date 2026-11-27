@@ -1,7 +1,6 @@
 import { createHmac, randomBytes, randomInt } from "node:crypto";
-import type { IncomingMessage, Server, ServerResponse } from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Pool } from "pg";
-import { WebSocketServer } from "ws";
 import {
   InvalidInput,
   object,
@@ -9,12 +8,16 @@ import {
   uuid,
 } from "../../packages/survey-runtime/definition.ts";
 import { sendJson } from "./application.ts";
+import {
+  createLiveRoomTransport,
+  type LiveSnapshot,
+} from "./live-quiz-transport.ts";
 import { HttpError, readSessionProof, withActor } from "./sessions.ts";
 import { digest, jsonBody, writeClientError } from "./surveys.ts";
 
 const collection = "/api/v1/live-sessions";
 const roomPath =
-  /^\/api\/v1\/live-sessions\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(\/socket)?$/i;
+  /^\/api\/v1\/live-sessions\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:\/(socket|commands))?$/i;
 const denied = () => new HttpError(403, "FORBIDDEN", "Live room unavailable");
 const snapshotColumns =
   'id, mode, state, revision, quiz_version_id AS "quizVersionId"';
@@ -61,21 +64,79 @@ export function createLiveQuiz(
     return allowed !== null && request.headers.origin === allowed;
   }
 
-  async function snapshot(id: string, authorization: unknown) {
-    const proof = credentials(authorization);
+  async function snapshot(
+    id: string,
+    proof: ReturnType<typeof credentials>,
+  ): Promise<LiveSnapshot> {
     const result = proof.isHost
       ? await withActor(pool, proof.hash, (client) =>
-          client.query(
+          client.query<LiveSnapshot>(
             `SELECT ${snapshotColumns} FROM public.live_sessions WHERE id = $1`,
             [id],
           ),
         )
-      : await pool.query(
+      : await pool.query<LiveSnapshot>(
           "SELECT * FROM public.read_participant_lobby($1, $2)",
           [id, proof.hash],
         );
     if (!result.rows[0]) throw denied();
     return result.rows[0];
+  }
+
+  const events = createLiveRoomTransport(
+    (request) => {
+      const room = roomPath.exec(request.url ?? "");
+      return room?.[2] === "socket" && originAllowed(request)
+        ? room[1].toLowerCase()
+        : undefined;
+    },
+    (id, authorization) => {
+      const proof = credentials(authorization);
+      return () => snapshot(id, proof);
+    },
+  );
+
+  async function command(id: string, request: IncomingMessage) {
+    const proof = credentials(request.headers.authorization);
+    if (!proof.isHost) throw denied();
+    const body = object(await jsonBody(request), [
+      "command",
+      "expectedRevision",
+    ]);
+    const revision = body.expectedRevision;
+    if (
+      typeof body.command !== "string" ||
+      !["start", "pause", "resume", "end", "archive"].includes(body.command) ||
+      typeof revision !== "string" ||
+      !/^[1-9][0-9]{0,9}$/.test(revision) ||
+      Number(revision) > 2_147_483_647
+    )
+      throw new InvalidInput("Choose a valid command and revision");
+
+    const {
+      rows: [outcome],
+    } = await pool.query<
+      LiveSnapshot & {
+        result: "unauthorised" | "forbidden" | "conflict" | "accepted";
+      }
+    >("SELECT * FROM public.command_live_session($1, $2, $3, $4)", [
+      proof.hash,
+      id,
+      Number(revision),
+      body.command,
+    ]);
+    const { result, ...updated } = outcome;
+    if (result === "unauthorised")
+      throw new HttpError(401, "UNAUTHORISED", "A valid session is required");
+    if (result === "forbidden") throw denied();
+    if (result === "conflict")
+      throw new HttpError(
+        409,
+        "CONFLICT",
+        "The live room changed or cannot perform that command",
+      );
+    events.update(updated.id);
+    return updated;
   }
 
   async function route(
@@ -86,20 +147,22 @@ export function createLiveQuiz(
   ) {
     const room = roomPath.exec(path);
     const isJoin = path === collection + "/join";
-    if (path !== collection && !isJoin && (!room || room[2])) return false;
+    if (path !== collection && !isJoin && (!room || room[2] === "socket"))
+      return false;
     try {
       if (request.headers.origin && !originAllowed(request)) throw denied();
-      const expectedMethod = room ? "GET" : "POST";
+      const expectedMethod = room && !room[2] ? "GET" : "POST";
       if (request.method !== expectedMethod) {
         response.setHeader("Allow", expectedMethod);
         throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method not allowed");
       }
       if (room) {
-        sendJson(
-          response,
-          200,
-          await snapshot(room[1], request.headers.authorization),
-        );
+        const id = room[1].toLowerCase();
+        const body =
+          room[2] === "commands"
+            ? await command(id, request)
+            : await snapshot(id, credentials(request.headers.authorization));
+        sendJson(response, 200, body);
         return true;
       }
       if (isJoin) {
@@ -178,52 +241,5 @@ export function createLiveQuiz(
     return true;
   }
 
-  function attachSockets(server: Server) {
-    const sockets = new WebSocketServer({
-      noServer: true,
-      maxPayload: 512,
-      perMessageDeflate: false,
-    });
-    server.on("upgrade", (request, transport, head) => {
-      const room = roomPath.exec(request.url ?? "");
-      if (
-        !room?.[2] ||
-        !originAllowed(request) ||
-        sockets.clients.size >= 256
-      ) {
-        transport.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
-        return;
-      }
-      sockets.handleUpgrade(request, transport, head, (socket) => {
-        const timeout = setTimeout(() => socket.terminate(), 5000);
-        socket.on("error", () => socket.terminate());
-        socket.once("close", () => clearTimeout(timeout));
-        socket.once("message", async (message, binary) => {
-          try {
-            if (binary) throw denied();
-            const { authorization } = object(JSON.parse(message.toString()), [
-              "authorization",
-            ]);
-            const current = await snapshot(room[1], authorization);
-            socket.send(
-              JSON.stringify({ type: "snapshot", snapshot: current }),
-              () => socket.close(1000),
-            );
-          } catch (error) {
-            const refused =
-              error instanceof HttpError ||
-              error instanceof InvalidInput ||
-              error instanceof SyntaxError;
-            socket.close(refused ? 1008 : 1011);
-          }
-        });
-      });
-    });
-    return () => {
-      for (const socket of sockets.clients) socket.terminate();
-      sockets.close();
-    };
-  }
-
-  return { route, attachSockets };
+  return { route, attachSockets: events.attach };
 }
