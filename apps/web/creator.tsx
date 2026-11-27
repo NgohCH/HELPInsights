@@ -1,7 +1,8 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, type Workspace } from "./api.ts";
 import { Results } from "./results.tsx";
 import { DraftPreview } from "./draft-preview.tsx";
+import { TemplateLibrary } from "./templates.tsx";
 import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
 
 type Draft = { id: string; etag: string };
@@ -11,6 +12,13 @@ export function Creator() {
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [workspaceId, setWorkspaceId] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [starter, setStarter] = useState<SurveyDefinition | null>(null);
+  const titleInput = useRef<HTMLInputElement>(null);
+  const starterQuestion = starter?.pages[0]?.questions[0];
+  const starterOptions =
+    starterQuestion?.type === "single_choice"
+      ? starterQuestion.options
+      : undefined;
   const [ready, setReady] = useState(false);
   const [savedDefinition, setSavedDefinition] =
     useState<SurveyDefinition | null>(null);
@@ -21,6 +29,10 @@ export function Creator() {
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (starter) titleInput.current?.focus();
+  }, [starter]);
 
   async function run(operation: () => Promise<void>) {
     setPending(true);
@@ -60,21 +72,28 @@ export function Creator() {
     const field = (name: string) => String(form.get(name) ?? "").trim();
     const title = field("title");
     const definition: SurveyDefinition = {
+      ...starter,
       schemaVersion: "1",
       title,
       pages: [
         {
-          id: "first",
+          ...(starter?.pages[0] ?? { id: "first" }),
           questions: [
             {
-              id: "question",
-              code: "workshop_question",
+              id: starterQuestion?.id ?? "question",
+              code: starterQuestion?.code ?? "workshop_question",
               type: "single_choice",
               title: field("question"),
-              required: true,
+              required: starterQuestion?.required ?? true,
               options: [
-                { code: "option_1", label: field("option1") },
-                { code: "option_2", label: field("option2") },
+                {
+                  code: starterOptions?.[0]?.code ?? "option_1",
+                  label: field("option1"),
+                },
+                {
+                  code: starterOptions?.[1]?.code ?? "option_2",
+                  label: field("option2"),
+                },
               ],
             },
           ],
@@ -177,22 +196,61 @@ export function Creator() {
                 ))}
               </select>
             </label>
+            {!draft && (
+              <TemplateLibrary
+                token={token}
+                workspaceId={workspaceId}
+                pending={pending}
+                run={run}
+                onClone={(copy, definition) => {
+                  setDraft(copy);
+                  setStarter(definition);
+                  setSavedDefinition(definition);
+                  setReady(true);
+                  setStatus("Template copied to a draft");
+                }}
+              />
+            )}
             <label>
               Survey title
-              <input name="title" maxLength={200} required />
+              <input
+                key={starter ? "template-title" : "new-title"}
+                ref={titleInput}
+                name="title"
+                maxLength={200}
+                defaultValue={starter?.title}
+                required
+              />
             </label>
-            <fieldset>
+            <fieldset key={starter ? "template-question" : "new-question"}>
               <legend>Single-choice question</legend>
               <label>
                 Question
-                <input name="question" maxLength={300} required />
+                <input
+                  name="question"
+                  maxLength={300}
+                  defaultValue={starterQuestion?.title}
+                  required
+                />
               </label>
               <div className="columns">
                 <label>
-                  Option 1<input name="option1" maxLength={160} required />
+                  Option 1
+                  <input
+                    name="option1"
+                    maxLength={160}
+                    defaultValue={starterOptions?.[0]?.label}
+                    required
+                  />
                 </label>
                 <label>
-                  Option 2<input name="option2" maxLength={160} required />
+                  Option 2
+                  <input
+                    name="option2"
+                    maxLength={160}
+                    defaultValue={starterOptions?.[1]?.label}
+                    required
+                  />
                 </label>
               </div>
             </fieldset>

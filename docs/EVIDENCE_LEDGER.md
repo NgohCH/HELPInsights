@@ -23,6 +23,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 - Local runtime passed real PostgreSQL, Chromium, dependency and redacted history scans. The development runner uses pnpm 10.34.9.
 - GitHub `rules/branches/main` returned an empty array (exit 0) and classic protection returned 404. The merge and release gate remains blocked.
 
+
 ## First anonymous survey workflow
 
 - Source `838fa64abe0f4bebb515abe666434145304ad662` passed the exact local PostgreSQL, Chromium and export verification. See [the verification report](../evidence/ENG-007/838fa64abe0f4bebb515abe666434145304ad662.md) for commands, findings and remedies.
@@ -32,3 +33,13 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Chromium and direct PostgreSQL verification passed at `3f423e7fa94e23b09d3f74d4327c5dc4e49e0d7a`. See [the exact-SHA record](../evidence/ENG-006b/3f423e7fa94e23b09d3f74d4327c5dc4e49e0d7a.md).
 - Draft PR #2 GitHub Actions passed for `58d8fc7fddcb1edb3821afd9fa39fc77b49101e3` across [runtime-required](https://github.com/NgohCH/HELPInsights/actions/runs/46008917842) and [docs-contract](https://github.com/NgohCH/HELPInsights/actions/runs/46008917660).
+
+## ENG-008a curated template preview and copy
+
+- Source commit `b494970fcde1e0bec0381a0e316359632fc1b8f5`. Fifteen real PostgreSQL integration tests, two security tests and three Chromium tests passed on the recorded tree. The scoped clone rollback regression and role denials passed. See the [exact-source evidence](../evidence/ENG-008a/b494970fcde1e0bec0381a0e316359632fc1b8f5.md).
+
+
+## Preview and template integration
+
+- Chromium first reproduced that Preview draft stayed disabled after cloning. The combined creator now keeps the clone response as its saved definition. The repaired browser test checks the copied question and option, return focus, and the private draft SQL record.
+- `corepack.cmd pnpm test:stack` exited 0 in disposable Compose project `helpinsights-test-b440bff8f6c3`. Fifteen direct PostgreSQL integration, two security and four Chromium tests passed. The project volume was removed.

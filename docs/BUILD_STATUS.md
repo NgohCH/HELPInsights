@@ -2,10 +2,13 @@
 
 | Scope | Status | Evidence |
 | --- | --- | --- |
-| Environment entry gate | PASS | Clean source baseline `5d5e443d13328a07a71810cd90eb3a9785a3c902`. Docker PostgreSQL persisted SQL across restart. |
-| ENG-001 and ENG-002 development bootstrap | VERIFIED_INTEGRATION | Local and GitHub documentation and runtime checks passed on the [bootstrap draft PR](https://github.com/NgohCH/HELPInsights/pull/1). |
-| ENG-003 through ENG-007 first anonymous survey slice | VERIFIED_INTEGRATION | Exact commit `838fa64abe0f4bebb515abe666434145304ad662` passed real PostgreSQL and Chromium create, publish, respond, restart, results and JASP ZIP checks, with independent review. |
-| Guided and expert authoring, later modules and Live Quiz Arena | NOT_STARTED | Remaining implementation and release scope is governed by [the task graph](TASK_GRAPH.md). |
-| Merge and production release | BLOCKED | GitHub reported no active main branch protection. Production approval and remaining release evidence are pending. |
+| Environment entry gate | PASS | Clean source baseline `5d5e443d13328a07a71810cd90eb3a9785a3c902`. PostgreSQL persisted SQL across restart. |
+| ENG-001 and ENG-002 bootstrap | VERIFIED_INTEGRATION | Local and GitHub checks passed on [draft PR #1](https://github.com/NgohCH/HELPInsights/pull/1). |
+| ENG-003 through ENG-007 first anonymous survey roundtrip | VERIFIED_INTEGRATION | Opened in [draft PR #2](https://github.com/NgohCH/HELPInsights/pull/2). |
+| ENG-006b saved draft preview | VERIFIED_INTEGRATION | Opened in [draft PR #3](https://github.com/NgohCH/HELPInsights/pull/3). |
+| ENG-008a curated template | VERIFIED_INTEGRATION | Opened in [draft PR #4](https://github.com/NgohCH/HELPInsights/pull/4). |
+| Combined preview and template development branch | VERIFIED_INTEGRATION | Chromium exercised template preview, copy, saved draft preview and editing together. |
+| Other platform features | NOT_STARTED | Track remaining scope in [the task graph](TASK_GRAPH.md). |
+| Production release | BLOCKED | Branch protection, required evidence and authorised approval remain pending. |
 
-The verified slice uses synthetic development sessions. See the [evidence ledger](EVIDENCE_LEDGER.md) for exact scope and remaining review risks.
+See [the evidence ledger](EVIDENCE_LEDGER.md).
