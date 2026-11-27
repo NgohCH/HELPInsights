@@ -369,7 +369,14 @@ paths:
       tags:
       - Survey
       operationId: publishSurvey
-      description: Validate and snapshot an immutable survey version. NPS questions require active workspace approval at publication.
+      description: Validate and snapshot an immutable survey version. NPS questions require active workspace approval at publication. Supply the saved draft ETag to require the same revision.
+      parameters:
+      - name: If-Match
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Saved draft ETag. A different revision returns 409 without publishing.
       responses:
         '201':
           description: New published version
@@ -381,6 +388,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /surveys/{surveyId}/versions:
     parameters:
     - $ref: '#/components/parameters/SurveyId'
