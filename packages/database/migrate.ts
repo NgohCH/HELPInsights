@@ -37,6 +37,7 @@ export async function migrate(pool: Pool, migrations: Migration[]) {
   let discardConnection = false;
   try {
     await client.query("BEGIN");
+    await client.query("SET LOCAL search_path TO public");
     await client.query("SET LOCAL lock_timeout = '30s'");
     await client.query("SET LOCAL statement_timeout = '120s'");
     await client.query("SELECT pg_advisory_xact_lock(7249101)");
