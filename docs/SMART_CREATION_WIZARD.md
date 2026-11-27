@@ -1,6 +1,6 @@
 # Smart Creation Wizard — Functional and UX specification
 
-**Status:** mandatory unified-build requirement; not implemented or verified. **Owner:** assign in repository. **Personas:** ordinary staff, lecturer, student survey creator (if authorised), researcher, workspace reviewer. **British English** in copy.
+**Status:** The [after-class feedback development slice](../evidence/ENG-006d/926b185a51e517cdef4845b3e02d13276b400724.md) is verified. The remaining unified-build requirements and release gates are open. **Owner:** assign in repository. **Personas:** ordinary staff, lecturer, student survey creator (if authorised), researcher, workspace reviewer. **British English** in copy.
 
 ## Product goal
 
