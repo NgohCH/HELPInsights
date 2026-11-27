@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.4-development
-  description: The development runtime supports anonymous survey creation, publication, submission, analytics and CSV exports. The remaining design endpoints describe planned features.
+  version: 0.2.9-development
+  description: Development coverage includes anonymous surveys, CSV export, curated templates, operations, opt-in Live Poll, NPS approval and retention holds.
 servers:
 - url: https://survey.example.org/api/v1
   description: Example only
@@ -11,13 +11,15 @@ security:
 tags:
 - name: Health
 - name: Workspace
+- name: Feature catalogue
 - name: Survey
+- name: Template
 - name: Respondent
 - name: Reporting
 - name: Notices
 - name: Administration
 - name: Live Quiz Arena
-  description: Proposed real-time quiz hosting/join/scoring control APIs. Not implemented.
+  description: Development Live Poll lobby, question controls, ballots and the snapshot stream. The dedicated historical result endpoint describes a planned feature.
 paths:
   /health/live:
     get:
@@ -77,6 +79,186 @@ paths:
                   $ref: '#/components/schemas/Workspace'
         '401':
           $ref: '#/components/responses/Unauthorised'
+  /templates:
+    get:
+      tags:
+      - Template
+      operationId: listCuratedTemplates
+      responses:
+        '200':
+          description: Curated global templates available to an authenticated session
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TemplateSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /templates/{templateId}:
+    parameters:
+    - $ref: '#/components/parameters/TemplateId'
+    get:
+      tags:
+      - Template
+      operationId: previewCuratedTemplate
+      responses:
+        '200':
+          description: Read-only preview and current revision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplatePreview'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /templates/{templateId}/clone:
+    parameters:
+    - $ref: '#/components/parameters/TemplateId'
+    post:
+      tags:
+      - Template
+      operationId: cloneCuratedTemplate
+      description: Copies the supplied current template revision into a new private anonymous draft. Requires an owner or editor role in the destination workspace and uses that workspace's retention policy. Each successful request creates a new survey.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloneTemplateRequest'
+      responses:
+        '201':
+          description: Independent workspace draft containing the copied definition
+          headers:
+            ETag:
+              description: Initial draft revision for subsequent If-Match requests
+              schema:
+                type: string
+                const: '"1"'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClonedSurveyDraft'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request body exceeds the size limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '415':
+          description: Send the request as application/json
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /workspaces/{workspaceId}/features/nps:
+    parameters:
+    - $ref: '#/components/parameters/WorkspaceId'
+    get:
+      tags:
+      - Feature catalogue
+      operationId: getNpsFeature
+      description: List the NPS capability, current access and visible recent request history. Request history is visible to its requester and explicitly delegated workspace reviewers.
+      responses:
+        '200':
+          description: Workspace-scoped NPS catalogue entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NpsFeature'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /workspaces/{workspaceId}/features/nps/requests:
+    parameters:
+    - $ref: '#/components/parameters/WorkspaceId'
+    post:
+      tags:
+      - Feature catalogue
+      operationId: requestNpsAccess
+      description: Workspace owners or editors can request access for anonymous surveys. A workspace can have one pending request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NpsRequestInput'
+      responses:
+        '201':
+          description: Pending NPS request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NpsRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /workspaces/{workspaceId}/features/nps/requests/{requestId}/decision:
+    parameters:
+    - $ref: '#/components/parameters/WorkspaceId'
+    - name: requestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      tags:
+      - Feature catalogue
+      operationId: decideNpsAccess
+      description: A delegated reviewer can approve or deny another member's request. Repeating the recorded decision as the same reviewer returns the prior result and preserves expiry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NpsDecisionInput'
+      responses:
+        '200':
+          description: Recorded decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NpsRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /surveys:
     get:
       tags:
@@ -153,7 +335,7 @@ paths:
       tags:
       - Survey
       operationId: replaceDraftDefinition
-      description: Replace editable draft after optimistic concurrency check. No editing of published versions.
+      description: Replace an editable draft after checking its revision. NPS authoring requires active workspace approval. Published versions are immutable.
       parameters:
       - name: If-Match
         in: header
@@ -187,7 +369,7 @@ paths:
       tags:
       - Survey
       operationId: publishSurvey
-      description: Validate and snapshot an immutable survey version.
+      description: Validate and snapshot an immutable survey version. NPS questions require active workspace approval at publication.
       responses:
         '201':
           description: New published version
@@ -231,6 +413,74 @@ paths:
                 $ref: '#/components/schemas/Survey'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /surveys/{surveyId}/retention:
+    parameters:
+    - $ref: '#/components/parameters/SurveyId'
+    get:
+      tags:
+      - Survey
+      operationId: getSurveyRetention
+      description: Returns retention disposition and deadlines to a survey workspace member. Missing and out-of-scope surveys return the same response.
+      responses:
+        '200':
+          description: Redacted survey retention summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyRetention'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /surveys/{surveyId}/retention/holds:
+    parameters:
+    - $ref: '#/components/parameters/SurveyId'
+    post:
+      tags:
+      - Survey
+      operationId: approveSurveyRetentionHold
+      description: Appends an approved hold for this survey. Requires an explicit hold approver appointment in the workspace. The database uses its current time and the verified session actor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetentionHoldInput'
+      responses:
+        '201':
+          description: Hold approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovedRetentionHold'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request body is too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '415':
+          description: Request body must be JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /public/s/{publicToken}:
     parameters:
     - $ref: '#/components/parameters/PublicToken'
@@ -419,7 +669,7 @@ paths:
       tags:
       - Administration
       operationId: getAdminHealth
-      description: Requires ops:read. No private respondent contents.
+      description: Requires a platform operations viewer or operator. Reports API, database and migration readiness. Returns 503 if access or health cannot be verified because a dependency is unavailable.
       responses:
         '200':
           description: Privileged operational health
@@ -427,8 +677,72 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdminHealth'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /admin/incidents:
+    get:
+      tags:
+      - Administration
+      operationId: listAdminIncidents
+      description: Requires a platform operations viewer or operator. Returns the latest 100 platform incident events, newest first, without actor attribution or survey data.
+      responses:
+        '200':
+          description: Redacted incident history
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items:
+                  $ref: '#/components/schemas/OperationIncident'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    post:
+      tags:
+      - Administration
+      operationId: recordAdminIncident
+      description: Requires a platform operations operator. Appends a structured event with server-generated time, identifier and audit attribution.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationIncidentInput'
+      responses:
+        '201':
+          description: Recorded incident event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationIncident'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          description: Request body is too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '415':
+          description: Request body must be JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /admin/notices:
     get:
       tags:
@@ -477,42 +791,46 @@ paths:
           $ref: '#/components/responses/Forbidden'
   /live-sessions:
     post:
-      tags:
-      - Live Quiz Arena
+      tags: [Live Quiz Arena]
       operationId: createLiveQuizSession
-      summary: Create a live session from a published quiz version
+      summary: Create a Live Poll lobby from a published unconditional single-choice version
+      description: >
+        Development-only and disabled by default. The workspace owner or editor
+        who creates the lobby is its presenter. The join PIN is returned once.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-              - quizVersionId
-              - mode
+              required: [quizVersionId, mode]
               properties:
-                quizVersionId:
-                  type: string
-                mode:
-                  type: string
-              additionalProperties: true
+                quizVersionId: { type: string, format: uuid }
+                mode: { const: live_poll }
+              additionalProperties: false
       responses:
         '201':
-          description: Persisted live room with host-controlled settings
+          description: Presenter lobby with a 30-minute join PIN
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                allOf:
+                - $ref: '#/components/schemas/LiveLobbySnapshot'
+                - type: object
+                  required: [quizVersionId, pin, pinExpiresAt]
+                  properties:
+                    quizVersionId: { type: string, format: uuid }
+                    pin: { type: string, pattern: '^[0-9]{8}$' }
+                    pinExpiresAt: { type: string, format: date-time }
         '400': &id001
           description: Request refused by policy, permission or state.
+        '401': *id001
         '403': *id001
   /live-sessions/join:
     post:
-      tags:
-      - Live Quiz Arena
+      tags: [Live Quiz Arena]
       operationId: joinLiveQuizSession
-      summary: Exchange an expiring join PIN for a session-scoped participant capability
+      summary: Exchange an expiring PIN for an eight-hour anonymous capability
       security: []
       requestBody:
         required: true
@@ -520,27 +838,32 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-              - pin
+              required: [pin]
               properties:
-                pin:
-                  type: string
-              additionalProperties: true
+                pin: { type: string, pattern: '^[0-9]{8}$' }
+              additionalProperties: false
       responses:
         '200':
-          description: Scoped participant session and snapshot
+          description: Room-scoped capability and limited participant snapshot
           content:
             application/json:
               schema:
                 type: object
-                additionalProperties: true
+                required: [participantToken, snapshot]
+                properties:
+                  participantToken: { type: string, pattern: '^[A-Za-z0-9_-]{43}$' }
+                  snapshot:
+                    $ref: '#/components/schemas/LiveLobbySnapshot'
+                additionalProperties: false
         '403': *id001
         '429': *id001
   /live-sessions/{sessionId}:
     get:
-      tags:
-      - Live Quiz Arena
+      tags: [Live Quiz Arena]
       operationId: getLiveQuizSession
+      security:
+      - bearerAuth: []
+      - liveParticipantAuth: []
       parameters:
       - &id002
         name: sessionId
@@ -551,19 +874,42 @@ paths:
           format: uuid
       responses:
         '200':
-          description: Authorised current session snapshot
+          description: Authorised lobby snapshot. Only the presenter receives quizVersionId.
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '#/components/schemas/LiveLobbySnapshot'
+        '401': *id001
         '403': *id001
-        '404': *id001
+  /live-sessions/{sessionId}/socket:
+    get:
+      tags: [Live Quiz Arena]
+      operationId: connectLiveQuizSnapshot
+      summary: Retrieve the durable lobby snapshot over a same-origin WebSocket
+      description: >
+        Send one text frame containing a JSON object with its authorization field
+        set to a Bearer or Participant credential. The server sends the current
+        role-filtered state and committed updates as JSON frames with type snapshot.
+        A reconnect starts from the current durable state. Lifecycle revisions increase
+        but vote receipts and presenter counts may update within a revision. Send commands and votes through the HTTP API.
+        The server requires an allowed Origin.
+      security: []
+      parameters:
+      - *id002
+      responses:
+        '101':
+          description: WebSocket upgraded. Authorization is checked before sending a snapshot.
+        '403': *id001
   /live-sessions/{sessionId}/commands:
     post:
-      tags:
-      - Live Quiz Arena
+      tags: [Live Quiz Arena]
       operationId: commandLiveQuizSession
+      summary: Apply a presenter lifecycle command
+      description: >
+        Commands require the host and the current revision. Start moves a lobby
+        to running. Pause and resume switch between running and paused. End
+        closes a lobby, running or paused session. Archive archives an ended
+        session. Next question opens the next published choice question in order. Close question closes voting. Accepted transitions advance the persisted revision once.
       parameters:
       - *id002
       requestBody:
@@ -572,61 +918,70 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-              - command
-              - expectedRevision
+              required: [command, expectedRevision]
               properties:
                 command:
                   type: string
+                  enum: [start, pause, resume, end, archive, next_question, close_question]
                 expectedRevision:
                   type: string
-              additionalProperties: true
+                  pattern: '^[1-9][0-9]{0,9}$'
+                  description: Decimal string representing the current revision, at most 2147483647.
+              additionalProperties: false
       responses:
         '200':
-          description: Accepted presenter state transition
+          description: Committed presenter snapshot with the new revision
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '#/components/schemas/LiveLobbySnapshot'
+        '400': *id001
+        '401': *id001
         '403': *id001
-        '409': *id001
+        '409':
+          description: The expected revision is stale or the current state disallows the command.
   /live-sessions/{sessionId}/answers:
     post:
-      tags:
-      - Live Quiz Arena
+      tags: [Live Quiz Arena]
       operationId: submitLiveQuizAnswer
-      security: []
+      summary: Cast one vote per published question as an admitted guest
+      description: >
+        New votes require the running room's open question and its opening
+        revision. Retrying the same key with exactly the same payload returns
+        the original server receipt. A conflicting payload or vote returns 409.
+      security:
+      - liveParticipantAuth: []
       parameters:
       - *id002
       - name: Idempotency-Key
         in: header
         required: true
-        schema:
-          type: string
+        schema: { type: string, format: uuid }
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-              - questionId
-              - answer
+              required: [questionId, answer, openedRevision]
               properties:
-                questionId:
-                  type: string
-                answer:
-                  type: string
-              additionalProperties: true
+                questionId: { type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$' }
+                answer: { type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$' }
+                openedRevision: { type: integer, minimum: 1, maximum: 2147483647 }
+              additionalProperties: false
       responses:
         '200':
-          description: Durable answer receipt or same-key repeat receipt
+          description: Durable vote receipt or exact repeat receipt
           content:
             application/json:
               schema:
                 type: object
-                additionalProperties: true
+                required: [questionId, acceptedAt]
+                properties:
+                  questionId: { type: string }
+                  acceptedAt: { type: string, format: date-time }
+        '400': *id001
+        '401': *id001
         '403': *id001
         '409': *id001
         '422': *id001
@@ -653,7 +1008,26 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    liveParticipantAuth:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: Use the Participant prefix followed by the capability from the join response.
   parameters:
+    WorkspaceId:
+      name: workspaceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TemplateId:
+      name: templateId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z][a-z0-9-]*$'
     SurveyId:
       name: surveyId
       in: path
@@ -716,6 +1090,54 @@ components:
           schema:
             $ref: '#/components/schemas/ApiError'
   schemas:
+    LiveLobbySnapshot:
+      type: object
+      required: [id, mode, state, revision]
+      properties:
+        id: { type: string, format: uuid }
+        mode: { const: live_poll }
+        state: { enum: [lobby, running, paused, ended, archived] }
+        revision: { type: integer, minimum: 1 }
+        quizVersionId: { type: string, format: uuid }
+        question:
+          type: object
+          required: [id, title, options, openedRevision, open]
+          properties:
+            id: { type: string }
+            title: { type: string }
+            openedRevision: { type: integer, minimum: 1 }
+            open: { type: boolean }
+            options:
+              type: array
+              items:
+                type: object
+                required: [code, label]
+                properties:
+                  code: { type: string }
+                  label: { type: string }
+        hasVoted:
+          type: boolean
+          description: Participant only. Whether the authenticated guest voted on this question.
+        hasNextQuestion:
+          type: boolean
+          description: Presenter only. Whether another published question follows the active one.
+        turnout:
+          description: Presenter only. Rounded down to a multiple of five. Null below five.
+          type: [integer, 'null']
+          minimum: 5
+        results:
+          description: Presenter only. Exact totals after closing when all nonempty cells and the unanswered complement pass the minimum of five.
+          type: [object, 'null']
+          properties:
+            total: { type: integer, minimum: 5 }
+            counts:
+              type: array
+              items:
+                type: object
+                required: [code, count]
+                properties:
+                  code: { type: string }
+                  count: { type: integer, minimum: 0 }
     ApiError:
       type: object
       required:
@@ -781,6 +1203,59 @@ components:
           type: string
           format: uuid
           description: Default retention policy when configured.
+    TemplateSummary:
+      type: object
+      required: [id, revision, title, summary, visibility, publisher, usage]
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z][a-z0-9-]*$'
+        revision:
+          type: integer
+          minimum: 1
+        title:
+          type: string
+        summary:
+          type: string
+        visibility:
+          const: global
+        publisher:
+          type: string
+        usage:
+          type: string
+    TemplatePreview:
+      allOf:
+      - $ref: '#/components/schemas/TemplateSummary'
+      - type: object
+        required: [definition]
+        properties:
+          definition:
+            $ref: '#/components/schemas/SurveyDefinition'
+    CloneTemplateRequest:
+      type: object
+      additionalProperties: false
+      required: [workspaceId, revision]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        revision:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+          description: Current revision returned by the template preview
+    ClonedSurveyDraft:
+      allOf:
+      - $ref: '#/components/schemas/Survey'
+      - type: object
+        required: [draft]
+        properties:
+          status:
+            const: draft
+          privacyMode:
+            const: anonymous
+          draft:
+            $ref: '#/components/schemas/SurveyDefinition'
     CreateSurveyRequest:
       type: object
       additionalProperties: false
@@ -806,6 +1281,87 @@ components:
         retentionPolicyId:
           type: string
           format: uuid
+    NpsFeature:
+      type: object
+      required: [featureKey, title, description, enabled, canRequest, canReview, requests]
+      properties:
+        featureKey:
+          const: nps
+        title:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+          description: The caller can author NPS in this workspace now.
+        canRequest:
+          type: boolean
+        canReview:
+          type: boolean
+        requests:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/NpsRequest'
+    NpsRequestInput:
+      type: object
+      additionalProperties: false
+      required: [purpose, dataClassification]
+      properties:
+        purpose:
+          type: string
+          minLength: 1
+          maxLength: 300
+        dataClassification:
+          const: anonymous
+    NpsDecisionInput:
+      type: object
+      additionalProperties: false
+      required: [decision, rationale]
+      properties:
+        decision:
+          enum: [approve, deny]
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 300
+        expiresInDays:
+          type: integer
+          minimum: 1
+          maximum: 90
+      if:
+        properties:
+          decision:
+            const: approve
+      then:
+        required: [expiresInDays]
+      else:
+        not:
+          required: [expiresInDays]
+    NpsRequest:
+      type: object
+      required: [id, purpose, dataClassification, status, requestedAt, decidedAt, rationale, expiresAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        purpose:
+          type: string
+        dataClassification:
+          const: anonymous
+        status:
+          enum: [pending, approved, denied, expired]
+        requestedAt:
+          type: string
+          format: date-time
+        decidedAt:
+          type: [string, 'null']
+          format: date-time
+        rationale:
+          type: [string, 'null']
+        expiresAt:
+          type: [string, 'null']
+          format: date-time
     Survey:
       type: object
       required:
@@ -909,6 +1465,7 @@ components:
           - single_choice
           - multiple_choice
           - number
+          - nps
           - rating
           - dropdown
           - date
@@ -917,6 +1474,14 @@ components:
           type: string
         required:
           type: boolean
+        visibleWhen:
+          type: object
+          description: Show this question only when the respondent selects the given option of an earlier unconditional single-choice question. Required checks apply while visible.
+          additionalProperties: false
+          required: [questionId, optionCode]
+          properties:
+            questionId: { type: string }
+            optionCode: { type: string }
         options:
           type: array
           items:
@@ -1137,28 +1702,117 @@ components:
           format: date-time
     AdminHealth:
       type: object
+      additionalProperties: false
       required:
       - status
       - components
       properties:
         status:
           type: string
-          enum:
-          - ok
-          - degraded
-          - down
+          enum: [ok, degraded]
         components:
           type: array
+          minItems: 3
+          maxItems: 3
           items:
             type: object
+            additionalProperties: false
             required:
             - name
             - status
             properties:
               name:
-                type: string
+                $ref: '#/components/schemas/OperationComponent'
               status:
                 type: string
+                enum: [ok, degraded]
+    OperationComponent:
+      type: string
+      enum: [api, database, schema]
+    OperationIncidentState:
+      type: string
+      enum: [detected, recovered]
+    OperationIncidentSeverity:
+      type: string
+      enum: [information, advisory, action_required, critical]
+    OperationIncidentInput:
+      type: object
+      additionalProperties: false
+      required: [component, state, severity]
+      properties:
+        component:
+          $ref: '#/components/schemas/OperationComponent'
+        state:
+          $ref: '#/components/schemas/OperationIncidentState'
+        severity:
+          $ref: '#/components/schemas/OperationIncidentSeverity'
+    OperationIncident:
+      type: object
+      additionalProperties: false
+      required: [id, component, state, severity, recordedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        component:
+          $ref: '#/components/schemas/OperationComponent'
+        state:
+          $ref: '#/components/schemas/OperationIncidentState'
+        severity:
+          $ref: '#/components/schemas/OperationIncidentSeverity'
+        recordedAt:
+          type: string
+          format: date-time
+    SurveyRetention:
+      type: object
+      additionalProperties: false
+      required: [disposition, expiryAt, protectedUntil]
+      properties:
+        disposition:
+          type: string
+          enum: [not_closed, scheduled, missing_deadline, held, eligible]
+        expiryAt:
+          type: [string, 'null']
+          format: date-time
+        protectedUntil:
+          type: [string, 'null']
+          format: date-time
+          description: Latest expiry among active holds.
+    RetentionHoldReason:
+      type: string
+      enum: [legal, research]
+    RetentionHoldInput:
+      type: object
+      additionalProperties: false
+      required: [reason, evidenceReference, expiresAt]
+      properties:
+        reason:
+          $ref: '#/components/schemas/RetentionHoldReason'
+        evidenceReference:
+          type: string
+          format: uuid
+          description: Opaque governance record identifier. No evidence content is stored.
+        expiresAt:
+          type: string
+          format: date-time
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$'
+          description: An explicit future UTC deadline.
+    ApprovedRetentionHold:
+      type: object
+      additionalProperties: false
+      required: [id, reason, appliedAt, expiresAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        reason:
+          $ref: '#/components/schemas/RetentionHoldReason'
+        appliedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
     RetentionStatus:
       type: object
       required:

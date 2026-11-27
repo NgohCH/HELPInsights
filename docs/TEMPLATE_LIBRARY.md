@@ -4,6 +4,10 @@
 
 Help staff start quickly with vetted examples while demonstrating features. Templates are starters, not guaranteed scientifically valid instruments.
 
+## Development slice
+
+ENG-008a includes one global starter, **Event feedback**, revision 1. Authenticated workspace users can browse and preview it. An owner or editor can copy it into a workspace with a configured retention policy. Copying creates a separate anonymous draft and leaves the published starter intact. The preview reads the curated question and options without creating survey, distribution or response records.
+
 ## Initial curated templates and capability showcase
 
 | Template | Type | Demonstrates |

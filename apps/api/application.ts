@@ -38,7 +38,8 @@ type Route = (
 export function createApplication(
   isReady: () => Promise<boolean>,
   route?: Route,
-  assets?: { javascript: Buffer; stylesheet: Buffer },
+  assets?: { javascript: Buffer; stylesheet: Buffer; creatorHelp: Buffer },
+  liveQuiz = false,
 ) {
   return createServer(
     { requestTimeout: 15000, headersTimeout: 10000 },
@@ -53,13 +54,21 @@ export function createApplication(
 
       const requestId = randomUUID();
       const path = request.url?.split("?", 1)[0] ?? "";
-      const publicPage = /^\/respond\/[A-Za-z0-9_-]{43}$/.test(path);
+      const publicPage =
+        /^\/respond\/[A-Za-z0-9_-]{43}$/.test(path) ||
+        (liveQuiz && (path === "/live/host" || path === "/live/join"));
       if (assets && request.method === "GET") {
         if (path === "/assets/main.js") {
           response.writeHead(200, {
             "Content-Type": "text/javascript; charset=utf-8",
           });
           return response.end(assets.javascript);
+        }
+        if (path === "/assets/creator-help.en.json") {
+          response.writeHead(200, {
+            "Content-Type": "application/json; charset=utf-8",
+          });
+          return response.end(assets.creatorHelp);
         }
         if (path === "/assets/main.css") {
           response.writeHead(200, {
@@ -90,6 +99,7 @@ export function createApplication(
       if (
         !publicPage &&
         path !== "/" &&
+        path !== "/admin" &&
         path !== "/api/v1/health/live" &&
         path !== "/api/v1/health/ready"
       ) {
@@ -107,7 +117,7 @@ export function createApplication(
           requestId,
         });
       }
-      if (path === "/" || publicPage) {
+      if (path === "/" || path === "/admin" || publicPage) {
         response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
         return response.end(home);
       }

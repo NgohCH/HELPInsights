@@ -2,6 +2,14 @@
 
 **Purpose:** self-service discovery of functionality while controlling expensive, sensitive and specialist features. This is not an app marketplace, billing engine or substitute for role-based authorisation.
 
+## Development slice
+
+ENG-008b includes one requestable feature, **NPS questions** for anonymous surveys. The workspace owner or editor supplies a purpose. A different, explicitly delegated workspace member records an approval or denial with a rationale. Approval requires 1–90 days of access and the request records the expiry in PostgreSQL. Duplicate approval by the same reviewer preserves the original expiry.
+
+Reviewer delegation is provisioned by controlled database setup in this slice. A delegation belongs to a current workspace member and is removed when that membership ends. The application role cannot issue delegations. Catalogue history is limited to the latest 50 visible requests.
+
+The server checks current entitlement when saving or publishing an NPS definition. Already published NPS surveys continue to accept anonymous whole-number responses from 0 to 10 after approval expires. Results retain their existing small-cell suppression and the JASP codebook labels NPS values ordinal. Computing an aggregate Net Promoter Score is outside this slice.
+
 ## Categories and example feature identifiers
 
 - **Essentials:** standard questions, multipage, drag-and-drop, links/QR, basic reports.

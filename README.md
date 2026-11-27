@@ -23,6 +23,17 @@ Three interfaces share one application backend:
 2. **Respondent experience:** mobile-first survey completion; no account required for public or genuinely anonymous surveys.
 3. **Administration centre:** tenants, workspaces, policies, platform health, security and recovery events, notices, audit trails, and controlled operations.
 
+The development Operations page at /admin shows API, database and migration
+health and up to 100 recent incidents for a session with an explicit platform
+operations role. Operators can record allowlisted incident events through
+the API. Workspace ownership and survey access use separate permissions. See
+[Operations and security](docs/SECURITY_OPERATIONS.md).
+
+The development survey API exposes workspace-scoped retention status and
+hold approval for appointed workspace members. PostgreSQL protects core
+survey data from deletion before expiry and during active holds. See
+[Retention policy and scope](docs/DATA_RETENTION.md).
+
 ## Non-negotiable principles
 
 - Intuitive for non-technical staff, accessible, fast on mobile and consistent across workflows.
@@ -109,6 +120,12 @@ The source repository on GitHub is the single source of truth. See [GitHub, loca
 
 The local development workflow creates and publishes a single-choice survey, collects anonymous responses, and displays results and an authenticated JASP CSV export. It uses a React browser client, PostgreSQL and a separate export worker.
 
+In the creator, choose a workspace and select **Browse templates** to preview **Event feedback**. A workspace owner or editor can select **Use this template** to start an independent anonymous draft under the workspace’s retention policy. The preview does not open a respondent link.
+
+The development **Feature catalogue** lets workspace owners and editors request NPS authoring for anonymous surveys. A delegated workspace reviewer can approve time-limited access or deny the request. Approval unlocks 0–10 NPS questions for authoring and publishing.
+
+During authoring, **Show a follow-up when** lets you attach a required text question to one choice. The saved preview uses the same rule as the published form. Exported blanks can mean a question was hidden or was visible and unanswered. The analytics response count covers the entire published version.
+
 Follow the [development runbook](docs/progress/ENG-001-002-setup.md) to install the locked dependencies and Chromium. Run the full synthetic demonstration from the survey workflow branch:
 
 ```sh
@@ -116,6 +133,12 @@ corepack pnpm test:stack
 ```
 
 The Playwright journey creates its own development session and workspace, submits answers, restarts PostgreSQL, checks stored answers directly in SQL, and reconciles the browser chart and downloaded ZIP. The test retains the chart screenshot and sample archive under `test-results/`. See [build status](docs/BUILD_STATUS.md) for implementation and release scope.
+
+### Local Live Poll lobby
+
+The disposable test stack enables the Live Poll lobby. The normal stack leaves it disabled. Open `/live/host` on the loopback app with a development session token and the ID from an authorised survey's publish response. Use a published version with unconditional single-choice questions. Share the eight-digit PIN with a synthetic guest at `/live/join` within 30 minutes.
+
+The presenter can start, pause, resume, end and archive the poll. The presenter and guest see committed state changes over a same-origin WebSocket. A disconnected tab reconnects to the current PostgreSQL state. Refresh lobby also reopens the connection. Guest credentials stay in the current page and expire after eight hours. Once running, the presenter opens and advances questions in published order. Each guest can cast one vote per question and see their own receipt. The presenter sees turnout in groups of five and may close the question to reveal exact counts when the category and nonvoter groups meet the privacy threshold. See the [voting test criteria](docs/LIVE_POLL_VOTING_TEST_CRITERIA.md) and [remaining Live Quiz Arena release gates](docs/LIVE_QUIZ_ARENA.md).
 
 ## Product governance
 

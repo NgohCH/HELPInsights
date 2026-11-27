@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
 import { api } from "./api.ts";
+import { QuestionFields, readAnswers } from "./question-fields.tsx";
 
 type PublishedSurvey = {
   surveyVersionId: string;
@@ -32,19 +33,10 @@ export function Respondent({ token }: { token: string }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!survey) return;
-    const form = new FormData(event.currentTarget);
-    const answers = survey.definition.pages
-      .flatMap(({ questions }) => questions)
-      .flatMap((question) => {
-        const raw = form.get(question.id);
-        if (typeof raw !== "string" || !raw.trim()) return [];
-        return [
-          {
-            questionId: question.id,
-            value: question.type === "number" ? Number(raw) : raw,
-          },
-        ];
-      });
+    const answers = readAnswers(
+      new FormData(event.currentTarget),
+      survey.definition,
+    );
     submissionKey.current ??= globalThis.crypto.randomUUID();
     setPending(true);
     setError("");
@@ -80,47 +72,7 @@ export function Respondent({ token }: { token: string }) {
         ) : (
           survey && (
             <form onSubmit={submit}>
-              {survey.definition.pages.map((page) => (
-                <section key={page.id} aria-label={page.title || undefined}>
-                  {page.title && <h2>{page.title}</h2>}
-                  {page.questions.map((question) =>
-                    question.type === "single_choice" ? (
-                      <fieldset key={question.id}>
-                        <legend>
-                          {question.title}
-                          {question.required && (
-                            <span className="required"> Required</span>
-                          )}
-                        </legend>
-                        {question.options.map((option) => (
-                          <label className="choice" key={option.code}>
-                            <input
-                              type="radio"
-                              name={question.id}
-                              value={option.code}
-                              required={question.required}
-                            />
-                            {option.label}
-                          </label>
-                        ))}
-                      </fieldset>
-                    ) : (
-                      <label key={question.id}>
-                        {question.title}
-                        <input
-                          type={question.type === "number" ? "number" : "text"}
-                          name={question.id}
-                          step={question.type === "number" ? "any" : undefined}
-                          maxLength={
-                            question.type === "short_text" ? 500 : undefined
-                          }
-                          required={question.required}
-                        />
-                      </label>
-                    ),
-                  )}
-                </section>
-              ))}
+              <QuestionFields definition={survey.definition} />
               <button disabled={pending}>Submit response</button>
             </form>
           )

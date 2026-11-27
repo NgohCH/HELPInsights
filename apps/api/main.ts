@@ -1,10 +1,15 @@
 import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { createApplication } from "./application.ts";
+import { createLiveQuiz } from "./live-quiz.ts";
 import { sessionRoutes } from "./sessions.ts";
 import { surveyRoutes } from "./surveys.ts";
 import { respondentRoutes } from "./respond.ts";
+import { featureRoutes } from "./features.ts";
 import { reportRoutes } from "./reports.ts";
+import { templateRoutes } from "./templates.ts";
+import { operationsRoutes } from "./operations.ts";
+import { retentionRoutes } from "./retention.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -24,24 +29,47 @@ const sessions = sessionRoutes(pool);
 const surveys = surveyRoutes(pool);
 const respondents = respondentRoutes(pool);
 const reports = reportRoutes(pool);
-const [javascript, stylesheet] = await Promise.all([
+const features = featureRoutes(pool);
+const templates = templateRoutes(pool);
+const retention = retentionRoutes(pool);
+const operations = operationsRoutes(pool, (client) =>
+  hasCurrentSchema(client, migrations),
+);
+const liveQuiz =
+  process.env.LIVE_QUIZ_ENABLED === "true"
+    ? createLiveQuiz(
+        pool,
+        process.env.LIVE_QUIZ_PIN_KEY,
+        process.env.LIVE_QUIZ_ORIGIN,
+      )
+    : undefined;
+const [javascript, stylesheet, creatorHelp] = await Promise.all([
   readFile(new URL("../../dist/web/main.js", import.meta.url)),
   readFile(new URL("../../dist/web/main.css", import.meta.url)),
+  readFile(new URL("../web/content/creator-help.en.json", import.meta.url)),
 ]);
 const server = createApplication(
   () => hasCurrentSchema(pool, migrations),
   async (...args) =>
     (await sessions(...args)) ||
+    (await features(...args)) ||
     (await surveys(...args)) ||
+    (await templates(...args)) ||
     (await respondents(...args)) ||
-    (await reports(...args)),
-  { javascript, stylesheet },
+    (await reports(...args)) ||
+    (await operations(...args)) ||
+    (await retention(...args)) ||
+    (liveQuiz ? await liveQuiz.route(...args) : false),
+  { javascript, stylesheet, creatorHelp },
+  Boolean(liveQuiz),
 );
+const closeLiveSockets = liveQuiz?.attachSockets(server);
 server.listen(3000, "0.0.0.0", () =>
   console.log("HELPInsights listening on port 3000"),
 );
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
+    closeLiveSockets?.();
     server.close(() => void pool.end());
   });
 }

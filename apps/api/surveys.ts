@@ -9,6 +9,7 @@ import {
   type SurveyDefinition,
   uuid,
 } from "../../packages/survey-runtime/definition.ts";
+import { requireSurveyFeatureAccess } from "./feature-entitlements.ts";
 import { sendJson } from "./application.ts";
 import { HttpError, readSessionProof, withActor } from "./sessions.ts";
 
@@ -94,12 +95,48 @@ const denied = () =>
 const conflict = () =>
   new HttpError(409, "CONFLICT", "The draft or survey state changed");
 
-async function requireEditor(client: PoolClient, workspaceId: string) {
+export async function requireEditor(client: PoolClient, workspaceId: string) {
   const { rows } = await client.query<{ role: string | null }>(
     "SELECT public.workspace_role($1) AS role",
     [workspaceId],
   );
   if (rows[0].role !== "owner" && rows[0].role !== "editor") throw denied();
+}
+
+export async function createSurveyDraft(
+  client: PoolClient,
+  input: {
+    workspaceId: string;
+    title: string;
+    retentionPolicyId?: string;
+    draft?: SurveyDefinition;
+  },
+) {
+  const { workspaceId, title, retentionPolicyId = null, draft } = input;
+  const {
+    rows: [survey],
+  } = await client.query(
+    `INSERT INTO public.surveys (workspace_id, title, privacy_mode, retention_policy_id)
+     SELECT $1, $2, 'anonymous', id FROM public.retention_policies
+     WHERE workspace_id = $1 AND ($3::uuid IS NULL OR id = $3)
+     RETURNING ${surveyColumns}`,
+    [workspaceId, title, retentionPolicyId],
+  );
+  if (!survey)
+    throw new InvalidInput(
+      retentionPolicyId
+        ? "Retention policy does not belong to this workspace"
+        : "Choose a workspace with a retention policy",
+    );
+  if (draft) {
+    const updated = await client.query(
+      "UPDATE public.surveys SET draft = $2 WHERE id = $1",
+      [survey.id, JSON.stringify(draft)],
+    );
+    if (updated.rowCount !== 1)
+      throw new Error("Initial survey draft was not saved");
+  }
+  return survey;
 }
 
 function setRevision(response: ServerResponse, revision: number) {
@@ -143,17 +180,12 @@ export function surveyRoutes(pool: Pool) {
               throw new InvalidInput(
                 "Only anonymous survey collection is enabled",
               );
-            const result = await client.query(
-              `INSERT INTO public.surveys (workspace_id, title, privacy_mode, retention_policy_id)
-               SELECT $1, $2, 'anonymous', id FROM public.retention_policies
-               WHERE id = $3 AND workspace_id = $1 RETURNING ${surveyColumns}`,
-              [workspace, label(body.title, "Title", 200), policy],
-            );
-            if (!result.rows[0])
-              throw new InvalidInput(
-                "Retention policy does not belong to this workspace",
-              );
-            return { status: 201, body: result.rows[0], revision: 1 };
+            const survey = await createSurveyDraft(client, {
+              workspaceId: workspace,
+              title: label(body.title, "Title", 200),
+              retentionPolicyId: policy,
+            });
+            return { status: 201, body: survey, revision: 1 };
           }
           if (method === "GET") {
             const url = new URL(request.url!, "http://localhost");
@@ -227,6 +259,7 @@ export function surveyRoutes(pool: Pool) {
           )
             throw conflict();
           const draft = parseDefinition(submitted);
+          await requireSurveyFeatureAccess(client, survey.workspaceId, draft);
           await client.query(
             "UPDATE public.surveys SET draft = $2, title = $3, draft_revision = draft_revision + 1 WHERE id = $1",
             [id, JSON.stringify(draft), draft.title],
@@ -243,6 +276,7 @@ export function surveyRoutes(pool: Pool) {
           if (survey.status === "closed") throw conflict();
           if (!draft?.pages.some((page) => page.questions.length))
             throw new InvalidInput("Add a question before publishing");
+          await requireSurveyFeatureAccess(client, survey.workspaceId, draft);
           const definition = JSON.stringify(draft);
           const {
             rows: [version],
@@ -266,10 +300,7 @@ export function surveyRoutes(pool: Pool) {
         if (action === "close" && method === "POST") {
           if (survey.status !== "published") throw conflict();
           const { rows } = await client.query(
-            `UPDATE public.surveys SET status = 'closed', expiry_at = now() + make_interval(days => p.days_after_close)
-             FROM public.retention_policies p WHERE surveys.id = $1 AND p.id = surveys.retention_policy_id
-             RETURNING surveys.id, surveys.workspace_id AS "workspaceId", surveys.title,
-              surveys.privacy_mode AS "privacyMode", surveys.status, surveys.expiry_at AS "expiryAt"`,
+            `UPDATE public.surveys SET status = 'closed' WHERE id = $1 RETURNING ${surveyColumns}`,
             [id],
           );
           return { status: 200, body: rows[0] };

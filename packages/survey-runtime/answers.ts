@@ -1,5 +1,6 @@
 import {
   InvalidInput,
+  isQuestionVisible,
   label,
   object,
   type SurveyDefinition,
@@ -28,6 +29,11 @@ export function parseAnswers(
 
   const answers: Answer[] = [];
   for (const question of questions) {
+    if (!isQuestionVisible(question, byId)) {
+      if (byId.has(question.id))
+        throw new InvalidInput("An answer references a hidden question");
+      continue;
+    }
     if (!byId.has(question.id)) {
       if (question.required)
         throw new InvalidInput("Answer every required question");
@@ -49,6 +55,16 @@ export function parseAnswers(
           questionId: question.id,
           value: label(input, "Answer", 500),
         });
+        break;
+      case "nps":
+        if (
+          typeof input !== "number" ||
+          !Number.isInteger(input) ||
+          input < 0 ||
+          input > 10
+        )
+          throw new InvalidInput("Select a whole number from 0 to 10");
+        answers.push({ questionId: question.id, value: input });
         break;
       case "number":
         if (typeof input !== "number" || !Number.isFinite(input))
