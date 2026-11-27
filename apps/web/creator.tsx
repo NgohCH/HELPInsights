@@ -5,7 +5,10 @@ import { FeatureCatalogue } from "./features.tsx";
 import { DraftPreview } from "./draft-preview.tsx";
 import { TemplateLibrary } from "./templates.tsx";
 import { UserGuide } from "./user-guide.tsx";
-import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
+import type {
+  Question,
+  SurveyDefinition,
+} from "../../packages/survey-runtime/definition.ts";
 
 type Draft = { id: string; etag: string };
 
@@ -13,6 +16,7 @@ export function Creator() {
   const [token, setToken] = useState("");
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [workspaceId, setWorkspaceId] = useState("");
+  const [followUpWhen, setFollowUpWhen] = useState("");
   const [npsWorkspaceId, setNpsWorkspaceId] = useState<string | null>(null);
   const [questionType, setQuestionType] = useState<"single_choice" | "nps">(
     "single_choice",
@@ -92,38 +96,44 @@ export function Creator() {
     const form = new FormData(event.currentTarget);
     const field = (name: string) => String(form.get(name) ?? "").trim();
     const title = field("title");
+    const questionId = starterQuestion?.id ?? "question";
+    const options = [
+      {
+        code: starterOptions?.[0]?.code ?? "option_1",
+        label: field("option1"),
+      },
+      {
+        code: starterOptions?.[1]?.code ?? "option_2",
+        label: field("option2"),
+      },
+    ];
+    const questions: Question[] = [
+      {
+        id: questionId,
+        code: starterQuestion?.code ?? "workshop_question",
+        title: field("question"),
+        required: starterQuestion?.required ?? true,
+        ...(questionType === "nps"
+          ? { type: "nps" }
+          : { type: "single_choice", options }),
+      },
+    ];
+    if (questionType === "single_choice" && followUpWhen) {
+      const optionCode = options[followUpWhen === "option_1" ? 0 : 1].code;
+      questions.push({
+        id: "follow_up",
+        code: "workshop_follow_up",
+        type: "short_text",
+        title: field("followUpQuestion"),
+        required: true,
+        visibleWhen: { questionId, optionCode },
+      });
+    }
     const definition: SurveyDefinition = {
       ...starter,
       schemaVersion: "1",
       title,
-      pages: [
-        {
-          ...(starter?.pages[0] ?? { id: "first" }),
-          questions: [
-            {
-              id: starterQuestion?.id ?? "question",
-              code: starterQuestion?.code ?? "workshop_question",
-              title: field("question"),
-              required: starterQuestion?.required ?? true,
-              ...(questionType === "nps"
-                ? { type: "nps" }
-                : {
-                    type: "single_choice",
-                    options: [
-                      {
-                        code: starterOptions?.[0]?.code ?? "option_1",
-                        label: field("option1"),
-                      },
-                      {
-                        code: starterOptions?.[1]?.code ?? "option_2",
-                        label: field("option2"),
-                      },
-                    ],
-                  }),
-            },
-          ],
-        },
-      ],
+      pages: [{ ...(starter?.pages[0] ?? { id: "first" }), questions }],
     };
 
     setStatus("");
@@ -226,6 +236,7 @@ export function Creator() {
                 value={workspaceId}
                 onChange={(event) => {
                   setQuestionType("single_choice");
+                  setFollowUpWhen("");
                   setWorkspaceId(event.target.value);
                 }}
                 disabled={!!draft || pending}
@@ -251,6 +262,7 @@ export function Creator() {
                   setDraft(copy);
                   setStarter(definition);
                   setQuestionType("single_choice");
+                  setFollowUpWhen("");
                   setSavedDefinition(definition);
                   setReady(true);
                   setStatus("Template copied to a draft");
@@ -273,11 +285,12 @@ export function Creator() {
                 Question type
                 <select
                   value={questionType}
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setQuestionType(
                       event.target.value === "nps" ? "nps" : "single_choice",
-                    )
-                  }
+                    );
+                    setFollowUpWhen("");
+                  }}
                 >
                   <option value="single_choice">Single choice</option>
                   <option value="nps">NPS (0–10)</option>
@@ -320,6 +333,30 @@ export function Creator() {
                     />
                   </label>
                 </div>
+              )}
+              {questionType === "single_choice" && (
+                <>
+                  <div>
+                    <label htmlFor="follow-up-condition">
+                      Show a follow-up when
+                    </label>
+                    <select
+                      id="follow-up-condition"
+                      value={followUpWhen}
+                      onChange={(event) => setFollowUpWhen(event.target.value)}
+                    >
+                      <option value="">No follow-up</option>
+                      <option value="option_1">Option 1 is selected</option>
+                      <option value="option_2">Option 2 is selected</option>
+                    </select>
+                  </div>
+                  {followUpWhen && (
+                    <label>
+                      Follow-up question
+                      <input name="followUpQuestion" maxLength={300} required />
+                    </label>
+                  )}
+                </>
               )}
             </fieldset>
             <div className="actions">

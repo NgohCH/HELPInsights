@@ -68,4 +68,25 @@ test("on mobile a keyboard user previews a starter and edits its private copy", 
     FROM public.surveys WHERE workspace_id = '${workspace}'
   `),
   ).toBe("My event survey|draft|event_usefulness|very_useful");
+
+  await page.getByLabel("Show a follow-up when").selectOption("option_2");
+  await page.getByLabel("Follow-up question").fill("What should we change?");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page.getByRole("status")).toHaveText("Draft saved");
+  await draftPreview.click();
+  const refinement = savedPreview.getByRole("textbox", {
+    name: "What should we change?",
+  });
+  await expect(refinement).toHaveCount(0);
+  await savedPreview
+    .getByRole("radio", { name: "Not useful", exact: true })
+    .check();
+  await expect(refinement).toBeVisible();
+  expect(
+    sql(
+      "SELECT rule->>'questionId', rule->>'optionCode' FROM public.surveys CROSS JOIN LATERAL (SELECT draft->'pages'->0->'questions'->1->'visibleWhen' AS rule) visibility WHERE workspace_id = '" +
+        workspace +
+        "'",
+    ),
+  ).toBe("usefulness|not_useful");
 });

@@ -5,6 +5,7 @@
 | Organisation | Top-level tenant. Every read/write has verified tenant scope. |
 | Workspace | Authorised collaboration boundary within an organisation. |
 | SurveyDefinition | Editable design, questions, pages, logic and metadata; draft only. |
+| Question visibility | An optional match against a stable option code of an earlier unconditional single-choice question. Hidden questions accept no answers. |
 | SurveyVersion | Immutable published snapshot with stable question and option IDs. |
 | Distribution | Channel/campaign referencing exactly one published version. |
 | Participation | Eligibility/attempt ledger; separated from answers for anonymous modes. |

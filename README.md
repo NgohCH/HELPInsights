@@ -124,6 +124,8 @@ In the creator, choose a workspace and select **Browse templates** to preview **
 
 The development **Feature catalogue** lets workspace owners and editors request NPS authoring for anonymous surveys. A delegated workspace reviewer can approve time-limited access or deny the request. Approval unlocks 0–10 NPS questions for authoring and publishing.
 
+During authoring, **Show a follow-up when** lets you attach a required text question to one choice. The saved preview uses the same rule as the published form. Exported blanks can mean a question was hidden or was visible and unanswered. The analytics response count covers the entire published version.
+
 Follow the [development runbook](docs/progress/ENG-001-002-setup.md) to install the locked dependencies and Chromium. Run the full synthetic demonstration from the survey workflow branch:
 
 ```sh
