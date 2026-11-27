@@ -47,8 +47,38 @@ test("the operations migration upgrades a seeded database and its attributed rec
               "VALUES ('api', 'detected', 'advisory', $1) RETURNING id",
             [operator.id]
           );
+          const noticeIndex = migrations.findIndex(migration => migration.name.endsWith('-worker-recovery-notices.sql'));
+          assert.ok(noticeIndex > workerIndex);
+          await migrate(pool, migrations.slice(0, noticeIndex));
+          await pool.query(
+            "INSERT INTO public.platform_operations_memberships (user_id, role) VALUES ($1, 'operator')",
+            [operator.id]
+          );
+          const { rows: [{ episode }] } = await pool.query('SELECT gen_random_uuid() AS episode');
+          await pool.query(
+            "SELECT public.record_export_worker_recovery($1, now() - interval '1 minute')",
+            [episode]
+          );
+          const { rows: [recovered] } = await pool.query(
+            "SELECT id FROM public.operation_incidents WHERE episode_id = $1 AND state = 'recovered'",
+            [episode]
+          );
           await migrate(pool, migrations);
           assert.equal(await hasCurrentSchema(pool, migrations), true);
+          const client = await pool.connect();
+          try {
+            await client.query('BEGIN');
+            await client.query('SET LOCAL ROLE helpinsights_app');
+            await client.query("SELECT set_config('helpinsights.actor_id', $1, true)", [operator.id]);
+            const { rows: [receipt] } = await client.query(
+              'SELECT * FROM public.acknowledge_worker_recovery($1)', [recovered.id]
+            );
+            assert.equal(receipt.outcome, 'acknowledged');
+            assert.ok(receipt.acknowledged_at instanceof Date);
+            await client.query('COMMIT');
+          } finally {
+            client.release();
+          }
           const { rows: [manual] } = await pool.query(
             "SELECT source, actor_id, episode_id, observed_at FROM public.operation_incidents WHERE id = $1",
             [legacy.id]
@@ -112,6 +142,11 @@ test("the operations migration upgrades a seeded database and its attributed rec
       persisted.includes(":schema:recovered:information:" + actor + ":"),
     );
     assert.equal(sql(restored, incident), persisted);
+    const receipts =
+      "SELECT incident_id || ':' || operator_id || ':' || acknowledged_at FROM public.worker_recovery_receipts";
+    const originalReceipt = sql(upgraded, receipts);
+    assert.ok(originalReceipt);
+    assert.equal(sql(restored, receipts), originalReceipt);
   } finally {
     postgres("dropdb", "-U", "helpinsights", upgraded);
     postgres("dropdb", "-U", "helpinsights", restored);

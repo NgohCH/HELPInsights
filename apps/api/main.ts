@@ -6,6 +6,7 @@ import { surveyRoutes } from "./surveys.ts";
 import { respondentRoutes } from "./respond.ts";
 import { reportRoutes } from "./reports.ts";
 import { operationsRoutes } from "./operations.ts";
+import { recoveryNoticeRoutes } from "./recovery-notices.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -25,6 +26,10 @@ const sessions = sessionRoutes(pool);
 const surveys = surveyRoutes(pool);
 const respondents = respondentRoutes(pool);
 const reports = reportRoutes(pool);
+const notices =
+  process.env.HELPINSIGHTS_RECOVERY_NOTICES === "1"
+    ? recoveryNoticeRoutes(pool)
+    : null;
 const operations = operationsRoutes(pool, (client) =>
   hasCurrentSchema(client, migrations),
 );
@@ -39,7 +44,8 @@ const server = createApplication(
     (await surveys(...args)) ||
     (await respondents(...args)) ||
     (await reports(...args)) ||
-    (await operations(...args)),
+    (await operations(...args)) ||
+    (notices ? await notices(...args) : false),
   { javascript, stylesheet },
 );
 server.listen(3000, "0.0.0.0", () =>

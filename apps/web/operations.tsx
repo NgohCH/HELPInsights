@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { api } from "./api.ts";
+import { RecoveryNotices } from "./recovery-notices.tsx";
 
 type Health = {
   status: string;
@@ -21,6 +22,7 @@ export function Operations() {
   const [view, setView] = useState<{
     health: Health;
     incidents: Incident[];
+    sessionToken: string;
   } | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,7 +37,11 @@ export function Operations() {
         api<Health>("/admin/health", { token }),
         api<Incident[]>("/admin/incidents", { token }),
       ]);
-      setView({ health: health.data, incidents: incidents.data });
+      setView({
+        health: health.data,
+        incidents: incidents.data,
+        sessionToken: token,
+      });
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : "Operations unavailable",
@@ -82,6 +88,7 @@ export function Operations() {
               </div>
             ))}
           </dl>
+          <RecoveryNotices token={view.sessionToken} />
           <h2 id="incident-heading">Recent incidents</h2>
           {view.incidents.length === 0 ? (
             <p>No incidents recorded.</p>
