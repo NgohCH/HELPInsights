@@ -7,6 +7,7 @@
 | ENG-003 session and tenant boundary | NOT_STARTED | The isolated workflow branch has the test-first criteria. |
 | Remaining ENG-004–ENG-019 scopes | NOT_STARTED | The first complete survey workflow and later modules await the dependencies in [the task graph](TASK_GRAPH.md). |
 | ENG-009a operations roles, health and incident history | VERIFIED_INTEGRATION | Exact revision `3bf00776434715cdf34d6c3673ff40ca5363e398` passed PostgreSQL permissions, restart, upgrade, restore and Chromium. See the [verification record](../evidence/ENG-009a/3bf00776434715cdf34d6c3673ff40ca5363e398.md). |
+| ENG-012a synthetic case approval and outbox | VERIFIED_INTEGRATION | Exact revision `8ccc76906fec222045f76a94da4f92976c125deb` passed workspace/basis denial, durable deduplication, normal-mode disablement and Chromium triage. See the [verification record](../evidence/ENG-012a/8ccc76906fec222045f76a94da4f92976c125deb.md). |
 | Merge and production release | BLOCKED | GitHub reported no active main branch protection. Human release approval is pending. |
 
 See [the evidence ledger](EVIDENCE_LEDGER.md) for commands and scope.

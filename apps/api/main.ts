@@ -6,6 +6,7 @@ import { surveyRoutes } from "./surveys.ts";
 import { respondentRoutes } from "./respond.ts";
 import { reportRoutes } from "./reports.ts";
 import { operationsRoutes } from "./operations.ts";
+import { caseHandoffRoutes } from "./case-handoff.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -25,6 +26,8 @@ const sessions = sessionRoutes(pool);
 const surveys = surveyRoutes(pool);
 const respondents = respondentRoutes(pool);
 const reports = reportRoutes(pool);
+const handoffs =
+  process.env.NODE_ENV === "test" ? caseHandoffRoutes(pool) : null;
 const operations = operationsRoutes(pool, (client) =>
   hasCurrentSchema(client, migrations),
 );
@@ -39,8 +42,10 @@ const server = createApplication(
     (await surveys(...args)) ||
     (await respondents(...args)) ||
     (await reports(...args)) ||
-    (await operations(...args)),
+    (await operations(...args)) ||
+    (handoffs ? await handoffs(...args) : false),
   { javascript, stylesheet },
+  { testCaseHandoff: handoffs !== null },
 );
 server.listen(3000, "0.0.0.0", () =>
   console.log("HELPInsights listening on port 3000"),
