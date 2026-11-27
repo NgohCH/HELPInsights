@@ -16,7 +16,7 @@
     {
       "key": "publish",
       "title": "Publish and share a link",
-      "body": "Publish the saved draft to create a fixed version of the questionnaire. Use Open respondent link to test the published version in a separate browser context. Responses belong to the version you shared."
+      "body": "Publish the saved draft to create a fixed version of the questionnaire. Use Open respondent link to inspect the published version. Submissions through the published link count in results. Use Preview draft to check example answers before publishing."
     },
     {
       "key": "export",

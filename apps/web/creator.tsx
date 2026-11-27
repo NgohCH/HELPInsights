@@ -25,6 +25,7 @@ export function Creator() {
 
   const [guideTopic, setGuideTopic] = useState<string | null>(null);
   const guideTrigger = useRef<HTMLButtonElement>(null);
+  const guideButton = useRef<HTMLButtonElement>(null);
 
   function openGuide(trigger: HTMLButtonElement, topic = "") {
     guideTrigger.current = trigger;
@@ -33,7 +34,8 @@ export function Creator() {
 
   function closeGuide() {
     setGuideTopic(null);
-    guideTrigger.current?.focus();
+    const trigger = guideTrigger.current;
+    (trigger?.isConnected ? trigger : guideButton.current)?.focus();
   }
 
   async function run(operation: () => Promise<void>) {
@@ -161,6 +163,7 @@ export function Creator() {
           type="button"
           className="secondary"
           aria-controls="creator-user-guide"
+          ref={guideButton}
           aria-expanded={guideTopic !== null}
           onClick={(event) => openGuide(event.currentTarget)}
         >

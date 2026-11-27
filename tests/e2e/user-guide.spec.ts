@@ -44,4 +44,28 @@ test("creators can search the user guide and open contextual preview help", asyn
   ).toBeVisible();
   await guide.getByRole("button", { name: "Close user guide" }).click();
   await expect(help).toBeFocused();
+  await help.click();
+  await preview.getByRole("button", { name: "Close preview" }).click();
+  await guide.getByRole("button", { name: "Close user guide" }).click();
+  await expect(open).toBeFocused();
+});
+
+test("an unavailable help topic asset leaves the creator entry screen usable", async ({
+  page,
+}) => {
+  await page.route("**/assets/creator-help.en.json", (route) =>
+    route.fulfill({
+      json: { version: 1, audience: "creator", topics: [null] },
+    }),
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open user guide" }).click();
+  const guide = page.getByRole("region", { name: "User guide" });
+  await expect(guide.getByRole("alert")).toHaveText(
+    "Guide content could not be loaded. Close the guide and try again.",
+  );
+  await guide.getByRole("button", { name: "Close user guide" }).click();
+  await expect(
+    page.getByRole("button", { name: "Open workspace" }),
+  ).toBeVisible();
 });

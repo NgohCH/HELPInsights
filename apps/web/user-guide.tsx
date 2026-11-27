@@ -35,7 +35,18 @@ export function UserGuide({
         if (
           data.version !== 1 ||
           data.audience !== "creator" ||
-          !Array.isArray(data.topics)
+          !Array.isArray(data.topics) ||
+          data.topics.some(
+            (topic) =>
+              typeof topic?.key !== "string" ||
+              !topic.key.trim() ||
+              typeof topic.title !== "string" ||
+              !topic.title.trim() ||
+              typeof topic.body !== "string" ||
+              !topic.body.trim(),
+          ) ||
+          new Set(data.topics.map((topic) => topic.key)).size !==
+            data.topics.length
         ) {
           throw new Error("Guide content is unavailable");
         }
