@@ -65,3 +65,11 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Preserved operations migration 006 and assigned lobby migration 007 in the combined development branch. Standalone candidate source and test evidence remain in the original worktree and draft.
 - `corepack.cmd pnpm test:stack` exited 0 in `helpinsights-test-22cf96775bcc`. Twenty PostgreSQL integration, two security and six Chromium tests passed. Real presenter and guest lobby sockets, operations persistence, template copy and the survey/JASP roundtrip all ran in the same disposable stack.
+## Searchable creator guide
+
+- The PostgreSQL and Chromium suite passed at `476237eb03493f52a09b8a1ad6dff32266b4becb`. See [the verification record](../evidence/ENG-006c/476237eb03493f52a09b8a1ad6dff32266b4becb.md).
+- Independent source review prompted two failing browser regressions for lost focus and malformed guide content. The corrected behavior passed both.
+
+## Creator guide integration
+
+- `corepack.cmd pnpm test:stack` exited 0 in `helpinsights-test-8cdfdb56e216`. Twenty PostgreSQL integration, two security and eight Chromium tests passed. The guide's asset recovery and keyboard focus tests ran with the survey, template, operations and Live Poll lobby paths.

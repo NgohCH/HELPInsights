@@ -39,9 +39,10 @@ const liveQuiz =
         process.env.LIVE_QUIZ_ORIGIN,
       )
     : undefined;
-const [javascript, stylesheet] = await Promise.all([
+const [javascript, stylesheet, creatorHelp] = await Promise.all([
   readFile(new URL("../../dist/web/main.js", import.meta.url)),
   readFile(new URL("../../dist/web/main.css", import.meta.url)),
+  readFile(new URL("../web/content/creator-help.en.json", import.meta.url)),
 ]);
 const server = createApplication(
   () => hasCurrentSchema(pool, migrations),
@@ -53,7 +54,7 @@ const server = createApplication(
     (await reports(...args)) ||
     (await operations(...args)) ||
     (liveQuiz ? await liveQuiz.route(...args) : false),
-  { javascript, stylesheet },
+  { javascript, stylesheet, creatorHelp },
   Boolean(liveQuiz),
 );
 const closeLiveSockets = liveQuiz?.attachSockets(server);
