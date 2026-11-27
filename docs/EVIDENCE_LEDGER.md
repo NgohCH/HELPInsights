@@ -32,3 +32,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Chromium and direct PostgreSQL verification passed at `3f423e7fa94e23b09d3f74d4327c5dc4e49e0d7a`. See [the exact-SHA record](../evidence/ENG-006b/3f423e7fa94e23b09d3f74d4327c5dc4e49e0d7a.md).
 - Draft PR #2 GitHub Actions passed for `58d8fc7fddcb1edb3821afd9fa39fc77b49101e3` across [runtime-required](https://github.com/NgohCH/HELPInsights/actions/runs/46008917842) and [docs-contract](https://github.com/NgohCH/HELPInsights/actions/runs/46008917660).
+
+## Searchable creator guide
+
+- The PostgreSQL and Chromium suite passed at `476237eb03493f52a09b8a1ad6dff32266b4becb`. See [the verification record](../evidence/ENG-006c/476237eb03493f52a09b8a1ad6dff32266b4becb.md).
+- Independent source review prompted two failing browser regressions for lost focus and malformed guide content. The corrected behavior passed both.
