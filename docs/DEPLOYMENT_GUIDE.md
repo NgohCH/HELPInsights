@@ -24,6 +24,20 @@
 8. Run end-to-end acceptance checks with synthetic data: create/publish/submit/export/delete sample survey; verify dashboard, alerts and health; validate restore procedure.
 9. Deliver installation receipt: release digest, schema version, health/backup results, URLs, optional integration status, warnings and next maintenance tasks. **No secrets in receipt.**
 
+## Wizard checklist and readiness evidence
+
+The operator completes the checklist for the selected environment and audience. Show each check as pending, passed, failed, or skipped for a documented optional component. Record evidence and remediation for failed steps. Required checks must pass before the wizard offers activation.
+
+- [ ] Release and host. Verify the release digest, supported runtime, DNS, HTTPS, network access, capacity, database and storage.
+- [ ] Inputs and secrets. Collect environment, public URL, database and backup settings, operator ownership and protected secret references. Keep secrets out of the checklist and installation receipt.
+- [ ] Entra and access. Confirm the approved tenant and application registration, redirect URLs, eligibility rule, MFA enforcement and first administrator. Verify an authorised creator can publish and a signed-in user without workspace authoring authority is denied.
+- [ ] Survey audiences. Submit to a public survey without University sign-in. Verify a University-only survey accepts an eligible account and denies an ineligible account. Use authorised test accounts and synthetic answers.
+- [ ] Integrations. For each enabled application, record its owner, approved permissions and workspace scope. Verify one permitted API call and one denied out-of-scope call. Record any optional integration left off.
+- [ ] Data and recovery. Review the migration plan, verify database readiness, test backup restoration and smoke-test creation, publication, response and permitted export.
+- [ ] Activation. Review the redacted receipt and record the deployment owner’s approval. For research, the University’s external clearance and consent process governs the study.
+
+The [local installer draft](https://github.com/NgohCH/HELPInsights/pull/21) exercises development readiness and a disposable demo. The production wizard and the institutional verification steps remain open.
+
 ## Required operational commands (to be implemented)
 
 ```
