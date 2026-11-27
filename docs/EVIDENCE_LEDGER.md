@@ -23,6 +23,11 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 - Local runtime passed real PostgreSQL, Chromium, dependency and redacted history scans. The development runner uses pnpm 10.34.9.
 - GitHub `rules/branches/main` returned an empty array (exit 0) and classic protection returned 404. The merge and release gate remains blocked.
 
+## First anonymous survey workflow
+
+- Source `838fa64abe0f4bebb515abe666434145304ad662` passed the exact local PostgreSQL, Chromium and export verification. See [the verification report](../evidence/ENG-007/838fa64abe0f4bebb515abe666434145304ad662.md) for commands, findings and remedies.
+- Bootstrap GitHub docs-contract and runtime-required checks passed on draft PR #1. The survey draft stacks on that branch.
+
 ## ENG-009a operations development slice
 
 - Tested revision `3bf00776434715cdf34d6c3673ff40ca5363e398` on isolated local PostgreSQL 16.16 and Chromium. The stack passed 14 integration, 2 security and 3 browser tests. See the [exact-SHA verification record](../evidence/ENG-009a/3bf00776434715cdf34d6c3673ff40ca5363e398.md).
