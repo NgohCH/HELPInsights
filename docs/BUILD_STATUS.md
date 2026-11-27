@@ -1,10 +1,7 @@
-# Build status (v2.3 package issuance)
+# Build status
 
-- Package: documentation and unattended execution scaffold; application source has not been built.
-- GitHub repository: NOT VERIFIED in current container; no repository URL or SHA assumed.
-- User-reported environment: Docker Engine 29.7.2 with elevated access, public Docker Hub manifest available; NOT reverified in current environment.
-- Preflight: NOT RUN on user's Codex Desktop.
-- PostgreSQL actual transaction and persistence: NOT RUN on user's Docker.
-- Application E2E / security / backup drill: NOT RUN.
-- Runtime-required GitHub gate: intentionally fail-closed until application stack and real tests are implemented.
-- First action: follow docs/PREFLIGHT_STOP_GATE.md. No unattended application development authorised from this package alone without real preflight evidence.
+- Baseline `5d5e443d13328a07a71810cd90eb3a9785a3c902` on `main` matched the GitHub remote and local checkout before development.
+- Mandatory environment preflight passed on the current runner. See the evidence ledger for observed commands, SQL persistence and cleanup.
+- ENG-001–ENG-007 are the first survey workflow. Test criteria are recorded in [the acceptance record](progress/ENG-001-007-acceptance.md).
+- Application implementation and verification are in progress. The environment smoke test establishes infrastructure readiness only.
+- All remaining work packages are NOT_STARTED. Production gates remain pending.
