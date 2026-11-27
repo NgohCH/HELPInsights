@@ -139,3 +139,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-016a synthetic research consent
 
 - Source commit `7534ff6591239a9ab013a33de17e643198cb386f`. Fifteen PostgreSQL integration, two security, three Chromium and four unit tests passed. Decline left no stored rows. The write-failure recovery stored the answer and separate opt-in atomically, and the seeded upgrade preserved open collection. [Exact-source evidence](../evidence/ENG-016a/7534ff6591239a9ab013a33de17e643198cb386f.md).
+
+## Cumulative student-facing survey policy checks
+
+- Source [2edb7592e419](../evidence/ENG-016a/2edb7592e419c784835df19edeccda79aa3a8511.md) passed 53 real PostgreSQL integration, two security, 16 Chromium and seven unit checks. The runner confirmed disposable cleanup. The exact evidence records failed mixed-policy tests, the SQL parameter-count regression and its repair, independent challenge, and the distinction between synthetic fixtures and the university's external eligibility and research process.
+- The guided five-question after-class feedback draft passed GitHub docs and runtime checks in [PR #25](https://github.com/NgohCH/HELPInsights/pull/25). The cumulative disposal guard, private score release and recovery notices passed in PRs #22–24.

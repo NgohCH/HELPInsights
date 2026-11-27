@@ -26,6 +26,7 @@
 | ENG-015a Game Show timed scoring | VERIFIED_INTEGRATION | Standalone private score persistence, deadline, restart, archive and Chromium checks passed on [draft PR #20](https://github.com/NgohCH/HELPInsights/pull/20). Private score release and rankings remain open. |
 | ENG-017a export worker recovery incident | VERIFIED_INTEGRATION | Standalone verified real backend interruption and the same worker completing the export at [draft PR #19](https://github.com/NgohCH/HELPInsights/pull/19). Durable incident buffering and routing remain open. |
 | ENG-018a local install and doctor | VERIFIED_INTEGRATION | Clean Windows local install/demo passed on [draft PR #21](https://github.com/NgohCH/HELPInsights/pull/21). Persistent administrator provisioning and fresh OS/browser dependencies remain open. |
+| Cumulative synthetic policy boundaries | VERIFIED_INTEGRATION | Exact source 2edb7592e419 passed 53 PostgreSQL integration, two security and 16 Chromium checks. Entra eligibility and research governance are external. [Evidence](../evidence/ENG-016a/2edb7592e419c784835df19edeccda79aa3a8511.md). |
 | Remaining platform features | NOT_STARTED | See the uncompleted features and prerequisites in [the task graph](TASK_GRAPH.md). |
 | Production release | BLOCKED | Branch protection, required evidence and authorised approval remain pending. |
 

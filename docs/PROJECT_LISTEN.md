@@ -50,3 +50,7 @@ Triage rules:
 ## Proposed initial KPIs — require approval
 
 95% actionable feedback triaged in 2 working days; 100% accepted cases with an owner; all critical/overdue cases escalated under policy; closure requires evidence. These are proposed targets, not current institutional KPIs.
+
+## University eligibility and research governance
+
+Microsoft Entra is the external authority for institutional identity and student eligibility. The Research Ethics Board clears a research project before kickoff. The university's approved external study process governs participant consent. Apply these boundaries when choosing the minimum information the survey platform may receive. The Registry and consent simulators exercise local failure and privacy behavior with synthetic data.
