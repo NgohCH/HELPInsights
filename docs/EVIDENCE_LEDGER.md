@@ -32,3 +32,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Tested revision `c801b00963a0165c58e468a1723db950bd6dac3f` on isolated PostgreSQL 16.16 and Chromium. The stack passed 18 integration tests, 2 security tests, and 3 browser tests. See the [exact-SHA verification record](../evidence/ENG-010a/c801b00963a0165c58e468a1723db950bd6dac3f.md).
 - Real PostgreSQL tests covered authorisation, stale snapshots, deadline and hold boundaries, seeded migration, and archive restore. Scheduled disposal and post-disposal restore replay remain separate acceptance scope.
+
+## ENG-010b disposal preview and fixture replay
+
+- Tested revision `69d42925f30cf2d76b46a2a0fa22c1a617c0b95e` on isolated PostgreSQL 16.16 and Chromium. The stack passed 20 integration tests, 2 security tests and 3 browser tests. See the [exact-SHA verification record](../evidence/ENG-010b/69d42925f30cf2d76b46a2a0fa22c1a617c0b95e.md).
+- The running API supplies a read-only preview. Cleanup, rollback, retries and stale snapshot replay were exercised in owned synthetic fixture databases.
