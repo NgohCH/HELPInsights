@@ -131,3 +131,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Source [0de928312a2f](../evidence/ENG-015a/0de928312a2fbef0a8fb8dd90ed6cd32cc0dc9c2.md) verified a private version-pinned fixed scoring rule on real PostgreSQL and recovered the same deadline and receipt over Chromium WebSockets. Full Docker passed 21 integration, 2 security and 6 Chromium tests. The scored archive, seeded upgrade and restart replay passed in the same disposable project.
 - The source eligibility guard denied synthetic Registry and Research-consent bindings. Game Show remains opt-in. Results release, rankings, production approval and wider Game Show acceptance remain open.
+
+## ENG-011a synthetic Registry eligibility
+
+- Source commit `e4f63d9b2b24db853c4c08aaecd453e6f56f2687`. Fifteen PostgreSQL integration, two security, three Chromium and five unit tests passed. The Registry-adapter outage and recovery, direct SQL checks, seeded upgrade and absence of eligibility material in response rows passed. This is synthetic test-only and still requires unlinkable one-use collection for production. See the [exact-source evidence](../evidence/ENG-011a/e4f63d9b2b24db853c4c08aaecd453e6f56f2687.md).

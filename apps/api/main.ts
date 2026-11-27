@@ -10,6 +10,7 @@ import { reportRoutes } from "./reports.ts";
 import { templateRoutes } from "./templates.ts";
 import { operationsRoutes } from "./operations.ts";
 import { retentionRoutes } from "./retention.ts";
+import { syntheticRegistry } from "./registry.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -26,8 +27,9 @@ const pool = new pg.Pool({
 pool.on("error", () => console.error("Idle PostgreSQL connection interrupted"));
 
 const sessions = sessionRoutes(pool);
-const surveys = surveyRoutes(pool);
-const respondents = respondentRoutes(pool);
+const registryGate = syntheticRegistry(process.env);
+const surveys = surveyRoutes(pool, registryGate !== null);
+const respondents = respondentRoutes(pool, registryGate);
 const reports = reportRoutes(pool);
 const features = featureRoutes(pool);
 const templates = templateRoutes(pool);

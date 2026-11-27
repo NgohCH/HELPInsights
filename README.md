@@ -129,6 +129,8 @@ The development **Feature catalogue** lets workspace owners and editors request 
 
 During authoring, **Show a follow-up when** lets you attach a required text question to one choice. The saved preview uses the same rule as the published form. Exported blanks can mean a question was hidden or was visible and unanswered. The analytics response count covers the entire published version.
 
+The disposable test stack also starts a private Person Registry simulator for synthetic eligibility checks. Tests publish a restricted test distribution, verify a synthetic credential, and collect an anonymous response. The default local stack uses open survey links. The temporary capability grants access to a restricted test link, and the separate `Idempotency-Key` handles retries of one submission. Simulator outages suspend new verification until recovery. Existing capabilities remain valid until expiry. [Project Listen development scope](docs/PROJECT_LISTEN.md#synthetic-registry-development-slice)
+
 Follow the [development runbook](docs/progress/ENG-001-002-setup.md) to install the locked dependencies and Chromium. Run the full synthetic demonstration from the survey workflow branch:
 
 ```sh

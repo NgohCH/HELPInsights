@@ -8,8 +8,13 @@ type PublishedSurvey = {
   definition: SurveyDefinition;
 };
 
+type SurveyView = PublishedSurvey | { eligibilityRequired: true };
+type VerifiedAccess = { capability: string; expiresAt: string };
+
 export function Respondent({ token }: { token: string }) {
   const [survey, setSurvey] = useState<PublishedSurvey | null>(null);
+  const [eligibilityRequired, setEligibilityRequired] = useState(false);
+  const [access, setAccess] = useState<VerifiedAccess | null>(null);
   const [pending, setPending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -17,9 +22,11 @@ export function Respondent({ token }: { token: string }) {
 
   useEffect(() => {
     let active = true;
-    api<PublishedSurvey>("/public/s/" + token).then(
+    api<SurveyView>("/public/s/" + token).then(
       ({ data }) => {
-        if (active) setSurvey(data);
+        if (!active) return;
+        if ("eligibilityRequired" in data) setEligibilityRequired(true);
+        else setSurvey(data);
       },
       (failure: Error) => {
         if (active) setError(failure.message);
@@ -30,9 +37,47 @@ export function Respondent({ token }: { token: string }) {
     };
   }, [token]);
 
+  async function checkEligibility(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const proof = new FormData(event.currentTarget).get("proof");
+    setPending(true);
+    setError("");
+    try {
+      const path = "/public/s/" + token;
+      const { data: verified } = await api<VerifiedAccess>(
+        path + "/eligibility",
+        {
+          method: "POST",
+          body: { proof },
+        },
+      );
+      const { data } = await api<SurveyView>(path, {
+        headers: { "X-Survey-Capability": verified.capability },
+      });
+      if ("eligibilityRequired" in data)
+        throw new Error("Eligibility could not be confirmed. Check again.");
+      setAccess(verified);
+      setSurvey(data);
+      setEligibilityRequired(false);
+    } catch (failure) {
+      setError(
+        failure instanceof Error ? failure.message : "Eligibility check failed",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!survey) return;
+    if (access && Date.parse(access.expiresAt) <= Date.now()) {
+      setSurvey(null);
+      setAccess(null);
+      setEligibilityRequired(true);
+      setError("Eligibility expired. Check eligibility again.");
+      return;
+    }
     const answers = readAnswers(
       new FormData(event.currentTarget),
       survey.definition,
@@ -43,7 +88,10 @@ export function Respondent({ token }: { token: string }) {
     try {
       await api("/public/s/" + token + "/responses", {
         method: "POST",
-        headers: { "Idempotency-Key": submissionKey.current },
+        headers: {
+          "Idempotency-Key": submissionKey.current,
+          ...(access ? { "X-Survey-Capability": access.capability } : {}),
+        },
         body: { surveyVersionId: survey.surveyVersionId, answers },
       });
       setSubmitted(true);
@@ -64,7 +112,23 @@ export function Respondent({ token }: { token: string }) {
         {survey?.definition.description && (
           <p>{survey.definition.description}</p>
         )}
-        {!survey && !error && <p>Loading survey…</p>}
+        {!survey && !error && !eligibilityRequired && <p>Loading survey…</p>}
+        {eligibilityRequired && (
+          <form onSubmit={checkEligibility}>
+            <p>Use a synthetic Registry credential for this test survey.</p>
+            <label>
+              Synthetic Registry credential
+              <input
+                name="proof"
+                type="password"
+                autoComplete="off"
+                maxLength={128}
+                required
+              />
+            </label>
+            <button disabled={pending}>Check eligibility</button>
+          </form>
+        )}
         {submitted ? (
           <p className="message" role="status">
             Response submitted
