@@ -1,6 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import pg from "pg";
+import { withTransaction } from "../../packages/database/transaction.ts";
 import {
   createExport,
   type ExportSource,
@@ -21,11 +22,8 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => shutdown.abort());
 }
 
-async function processExport() {
-  const client = await pool.connect();
-  let discard = false;
-  try {
-    await client.query("BEGIN");
+function processExport() {
+  return withTransaction(pool, async (client) => {
     await client.query(`
       WITH expired AS (
         SELECT id FROM public.export_jobs WHERE status = 'completed' AND expires_at <= now()
@@ -91,17 +89,7 @@ async function processExport() {
         );
       }
     }
-    await client.query("COMMIT");
-  } catch (error) {
-    try {
-      await client.query("ROLLBACK");
-    } catch {
-      discard = true;
-    }
-    throw error;
-  } finally {
-    client.release(discard);
-  }
+  });
 }
 
 try {
