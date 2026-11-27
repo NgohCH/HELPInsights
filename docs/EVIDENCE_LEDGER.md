@@ -27,3 +27,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Source `838fa64abe0f4bebb515abe666434145304ad662` passed the exact local PostgreSQL, Chromium and export verification. See [the verification report](../evidence/ENG-007/838fa64abe0f4bebb515abe666434145304ad662.md) for commands, findings and remedies.
 - Bootstrap GitHub docs-contract and runtime-required checks passed on draft PR #1. The survey draft stacks on that branch.
+
+## ENG-016a synthetic research consent
+
+- Source commit `7534ff6591239a9ab013a33de17e643198cb386f`. Fifteen PostgreSQL integration, two security, three Chromium and four unit tests passed. Decline left no stored rows. The write-failure recovery stored the answer and separate opt-in atomically, and the seeded upgrade preserved open collection. [Exact-source evidence](../evidence/ENG-016a/7534ff6591239a9ab013a33de17e643198cb386f.md).

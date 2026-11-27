@@ -35,6 +35,10 @@ See [`../api/openapi.yaml`](../api/openapi.yaml) for the initial machine-readabl
 | `GET/POST /webhooks` | 2 | Manage registered outbound subscriptions |
 | Advanced routing, multilingual definitions, research | 2/3 | Introduce only with versioned schemas and stage approval |
 
+## Synthetic research consent
+
+In the disposable test runtime, authorised creators can send `{"researchConsent":"synthetic"}` when publishing a single-choice survey. The public survey payload then includes the immutable `researchConsent` notice. Before sending answers on that link, the respondent supplies `consent` with its exact `versionId` and `accepted: true`. Missing, declined or mismatched consent returns 403. Open links keep their existing form and request shape. The `Idempotency-Key` still identifies a single response retry.
+
 ## JASP-oriented export contract
 
 - `POST /api/v1/surveys/{surveyId}/exports` accepts `format: "jasp_csv_bundle"` in Stage 1, in addition to `csv_bundle`.

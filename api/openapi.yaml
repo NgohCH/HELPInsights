@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.4-development
-  description: The development runtime supports anonymous survey creation, publication, submission, analytics and CSV exports. The remaining design endpoints describe planned features.
+  version: 0.2.5-development
+  description: The development runtime supports anonymous survey creation, publication, submission, analytics and CSV exports. Versioned synthetic consent is available in disposable tests. The remaining design endpoints describe planned features.
 servers:
 - url: https://survey.example.org/api/v1
   description: Example only
@@ -187,7 +187,17 @@ paths:
       tags:
       - Survey
       operationId: publishSurvey
-      description: Validate and snapshot an immutable survey version.
+      description: Validate and snapshot an immutable survey version. In the test runtime, a single-choice survey can opt into a fixed synthetic research consent notice for this publication.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                researchConsent:
+                  const: synthetic
       responses:
         '201':
           description: New published version
@@ -199,6 +209,14 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '415':
+          description: Publication options require application/json
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /surveys/{surveyId}/versions:
     parameters:
     - $ref: '#/components/parameters/SurveyId'
@@ -239,7 +257,7 @@ paths:
       - Respondent
       operationId: getPublishedPublicSurvey
       security: []
-      description: Returns a public-safe published definition; excludes administrative metadata and secrets.
+      description: Returns a public-safe published definition and its immutable consent notice when required by the synthetic test distribution.
       responses:
         '200':
           description: Published questionnaire
@@ -251,6 +269,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /public/s/{publicToken}/responses:
     parameters:
     - $ref: '#/components/parameters/PublicToken'
@@ -288,12 +308,16 @@ paths:
                 $ref: '#/components/schemas/ResponseReceipt'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
         '429':
           $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /surveys/{surveyId}/analytics:
     parameters:
     - $ref: '#/components/parameters/SurveyId'
@@ -975,6 +999,24 @@ components:
           - string
           - 'null'
           format: date-time
+        researchConsent:
+          $ref: '#/components/schemas/ResearchConsentVersion'
+    ResearchConsentVersion:
+      type: object
+      additionalProperties: false
+      required: [id, studyKey, revision, notice]
+      properties:
+        id:
+          type: string
+          format: uuid
+        studyKey:
+          const: synthetic-consent-study
+        revision:
+          type: integer
+          minimum: 1
+        notice:
+          type: string
+          maxLength: 2000
     SubmitResponseRequest:
       type: object
       additionalProperties: false
@@ -985,6 +1027,17 @@ components:
         surveyVersionId:
           type: string
           format: uuid
+        consent:
+          type: object
+          description: Required only when the supplied distribution requests synthetic research consent. The version must match the notice on the link.
+          additionalProperties: false
+          required: [versionId, accepted]
+          properties:
+            versionId:
+              type: string
+              format: uuid
+            accepted:
+              const: true
         answers:
           type: array
           items:

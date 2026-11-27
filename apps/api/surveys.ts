@@ -10,6 +10,10 @@ import {
   uuid,
 } from "../../packages/survey-runtime/definition.ts";
 import { sendJson } from "./application.ts";
+import {
+  syntheticConsentNotice,
+  syntheticStudyKey,
+} from "./research-consent.ts";
 import { HttpError, readSessionProof, withActor } from "./sessions.ts";
 
 export const digest = (value: string) =>
@@ -106,7 +110,7 @@ function setRevision(response: ServerResponse, revision: number) {
   response.setHeader("ETag", '"' + revision + '"');
 }
 
-export function surveyRoutes(pool: Pool) {
+export function surveyRoutes(pool: Pool, syntheticResearchConsent = false) {
   return async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -125,7 +129,11 @@ export function surveyRoutes(pool: Pool) {
       const proof = readSessionProof(request);
       const readsBody =
         (!surveyId && method === "POST") ||
-        (action === "draft" && method === "PUT");
+        (action === "draft" && method === "PUT") ||
+        (action === "publish" &&
+          method === "POST" &&
+          (request.headers["transfer-encoding"] !== undefined ||
+            Number(request.headers["content-length"] ?? 0) > 0));
       const submitted = readsBody ? await jsonBody(request) : undefined;
       await withActor(pool, proof, async (client) => {
         if (!surveyId) {
@@ -243,6 +251,31 @@ export function surveyRoutes(pool: Pool) {
           if (survey.status === "closed") throw conflict();
           if (!draft?.pages.some((page) => page.questions.length))
             throw new InvalidInput("Add a question before publishing");
+          const publishOptions =
+            submitted === undefined
+              ? {}
+              : object(submitted, ["researchConsent"]);
+          const researchConsent = publishOptions.researchConsent;
+          if (researchConsent !== undefined) {
+            if (researchConsent !== "synthetic")
+              throw new InvalidInput(
+                "Choose a supported research consent option",
+              );
+            if (!syntheticResearchConsent)
+              throw new HttpError(
+                503,
+                "UNAVAILABLE",
+                "Synthetic research consent is unavailable",
+              );
+            if (
+              draft.pages.some(({ questions }) =>
+                questions.some(({ type }) => type !== "single_choice"),
+              )
+            )
+              throw new InvalidInput(
+                "Synthetic consent surveys support only single-choice questions",
+              );
+          }
           const definition = JSON.stringify(draft);
           const {
             rows: [version],
@@ -257,6 +290,18 @@ export function surveyRoutes(pool: Pool) {
             "INSERT INTO public.distributions (token_hash, survey_version_id) VALUES ($1, $2)",
             [digest(publicToken), version.id],
           );
+          if (researchConsent === "synthetic") {
+            await client.query(
+              `INSERT INTO public.research_consent_versions
+                (survey_version_id, study_key, revision, notice) VALUES ($1, $2, $3, $4)`,
+              [
+                version.id,
+                syntheticStudyKey,
+                version.version,
+                syntheticConsentNotice,
+              ],
+            );
+          }
           await client.query(
             "UPDATE public.surveys SET status = 'published' WHERE id = $1",
             [id],

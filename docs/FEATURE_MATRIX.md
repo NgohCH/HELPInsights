@@ -21,6 +21,12 @@ This file tracks **development scope for all stages**. Production enablement is 
 
 **Feature ownership and detailed test cases:** developers must expand this matrix into issues/PRs with evidence links; avoid treating this matrix as completion proof.
 
+## Synthetic research consent development slice
+
+ENG-016a covers one voluntary, fixed synthetic notice on each opted-in test distribution. Only anonymous single-choice surveys are supported in this path. The respondent sees the notice before completing the form. An accepted response and a separate minimal affirmative consent event commit together. The event stores no timestamp, actor, answer or response pointer. Declining sends no answer.
+
+The separate tables reduce direct data linkage. Privileged database transaction metadata and small cohorts can still support correlation. Academic consent wording, ethics approval, study authoring and retention, withdrawal, reproducible assignment, research scoring and export, longitudinal linking and production activation require separate evidence and approval.
+
 ## Extended full-scope feature matrix (all NOT IMPLEMENTED / NOT VERIFIED until tested)
 
 | Module | Required end-to-end proof | Release control |
