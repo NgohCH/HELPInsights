@@ -1,9 +1,11 @@
 export type Option = { code: string; label: string };
+export type QuestionVisibility = { questionId: string; optionCode: string };
 export type Question = {
   id: string;
   code: string;
   title: string;
   required: boolean;
+  visibleWhen?: QuestionVisibility;
 } & (
   | { type: "single_choice"; options: Option[] }
   | { type: "short_text" | "number" }
@@ -76,6 +78,24 @@ function unique(values: string[], name: string) {
     throw new InvalidInput(name + " must be unique");
 }
 
+function parseVisibility(value: unknown): QuestionVisibility {
+  const condition = object(value, ["questionId", "optionCode"]);
+  return {
+    questionId: code(condition.questionId, true),
+    optionCode: code(condition.optionCode, true),
+  };
+}
+
+export function isQuestionVisible(
+  question: Question,
+  answers: ReadonlyMap<string, unknown>,
+): boolean {
+  const condition = question.visibleWhen;
+  return (
+    !condition || answers.get(condition.questionId) === condition.optionCode
+  );
+}
+
 export function parseDefinition(value: unknown): SurveyDefinition {
   const input = object(value, [
     "schemaVersion",
@@ -96,6 +116,7 @@ export function parseDefinition(value: unknown): SurveyDefinition {
           "title",
           "required",
           "options",
+          "visibleWhen",
         ]);
         if (typeof q.required !== "boolean")
           throw new InvalidInput("Question required must be a boolean");
@@ -104,6 +125,9 @@ export function parseDefinition(value: unknown): SurveyDefinition {
           code: code(q.code),
           title: label(q.title, "Question title", 300),
           required: q.required,
+          ...(q.visibleWhen === undefined
+            ? {}
+            : { visibleWhen: parseVisibility(q.visibleWhen) }),
         };
         if (q.type === "single_choice") {
           const options = collection(q.options, 2, 20).map((option) => {
@@ -149,6 +173,21 @@ export function parseDefinition(value: unknown): SurveyDefinition {
     questions.map((question) => question.code),
     "Question codes",
   );
+  const controllers = new Map<string, Set<string>>();
+  for (const question of questions) {
+    if (question.visibleWhen) {
+      const { questionId, optionCode } = question.visibleWhen;
+      if (!controllers.get(questionId)?.has(optionCode))
+        throw new InvalidInput(
+          "Visibility requires an earlier unconditional choice and one of its options",
+        );
+    } else if (question.type === "single_choice") {
+      controllers.set(
+        question.id,
+        new Set(question.options.map((option) => option.code)),
+      );
+    }
+  }
   return {
     schemaVersion: "1",
     title: label(input.title, "Survey title", 200),
