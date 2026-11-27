@@ -18,9 +18,10 @@
 | ENG-010b read-only disposal preview and synthetic archive replay | VERIFIED_INTEGRATION | Standalone database and Chromium checks passed on [draft PR #11](https://github.com/NgohCH/HELPInsights/pull/11). Scheduled production disposal remains open. |
 | ENG-011a synthetic Registry eligibility | VERIFIED_INTEGRATION | Standalone browser, provider outage/recovery and PostgreSQL passed on [draft PR #12](https://github.com/NgohCH/HELPInsights/pull/12). Unlinkable one-use eligibility remains open. |
 | ENG-014c Live Poll voting and privacy-filtered aggregates | VERIFIED_INTEGRATION | Independent scope review and focused testing included 50 concurrent synthetic guests and exact SQL vote counts. See [draft PR #13](https://github.com/NgohCH/HELPInsights/pull/13). |
-| ENG-013a conditional visibility and private preview | IMPLEMENTED_UNVERIFIED | The initial collection tests passed. Updated authoring and preview await full isolated runtime verification. |
-| ENG-012a case handoff | IMPLEMENTED_UNVERIFIED | Focused synthetic API, PostgreSQL and Chromium passed in an isolated worktree. Full runtime verification remains pending. |
-| ENG-016a consent | NOT_STARTED | The synthetic scope and test criteria are in a separate worktree. |
+| ENG-013a conditional visibility and private preview | VERIFIED_INTEGRATION | Mobile authoring and collection passed on [draft PR #16](https://github.com/NgohCH/HELPInsights/pull/16). The combined template-code regression is verified. |
+| ENG-012a case handoff | VERIFIED_INTEGRATION | Standalone synthetic approval, SQL deduplication and mobile browser passed on [draft PR #15](https://github.com/NgohCH/HELPInsights/pull/15). Delivery and governance remain open. |
+| ENG-016a synthetic consent | VERIFIED_INTEGRATION | Standalone PostgreSQL and Chromium verified versioned opt-in and atomic persistence on [draft PR #17](https://github.com/NgohCH/HELPInsights/pull/17). Cross-module integration remains open. |
+| Cumulative development stack through Live Poll voting and conditional follow-ups | VERIFIED_INTEGRATION | Exact source 4a1a20f7aa68 passed 35 PostgreSQL integration, two security and 13 Chromium checks. [Cumulative evidence](../evidence/ENG-INTEGRATION/4a1a20f7aa68d2d2c29b9c3d5b04a9e45a463f81.md). |
 | Remaining platform features | NOT_STARTED | See the uncompleted features and prerequisites in [the task graph](TASK_GRAPH.md). |
 | Production release | BLOCKED | Branch protection, required evidence and authorised approval remain pending. |
 

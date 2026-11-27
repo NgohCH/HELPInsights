@@ -110,3 +110,9 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Voting source [95307681e932](../evidence/ENG-014c/164fb832037a2b440918c363e9e2b00a8d37ab25.md) passed 17 PostgreSQL integration, 2 security and 5 Chromium tests. One presenter stream and 50 simultaneous synthetic guests converged to 50 durable ballots with role-filtered snapshots. Closed result checks suppressed small option and nonvoter cells.
 - A fresh targeted run on the conditional-admission guard added explicit 400 denial of versions with conditional questions. A seeded migration upgrade, PostgreSQL restore, app restart with same-key receipt, and revocation while a ballot waited on the room lock were observed. Scoring and the remaining release gates stay open.
+
+## Cumulative worker, Live Poll voting and conditional workflow
+
+- Exact source [4a1a20f7aa68](../evidence/ENG-INTEGRATION/4a1a20f7aa68d2d2c29b9c3d5b04a9e45a463f81.md) passed lint, types, four unit, 35 PostgreSQL integration, two security and 13 Chromium tests in helpinsights-test-14c78b66dce6, with verified cleanup. The branch uses migration 011 for voting and preserved the checksummed prior history.
+- The exact cumulative stack proved stable template codes, private conditional draft preview, NPS authoring, database restart and JASP-ready export, worker pool recovery and 50-guest vote contention. Independent review confirmed stored-answer exclusion and noted that public survey definitions expose configured prompt text.
+- Standalone case handoff, conditional visibility and synthetic consent drafts are PRs #15–17. See the status table for exact scope and review links. Main remains at 5d5e443d13328a07a71810cd90eb3a9785a3c902 both locally and on GitHub.
