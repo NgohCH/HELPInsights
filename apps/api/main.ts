@@ -6,6 +6,7 @@ import { surveyRoutes } from "./surveys.ts";
 import { respondentRoutes } from "./respond.ts";
 import { reportRoutes } from "./reports.ts";
 import { operationsRoutes } from "./operations.ts";
+import { retentionRoutes } from "./retention.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -25,6 +26,7 @@ const sessions = sessionRoutes(pool);
 const surveys = surveyRoutes(pool);
 const respondents = respondentRoutes(pool);
 const reports = reportRoutes(pool);
+const retention = retentionRoutes(pool);
 const operations = operationsRoutes(pool, (client) =>
   hasCurrentSchema(client, migrations),
 );
@@ -39,7 +41,8 @@ const server = createApplication(
     (await surveys(...args)) ||
     (await respondents(...args)) ||
     (await reports(...args)) ||
-    (await operations(...args)),
+    (await operations(...args)) ||
+    (await retention(...args)),
   { javascript, stylesheet },
 );
 server.listen(3000, "0.0.0.0", () =>

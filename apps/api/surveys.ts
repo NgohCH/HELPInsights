@@ -266,10 +266,7 @@ export function surveyRoutes(pool: Pool) {
         if (action === "close" && method === "POST") {
           if (survey.status !== "published") throw conflict();
           const { rows } = await client.query(
-            `UPDATE public.surveys SET status = 'closed', expiry_at = now() + make_interval(days => p.days_after_close)
-             FROM public.retention_policies p WHERE surveys.id = $1 AND p.id = surveys.retention_policy_id
-             RETURNING surveys.id, surveys.workspace_id AS "workspaceId", surveys.title,
-              surveys.privacy_mode AS "privacyMode", surveys.status, surveys.expiry_at AS "expiryAt"`,
+            `UPDATE public.surveys SET status = 'closed' WHERE id = $1 RETURNING ${surveyColumns}`,
             [id],
           );
           return { status: 200, body: rows[0] };
