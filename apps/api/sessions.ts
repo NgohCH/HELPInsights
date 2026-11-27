@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Pool, PoolClient } from "pg";
+import { withTransaction } from "../../packages/database/transaction.ts";
 import { sendJson } from "./application.ts";
 
 export type Actor = { id: string; displayName: string };
@@ -28,15 +29,12 @@ export function readSessionProof(request: IncomingMessage) {
   return createHash("sha256").update(credential[1]).digest();
 }
 
-export async function withActor<T>(
+export function withActor<T>(
   pool: Pool,
   hash: Buffer,
   run: (client: PoolClient, actor: Actor) => Promise<T>,
 ): Promise<T> {
-  const client = await pool.connect();
-  let discard = false;
-  try {
-    await client.query("BEGIN");
+  return withTransaction(pool, async (client) => {
     const { rows } = await client.query<Actor>(
       'SELECT id, display_name AS "displayName" FROM public.resolve_session($1)',
       [hash],
@@ -46,19 +44,8 @@ export async function withActor<T>(
     await client.query("SELECT set_config('helpinsights.actor_id', $1, true)", [
       actor.id,
     ]);
-    const result = await run(client, actor);
-    await client.query("COMMIT");
-    return result;
-  } catch (error) {
-    try {
-      await client.query("ROLLBACK");
-    } catch {
-      discard = true;
-    }
-    throw error;
-  } finally {
-    client.release(discard);
-  }
+    return run(client, actor);
+  });
 }
 
 export function sessionRoutes(pool: Pool) {
