@@ -117,6 +117,12 @@ corepack pnpm test:stack
 
 The Playwright journey creates its own development session and workspace, submits answers, restarts PostgreSQL, checks stored answers directly in SQL, and reconciles the browser chart and downloaded ZIP. The test retains the chart screenshot and sample archive under `test-results/`. See [build status](docs/BUILD_STATUS.md) for implementation and release scope.
 
+### Local Live Poll lobby
+
+The disposable test stack enables the Live Poll lobby. The normal stack leaves it disabled. Open `/live/host` on the loopback app with a development session token and the ID from an authorised survey's publish response. Use a published version with single-choice questions. Share the eight-digit PIN with a synthetic guest at `/live/join` within 30 minutes.
+
+The presenter and guest retrieve the current lobby over a same-origin WebSocket. Each connection delivers one snapshot, and Refresh lobby opens another connection. A guest capability stays in the current page and expires after eight hours. See the [test criteria](docs/LIVE_QUIZ_TEST_CRITERIA.md) and [remaining Live Quiz Arena release gates](docs/LIVE_QUIZ_ARENA.md).
+
 ## Product governance
 
 - Publication is versioned and immutable once collecting responses.

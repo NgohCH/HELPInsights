@@ -39,6 +39,7 @@ export function createApplication(
   isReady: () => Promise<boolean>,
   route?: Route,
   assets?: { javascript: Buffer; stylesheet: Buffer },
+  liveQuiz = false,
 ) {
   return createServer(
     { requestTimeout: 15000, headersTimeout: 10000 },
@@ -53,7 +54,9 @@ export function createApplication(
 
       const requestId = randomUUID();
       const path = request.url?.split("?", 1)[0] ?? "";
-      const publicPage = /^\/respond\/[A-Za-z0-9_-]{43}$/.test(path);
+      const publicPage =
+        /^\/respond\/[A-Za-z0-9_-]{43}$/.test(path) ||
+        (liveQuiz && (path === "/live/host" || path === "/live/join"));
       if (assets && request.method === "GET") {
         if (path === "/assets/main.js") {
           response.writeHead(200, {
