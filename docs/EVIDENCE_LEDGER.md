@@ -105,3 +105,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 - Cumulative tree 11d80dd5a630ea2504d8ac7b95310e5a7ab2edb8 includes migration 010. corepack.cmd pnpm test:stack exited 0 in helpinsights-test-85507d00f92d with 29 PostgreSQL integration, two security and ten Chromium tests. Closure stamped the database clock, hold approval and audit were scope-bound, the PostgreSQL archive preserved an active hold, and a stale repeatable-read disposal transaction was denied. The runner verified disposable cleanup.
 - GitHub docs and runtime checks passed for retention holds, the read-only disposal preview and synthetic replay, synthetic Registry eligibility, and Live Poll voting. See draft PRs #10–13 and the status table for links.
 - The PostgreSQL interruption branch reproduced a fatal 57P01 checked-out client error, then passed 12 PostgreSQL integration, two security and two Chromium tests after the fix. Draft PR #14 records the independent review and exact scope.
+
+## ENG-014c Live Poll voting
+
+- Voting source [95307681e932](../evidence/ENG-014c/164fb832037a2b440918c363e9e2b00a8d37ab25.md) passed 17 PostgreSQL integration, 2 security and 5 Chromium tests. One presenter stream and 50 simultaneous synthetic guests converged to 50 durable ballots with role-filtered snapshots. Closed result checks suppressed small option and nonvoter cells.
+- A fresh targeted run on the conditional-admission guard added explicit 400 denial of versions with conditional questions. A seeded migration upgrade, PostgreSQL restore, app restart with same-key receipt, and revocation while a ballot waited on the room lock were observed. Scoring and the remaining release gates stay open.

@@ -12,18 +12,40 @@ export type LiveSnapshot = {
   state: "lobby" | "running" | "paused" | "ended" | "archived";
   revision: number;
   quizVersionId?: string;
+  question?: {
+    id: string;
+    title: string;
+    options: Array<{ code: string; label: string }>;
+    openedRevision: number;
+    open: boolean;
+  };
+  hasVoted?: boolean;
+  hasNextQuestion?: boolean;
+  turnout?: number | null;
+  results?: {
+    total: number;
+    counts: Array<{ code: string; count: number }>;
+  } | null;
 };
 
-type ReadSnapshot = () => Promise<LiveSnapshot>;
+type Audience = { read: () => Promise<LiveSnapshot>; participant?: string };
+type Subscription = { refresh: () => void; participant?: string };
 
 export function createLiveRoomTransport(
   resolveRoom: (request: IncomingMessage) => string | undefined,
-  authorize: (room: string, authorization: unknown) => ReadSnapshot,
+  authorize: (room: string, authorization: unknown) => Audience,
 ) {
-  const rooms = new Map<string, Set<() => void>>();
+  const rooms = new Map<string, Set<Subscription>>();
 
-  function update(room: string) {
-    for (const read of rooms.get(room) ?? []) read();
+  function update(room: string, participant?: string) {
+    for (const member of rooms.get(room) ?? []) {
+      if (
+        !participant ||
+        !member.participant ||
+        member.participant === participant
+      )
+        member.refresh();
+    }
   }
 
   function attach(server: Server) {
@@ -57,13 +79,13 @@ export function createLiveRoomTransport(
         socket.on("pong", () => awaitingPong.delete(socket));
         socket.once("close", () => clearTimeout(deadline));
         socket.once("message", (message, binary) => {
-          let read: ReadSnapshot;
+          let audience: Audience;
           try {
             if (binary) throw new InvalidInput("Expected JSON credentials");
             const { authorization } = object(JSON.parse(message.toString()), [
               "authorization",
             ]);
-            read = authorize(room, authorization);
+            audience = authorize(room, authorization);
           } catch {
             socket.close(1008);
             return;
@@ -73,6 +95,7 @@ export function createLiveRoomTransport(
           let reading = false;
           let pending = false;
           let revision = 0;
+          let previous = "";
           async function refresh() {
             pending = true;
             if (reading) return;
@@ -80,16 +103,19 @@ export function createLiveRoomTransport(
             try {
               while (pending && socket.readyState === WebSocket.OPEN) {
                 pending = false;
-                const snapshot = await read();
+                const snapshot = await audience.read();
                 clearTimeout(deadline);
                 if (socket.readyState !== WebSocket.OPEN) return;
-                if (snapshot.revision <= revision) continue;
+                const payload = JSON.stringify({ type: "snapshot", snapshot });
+                if (snapshot.revision < revision || payload === previous)
+                  continue;
                 if (socket.bufferedAmount > 32_768) {
                   socket.terminate();
                   return;
                 }
                 revision = snapshot.revision;
-                socket.send(JSON.stringify({ type: "snapshot", snapshot }));
+                previous = payload;
+                socket.send(payload);
               }
             } catch (error) {
               socket.close(error instanceof HttpError ? 1008 : 1011);
@@ -99,10 +125,11 @@ export function createLiveRoomTransport(
           }
 
           const members = rooms.get(room) ?? new Set();
-          members.add(refresh);
+          const subscription = { refresh, participant: audience.participant };
+          members.add(subscription);
           rooms.set(room, members);
           socket.once("close", () => {
-            members.delete(refresh);
+            members.delete(subscription);
             if (!members.size) rooms.delete(room);
           });
           void refresh();

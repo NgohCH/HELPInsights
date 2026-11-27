@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { api } from "./api.ts";
 
+import { LivePollQuestion } from "./live-poll-question.tsx";
 import type { LiveSnapshot } from "../api/live-quiz-transport.ts";
 import { useLiveConnection, type LiveAccess } from "./use-live-connection.ts";
 
@@ -33,10 +34,7 @@ const connectionLabels = {
 export function LiveQuiz({ isHost }: { isHost: boolean }) {
   const [access, setAccess] = useState<LiveAccess>();
   const [refresh, setRefresh] = useState(0);
-  const { snapshot, connection, acceptSnapshot } = useLiveConnection(
-    access,
-    refresh,
-  );
+  const { snapshot, connection } = useLiveConnection(access, refresh);
   const [hostLobby, setHostLobby] = useState<HostLobby>();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -84,18 +82,16 @@ export function LiveQuiz({ isHost }: { isHost: boolean }) {
     });
   }
 
-  function sendCommand(command: keyof typeof buttonLabels) {
+  function sendCommand(
+    command: keyof typeof buttonLabels | "next_question" | "close_question",
+  ) {
     if (!access || !snapshot || connection !== "connected") return;
     void run(async () => {
-      const { data } = await api<LiveSnapshot>(
-        "/live-sessions/" + access.id + "/commands",
-        {
-          headers: { Authorization: access.authorization },
-          method: "POST",
-          body: { command, expectedRevision: String(snapshot.revision) },
-        },
-      );
-      acceptSnapshot(data);
+      await api<LiveSnapshot>("/live-sessions/" + access.id + "/commands", {
+        headers: { Authorization: access.authorization },
+        method: "POST",
+        body: { command, expectedRevision: String(snapshot.revision) },
+      });
     });
   }
 
@@ -136,6 +132,38 @@ export function LiveQuiz({ isHost }: { isHost: boolean }) {
                   </button>
                 ))}
               </div>
+            )}
+            {isHost &&
+              snapshot?.state === "running" &&
+              (!snapshot.question || snapshot.hasNextQuestion) && (
+                <button
+                  disabled={pending || connection !== "connected"}
+                  onClick={() => sendCommand("next_question")}
+                >
+                  {snapshot.question ? "Next question" : "Open first question"}
+                </button>
+              )}
+            {isHost && snapshot?.question?.open && (
+              <button
+                disabled={pending || connection !== "connected"}
+                onClick={() => sendCommand("close_question")}
+              >
+                Close question
+              </button>
+            )}
+            {snapshot?.question && (
+              <LivePollQuestion
+                key={
+                  snapshot.question.id + ":" + snapshot.question.openedRevision
+                }
+                question={snapshot.question}
+                access={access}
+                active={snapshot.question.open && connection === "connected"}
+                isHost={isHost}
+                hasVoted={snapshot.hasVoted}
+                results={snapshot.results}
+                turnout={snapshot.turnout}
+              />
             )}
             <button onClick={() => setRefresh((generation) => generation + 1)}>
               Refresh lobby

@@ -134,9 +134,9 @@ The Playwright journey creates its own development session and workspace, submit
 
 ### Local Live Poll lobby
 
-The disposable test stack enables the Live Poll lobby. The normal stack leaves it disabled. Open `/live/host` on the loopback app with a development session token and the ID from an authorised survey's publish response. Use a published version with single-choice questions. Share the eight-digit PIN with a synthetic guest at `/live/join` within 30 minutes.
+The disposable test stack enables the Live Poll lobby. The normal stack leaves it disabled. Open `/live/host` on the loopback app with a development session token and the ID from an authorised survey's publish response. Use a published version with unconditional single-choice questions. Share the eight-digit PIN with a synthetic guest at `/live/join` within 30 minutes.
 
-The presenter can start, pause, resume, end and archive the poll. The presenter and guest see committed state changes over a same-origin WebSocket. A disconnected tab reconnects to the current PostgreSQL state. Refresh lobby also reopens the connection. Guest credentials stay in the current page and expire after eight hours. See the [host control test criteria](docs/LIVE_HOST_CONTROLS_TEST_CRITERIA.md) and [remaining Live Quiz Arena release gates](docs/LIVE_QUIZ_ARENA.md).
+The presenter can start, pause, resume, end and archive the poll. The presenter and guest see committed state changes over a same-origin WebSocket. A disconnected tab reconnects to the current PostgreSQL state. Refresh lobby also reopens the connection. Guest credentials stay in the current page and expire after eight hours. Once running, the presenter opens and advances questions in published order. Each guest can cast one vote per question and see their own receipt. The presenter sees turnout in groups of five and may close the question to reveal exact counts when the category and nonvoter groups meet the privacy threshold. See the [voting test criteria](docs/LIVE_POLL_VOTING_TEST_CRITERIA.md) and [remaining Live Quiz Arena release gates](docs/LIVE_QUIZ_ARENA.md).
 
 ## Product governance
 

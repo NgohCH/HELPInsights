@@ -19,7 +19,7 @@
 | ENG-011a synthetic Registry eligibility | VERIFIED_INTEGRATION | Standalone browser, provider outage/recovery and PostgreSQL passed on [draft PR #12](https://github.com/NgohCH/HELPInsights/pull/12). Unlinkable one-use eligibility remains open. |
 | ENG-014c Live Poll voting and privacy-filtered aggregates | VERIFIED_INTEGRATION | Independent scope review and focused testing included 50 concurrent synthetic guests and exact SQL vote counts. See [draft PR #13](https://github.com/NgohCH/HELPInsights/pull/13). |
 | ENG-013a conditional visibility and private preview | IMPLEMENTED_UNVERIFIED | The initial collection tests passed. Updated authoring and preview await full isolated runtime verification. |
-| ENG-012a case handoff | IMPLEMENTED_UNVERIFIED | Source and tests are in an isolated worktree. PostgreSQL and Chromium checks are pending. |
+| ENG-012a case handoff | IMPLEMENTED_UNVERIFIED | Focused synthetic API, PostgreSQL and Chromium passed in an isolated worktree. Full runtime verification remains pending. |
 | ENG-016a consent | NOT_STARTED | The synthetic scope and test criteria are in a separate worktree. |
 | Remaining platform features | NOT_STARTED | See the uncompleted features and prerequisites in [the task graph](TASK_GRAPH.md). |
 | Production release | BLOCKED | Branch protection, required evidence and authorised approval remain pending. |
