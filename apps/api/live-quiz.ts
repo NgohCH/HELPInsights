@@ -38,10 +38,30 @@ function credentials(authorization: unknown) {
   };
 }
 
+function parseGameRule(value: unknown) {
+  const { correctOptionCode, durationSeconds } = object(value, [
+    "correctOptionCode",
+    "durationSeconds",
+  ]);
+  if (
+    typeof correctOptionCode !== "string" ||
+    !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(correctOptionCode) ||
+    typeof durationSeconds !== "number" ||
+    !Number.isInteger(durationSeconds) ||
+    durationSeconds < 5 ||
+    durationSeconds > 120
+  )
+    throw new InvalidInput(
+      "Use a published option code and an answer time of 5 to 120 seconds",
+    );
+  return { correctOptionCode, durationSeconds };
+}
+
 export function createLiveQuiz(
   pool: Pool,
   pinKey: string | undefined,
   publicOrigin?: string,
+  gameShowEnabled = false,
 ) {
   if (!pinKey || Buffer.byteLength(pinKey) < 32)
     throw new Error(
@@ -72,8 +92,8 @@ export function createLiveQuiz(
     const {
       rows: [data],
     } = await executor.query<{ snapshot: LiveSnapshot | null }>(
-      "SELECT public.read_live_poll_question($1, $2, $3) AS snapshot",
-      [id, proof.hash, proof.isHost],
+      "SELECT public.read_live_room_snapshot($1, $2, $3, $4) AS snapshot",
+      [id, proof.hash, proof.isHost, gameShowEnabled],
     );
     return data.snapshot;
   }
@@ -137,8 +157,8 @@ export function createLiveQuiz(
       const {
         rows: [outcome],
       } = await client.query<{ result: string }>(
-        "SELECT result FROM public.command_live_session($1, $2, $3, $4)",
-        [proof.hash, id, Number(revision), body.command],
+        "SELECT public.command_live_room($1, $2, $3, $4, $5) AS result",
+        [proof.hash, id, Number(revision), body.command, gameShowEnabled],
       );
       if (outcome.result === "unauthorised")
         throw new HttpError(401, "UNAUTHORISED", "A valid session is required");
@@ -188,14 +208,18 @@ export function createLiveQuiz(
       result: string;
       questionId: string;
       acceptedAt: Date;
-    }>("SELECT * FROM public.submit_live_poll_vote($1, $2, $3, $4, $5, $6)", [
-      id,
-      proof.hash,
-      questionId,
-      openedRevision,
-      answer,
-      key,
-    ]);
+    }>(
+      "SELECT * FROM public.submit_live_room_answer($1, $2, $3, $4, $5, $6, $7)",
+      [
+        id,
+        proof.hash,
+        questionId,
+        openedRevision,
+        answer,
+        key,
+        gameShowEnabled,
+      ],
+    );
     const { result, ...receipt } = outcome;
     if (result === "forbidden") throw denied();
     if (result === "conflict")
@@ -259,19 +283,30 @@ export function createLiveQuiz(
         const participantToken = randomBytes(32).toString("base64url");
         const {
           rows: [joined],
-        } = await pool.query("SELECT * FROM public.join_live_lobby($1, $2)", [
-          pinDigest(pin),
-          digest(participantToken),
-        ]);
+        } = await pool.query(
+          "SELECT * FROM public.join_live_room($1, $2, $3)",
+          [pinDigest(pin), digest(participantToken), gameShowEnabled],
+        );
         if (!joined) throw denied();
         sendJson(response, 200, { snapshot: joined, participantToken });
         return true;
       }
 
       const proof = readSessionProof(request);
-      const body = object(await jsonBody(request), ["quizVersionId", "mode"]);
+      const body = object(await jsonBody(request), [
+        "quizVersionId",
+        "mode",
+        "scoring",
+      ]);
       const quizVersionId = uuid(body.quizVersionId, "Quiz version");
-      if (body.mode !== "live_poll") throw new InvalidInput("Choose Live Poll");
+      const mode = body.mode;
+      if (mode !== "live_poll" && mode !== "game_show")
+        throw new InvalidInput("Choose an available live mode");
+      if (mode === "game_show" && !gameShowEnabled) throw denied();
+      const scoring =
+        mode === "game_show" ? parseGameRule(body.scoring) : undefined;
+      if (mode === "live_poll" && body.scoring !== undefined)
+        throw new InvalidInput("Live Poll accepts ballot choices");
       const created = await withActor(pool, proof, async (client, actor) => {
         const {
           rows: [version],
@@ -279,7 +314,7 @@ export function createLiveQuiz(
           `SELECT v.definition, v.definition @? '$.pages[*].questions[*].visibleWhen' AS conditional
            FROM public.survey_versions v
            JOIN public.surveys s ON s.id = v.survey_id
-           WHERE v.id = $1 AND s.status = 'published'
+           WHERE v.id = $1 AND s.status = 'published' AND public.live_version_is_open(v.id)
              AND public.workspace_role(s.workspace_id) IN ('owner', 'editor')`,
           [quizVersionId],
         );
@@ -296,7 +331,11 @@ export function createLiveQuiz(
           !questions.every((question) => question.type === "single_choice")
         )
           throw new InvalidInput(
-            "A Live Poll needs published choice questions",
+            "A live room needs published choice questions",
+          );
+        if (scoring && questions.length !== 1)
+          throw new InvalidInput(
+            "Game Show requires one published choice question",
           );
         for (let attempt = 0; attempt < 5; attempt++) {
           const pin = String(randomInt(100_000_000)).padStart(8, "0");
@@ -304,11 +343,29 @@ export function createLiveQuiz(
             rows: [lobby],
           } = await client.query(
             `INSERT INTO public.live_sessions (quiz_version_id, host_id, mode, pin_hash)
-             VALUES ($1, $2, 'live_poll', $3) ON CONFLICT DO NOTHING
+             VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING
              RETURNING ${snapshotColumns}, pin_expires_at AS "pinExpiresAt"`,
-            [quizVersionId, actor.id, pinDigest(pin)],
+            [quizVersionId, actor.id, mode, pinDigest(pin)],
           );
-          if (lobby) return { ...lobby, pin };
+          if (!lobby) continue;
+          if (scoring) {
+            const {
+              rows: [rule],
+            } = await client.query<{ configured: boolean }>(
+              "SELECT public.configure_live_game($1, $2, $3, $4) AS configured",
+              [
+                lobby.id,
+                proof,
+                scoring.correctOptionCode,
+                scoring.durationSeconds,
+              ],
+            );
+            if (!rule.configured)
+              throw new InvalidInput(
+                "Choose an option from the published question for the private answer key",
+              );
+          }
+          return { ...lobby, pin };
         }
         throw new HttpError(
           503,

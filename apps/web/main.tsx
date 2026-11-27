@@ -11,7 +11,13 @@ const root = createRoot(target);
 if (token) root.render(<Respondent token={token} />);
 else if (
   location.pathname === "/live/host" ||
+  location.pathname === "/live/game-host" ||
   location.pathname === "/live/join"
 )
-  root.render(<LiveQuiz isHost={location.pathname === "/live/host"} />);
+  root.render(
+    <LiveQuiz
+      isHost={location.pathname !== "/live/join"}
+      gameShow={location.pathname === "/live/game-host"}
+    />,
+  );
 else root.render(<Creator />);
