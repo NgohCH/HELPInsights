@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.6-development
+  version: 0.2.7-development
   description: The development runtime supports anonymous survey creation, publication, submission, analytics, CSV exports and platform operations health and incident history. The remaining design endpoints describe planned features.
 servers:
 - url: https://survey.example.org/api/v1
@@ -384,6 +384,7 @@ paths:
       tags:
       - Notices
       operationId: listMyNotices
+      description: Opt-in development inbox of redacted export-worker recovery notices for operators.
       responses:
         '200':
           description: Notices visible to caller
@@ -393,6 +394,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Notice'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /me/notices/{noticeId}/acknowledge:
     parameters:
     - name: noticeId
@@ -405,6 +412,7 @@ paths:
       tags:
       - Notices
       operationId: acknowledgeNotice
+      description: A bodyless request. Creates or returns the authenticated operator's timestamp without changing other inboxes.
       responses:
         '200':
           description: Acknowledged notice
@@ -414,6 +422,12 @@ paths:
                 $ref: '#/components/schemas/Notice'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/health:
     get:
       tags:
@@ -498,6 +512,7 @@ paths:
       tags:
       - Administration
       operationId: listAdminNotices
+      description: Alias for the same operator-specific recovery inbox.
       responses:
         '200':
           description: Authorised operational notices
@@ -509,6 +524,10 @@ paths:
                   $ref: '#/components/schemas/Notice'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/retention:
     get:
       tags:
@@ -1199,6 +1218,10 @@ components:
         createdAt:
           type: string
           format: date-time
+        acknowledgedAt:
+          type: string
+          format: date-time
+          description: First acknowledgement time for the current operator, when acknowledged.
     AdminHealth:
       type: object
       additionalProperties: false

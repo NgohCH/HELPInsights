@@ -33,6 +33,10 @@ The test stack also shows export-worker database interruption and recovery
 in Operations. The worker verifies a successful poll before recording the
 redacted incident. The default runtime leaves automated recording off.
 
+The test stack lets operators acknowledge an export worker recovery from
+the Operations inbox. Each operator has an independent receipt. The
+default runtime leaves the inbox off.
+
 ## Non-negotiable principles
 
 - Intuitive for non-technical staff, accessible, fast on mobile and consistent across workflows.

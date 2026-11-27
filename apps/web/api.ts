@@ -24,6 +24,9 @@ export async function api<T>(
     credentials: "omit",
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.message ?? "Request failed");
+  if (!response.ok)
+    throw Object.assign(new Error(data.message ?? "Request failed"), {
+      status: response.status,
+    });
   return { data: data as T, etag: response.headers.get("etag") };
 }

@@ -87,6 +87,20 @@ outage has no total reconnect-attempt limit. Durable outage buffering,
 escalation for prolonged outages, notice
 routing and outbound delivery remain separate scopes.
 
+## In-app recovery inbox
+
+ENG-017b projects one notice from each redacted export-worker recovery.
+The inbox requires an active platform operator appointment. The
+detection entry and manual incidents stay in incident history only.
+Acknowledgement records the operator and first acknowledgement time.
+Retries return that receipt and other operators keep their own state.
+
+The disposable test configuration enables the inbox. The default
+runtime leaves it off. Notice acknowledgement records that an operator
+saw the recovery. It neither changes the incident nor triggers a
+worker action. Delivery to people outside Operations, assignment,
+escalation and receipt retention policy remain separate scopes.
+
 ## Safe operational workflows
 
 - Health checks `/health/live` and `/health/ready` disclose no secrets or tenant data.
