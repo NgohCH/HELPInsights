@@ -47,7 +47,15 @@ export function surveyFixture() {
     INSERT INTO public.retention_policies (id, workspace_id, days_after_close)
     VALUES ('${retentionPolicy}', '${workspace}', 90);
   `);
-  return { stack, sql, workspace, retentionPolicy, ownerToken, outsiderToken };
+  return {
+    stack,
+    sql,
+    workspace,
+    outside,
+    retentionPolicy,
+    ownerToken,
+    outsiderToken,
+  };
 }
 
 export const definition = {
