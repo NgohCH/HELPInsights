@@ -1,31 +1,10 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { runningTestStack } from "../../scripts/test-docker.ts";
 import test from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 
-let baseUrl = process.env.APP_BASE_URL;
-const project = process.env.HELPINSIGHTS_TEST_PROJECT;
-
-function compose(...args: string[]) {
-  assert.match(project ?? "", /^helpinsights-test-[a-f0-9]{12}$/);
-  return execFileSync(
-    "docker",
-    [
-      "compose",
-      "-f",
-      "compose.yaml",
-      "-f",
-      "compose.test.yaml",
-      "-p",
-      project!,
-      ...args,
-    ],
-    {
-      encoding: "utf8",
-      timeout: 60_000,
-    },
-  );
-}
+const stack = runningTestStack();
+const { compose } = stack;
 
 function sql(statement: string) {
   return compose(
@@ -46,8 +25,7 @@ function sql(statement: string) {
 }
 
 async function health(name: "live" | "ready") {
-  assert.ok(baseUrl, "APP_BASE_URL is required");
-  return fetch(new URL("/api/v1/health/" + name, baseUrl), {
+  return fetch(new URL("/api/v1/health/" + name, stack.baseUrl()), {
     signal: AbortSignal.timeout(4_000),
   });
 }
@@ -74,10 +52,8 @@ test("readiness depends on migrated PostgreSQL and boot preserves data after a d
     compose("up", "-d", "--wait", "--wait-timeout", "45", "postgres");
   }
 
+  assert.equal((await health("ready")).status, 200);
   compose("restart", "app");
-  const port = compose("port", "app", "3000").trim();
-  assert.match(port, /^127\.0\.0\.1:\d+$/);
-  baseUrl = "http://" + port;
   for (let attempt = 0; attempt < 20; attempt++) {
     const status = await health("ready").then(
       (response) => response.status,

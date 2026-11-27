@@ -2,7 +2,7 @@
 
 
 
-This is a proposed development contract. **No runnable services are included in this handoff archive.** The developer must update this document with the exact tested commands after implementing WP-001.
+The local HTTP and PostgreSQL bootstrap has a [tested setup and verification runbook](progress/ENG-001-002-setup.md). The following sections cover the broader development contract.
 
 ## JASP fixture-based verification
 
@@ -14,7 +14,7 @@ This is a proposed development contract. **No runnable services are included in 
 
 Target tools: pinned supported Node LTS, pnpm, Docker with Compose, PostgreSQL 16 or another explicitly reviewed supported version, Git. Determine and record actual compatibility and security advisories at build time; do not assume current runtimes in a future deployment.
 
-Example developer commands **to implement and verify** (not yet executable):
+The full platform will add more commands as modules land. Use the bootstrap runbook for executable commands. Planned commands:
 
 ```sh
 cp .env.example .env

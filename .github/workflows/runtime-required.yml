@@ -10,15 +10,24 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '24.22.1'
-      - name: Run required source, PostgreSQL, security and Chromium checks
+      - name: Verify source, secrets, PostgreSQL, HTTP and Chromium
         shell: bash
-        run: bash scripts/ci-runtime.sh
+        run: |
+          set -o pipefail
+          mkdir -p runtime-evidence
+          test -f scripts/ci-runtime.sh || { echo "NOT_IMPLEMENTED: scripts/ci-runtime.sh missing" | tee runtime-evidence/ci.log; exit 1; }
+          bash scripts/ci-runtime.sh 2>&1 | tee runtime-evidence/ci.log
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
-          name: chromium-failure
-          path: test-results/
-          if-no-files-found: ignore
+          name: runtime-evidence
+          path: |
+            runtime-evidence/
+            test-results/
+          if-no-files-found: error

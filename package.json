@@ -8,10 +8,10 @@
   },
   "scripts": {
     "start": "node apps/api/main.ts",
-    "lint": "prettier --check apps packages scripts/test-stack.ts tests playwright.config.ts package.json tsconfig.json",
+    "lint": "prettier --check apps packages scripts/*.ts tests playwright.config.ts package.json tsconfig.json",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/unit/*.test.ts",
-    "test:integration": "node --test tests/integration/*.test.ts",
+    "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.ts",
     "test:e2e": "playwright test",
     "test:security": "node --test tests/security/*.test.ts",
     "test:stack": "node scripts/test-stack.ts"
@@ -23,7 +23,9 @@
     "@playwright/test": "1.65.1",
     "@types/node": "24.19.4",
     "@types/pg": "8.23.1",
+    "ajv": "8.20.0",
+    "prettier": "3.10.1",
     "typescript": "7.0.2",
-    "prettier": "3.10.1"
+    "yaml": "2.9.1"
   }
 }

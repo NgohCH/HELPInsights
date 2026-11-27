@@ -1,9 +1,24 @@
 import pg from "pg";
 import { createApplication } from "./application.ts";
-import { migrate } from "../../packages/database/migrate.ts";
+import {
+  hasCurrentSchema,
+  loadMigrations,
+  migrate,
+} from "../../packages/database/migrate.ts";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is required");
+const migrations = await loadMigrations();
+const migrationPool = new pg.Pool({
+  connectionString,
+  connectionTimeoutMillis: 2_000,
+});
+try {
+  await migrate(migrationPool, migrations);
+} finally {
+  await migrationPool.end();
+}
+
 const pool = new pg.Pool({
   connectionString,
   connectionTimeoutMillis: 2_000,
@@ -11,14 +26,7 @@ const pool = new pg.Pool({
 });
 pool.on("error", () => console.error("Idle PostgreSQL connection interrupted"));
 
-await migrate(pool);
-const server = createApplication(async () => {
-  const result = await pool.query(
-    "SELECT to_regclass('public.organisations') IS NOT NULL AS ready",
-  );
-  return result.rows[0].ready === true;
-});
-
+const server = createApplication(() => hasCurrentSchema(pool, migrations));
 server.listen(3000, "0.0.0.0", () =>
   console.log("HELPInsights listening on port 3000"),
 );
