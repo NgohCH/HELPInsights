@@ -22,6 +22,9 @@ See [`../api/openapi.yaml`](../api/openapi.yaml) for the initial machine-readabl
 | `GET /me`, `GET /workspaces` | 1 | Caller identity and permitted workspaces |
 | `GET /templates`, `GET /templates/{id}` | 1 | Authenticated curated catalogue and read-only preview |
 | `POST /templates/{id}/clone` | 1 | Copy the previewed revision to an independent draft in a workspace where the caller is an owner or editor |
+| `GET /workspaces/{id}/features/nps` | Development | Read current NPS access and request history visible to the requester or workspace reviewer |
+| `POST /workspaces/{id}/features/nps/requests` | Development | Request NPS authoring in an anonymous survey as a workspace owner or editor |
+| `POST /workspaces/{id}/features/nps/requests/{requestId}/decision` | Development | An explicitly delegated workspace reviewer can approve or deny another member's request |
 | `POST /surveys`, `GET /surveys`, `GET /surveys/{id}` | 1 | Workspace-scoped survey CRUD/read |
 | `PUT /surveys/{id}/draft`, `POST /surveys/{id}/publish` | 1 | Validate definition, create immutable published version |
 | `GET /surveys/{id}/versions` | 1 | Version history |

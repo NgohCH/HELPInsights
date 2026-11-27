@@ -13,7 +13,10 @@ export function readAnswers(
       return [
         {
           questionId: question.id,
-          value: question.type === "number" ? Number(raw) : raw,
+          value:
+            question.type === "number" || question.type === "nps"
+              ? Number(raw)
+              : raw,
         },
       ];
     });
@@ -52,12 +55,28 @@ export function QuestionFields({
           <label key={question.id}>
             {question.title}
             <input
-              type={question.type === "number" ? "number" : "text"}
+              type={question.type === "short_text" ? "text" : "number"}
               name={question.id}
-              step={question.type === "number" ? "any" : undefined}
+              step={
+                question.type === "number"
+                  ? "any"
+                  : question.type === "nps"
+                    ? 1
+                    : undefined
+              }
+              min={question.type === "nps" ? 0 : undefined}
+              max={question.type === "nps" ? 10 : undefined}
+              aria-describedby={
+                question.type === "nps" ? question.id + "-range" : undefined
+              }
               maxLength={question.type === "short_text" ? 500 : undefined}
               required={question.required}
             />
+            {question.type === "nps" && (
+              <span id={question.id + "-range"}>
+                Enter a whole number from 0 to 10.
+              </span>
+            )}
           </label>
         ),
       )}

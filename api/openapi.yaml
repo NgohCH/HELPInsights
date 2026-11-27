@@ -1,16 +1,17 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.6-development
-  description: The development runtime supports the anonymous survey roundtrip, draft preview, curated template copy, platform operations and an opt-in local Live Poll lobby. Other design endpoints describe planned features.
+  version: 0.2.7-development
+  description: Development coverage includes anonymous surveys, CSV export, curated templates, platform operations, opt-in Live Poll and workspace-reviewed NPS authoring.
 servers:
 - url: https://survey.example.org/api/v1
-  description: Example only
+  description: Development coverage includes anonymous surveys, CSV export, curated templates, platform operations, opt-in Live Poll and workspace-reviewed NPS authoring.
 security:
 - bearerAuth: []
 tags:
 - name: Health
 - name: Workspace
+- name: Feature catalogue
 - name: Survey
 - name: Template
 - name: Respondent
@@ -18,7 +19,7 @@ tags:
 - name: Notices
 - name: Administration
 - name: Live Quiz Arena
-  description: Development Live Poll lobby, host lifecycle and snapshot stream. Answer and result endpoints describe planned features.
+  description: Development coverage includes anonymous surveys, CSV export, curated templates, platform operations, opt-in Live Poll and workspace-reviewed NPS authoring.
 paths:
   /health/live:
     get:
@@ -167,6 +168,97 @@ paths:
                 $ref: '#/components/schemas/ApiError'
         '503':
           $ref: '#/components/responses/Unavailable'
+  /workspaces/{workspaceId}/features/nps:
+    parameters:
+    - $ref: '#/components/parameters/WorkspaceId'
+    get:
+      tags:
+      - Feature catalogue
+      operationId: getNpsFeature
+      description: List the NPS capability, current access and visible recent request history. Request history is visible to its requester and explicitly delegated workspace reviewers.
+      responses:
+        '200':
+          description: Workspace-scoped NPS catalogue entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NpsFeature'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /workspaces/{workspaceId}/features/nps/requests:
+    parameters:
+    - $ref: '#/components/parameters/WorkspaceId'
+    post:
+      tags:
+      - Feature catalogue
+      operationId: requestNpsAccess
+      description: Workspace owners or editors can request access for anonymous surveys. A workspace can have one pending request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NpsRequestInput'
+      responses:
+        '201':
+          description: Pending NPS request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NpsRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /workspaces/{workspaceId}/features/nps/requests/{requestId}/decision:
+    parameters:
+    - $ref: '#/components/parameters/WorkspaceId'
+    - name: requestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      tags:
+      - Feature catalogue
+      operationId: decideNpsAccess
+      description: A delegated reviewer can approve or deny another member's request. Repeating the recorded decision as the same reviewer returns the prior result and preserves expiry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NpsDecisionInput'
+      responses:
+        '200':
+          description: Recorded decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NpsRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /surveys:
     get:
       tags:
@@ -243,7 +335,7 @@ paths:
       tags:
       - Survey
       operationId: replaceDraftDefinition
-      description: Replace editable draft after optimistic concurrency check. No editing of published versions.
+      description: Replace an editable draft after checking its revision. NPS authoring requires active workspace approval. Published versions are immutable.
       parameters:
       - name: If-Match
         in: header
@@ -277,7 +369,7 @@ paths:
       tags:
       - Survey
       operationId: publishSurvey
-      description: Validate and snapshot an immutable survey version.
+      description: Validate and snapshot an immutable survey version. NPS questions require active workspace approval at publication.
       responses:
         '201':
           description: New published version
@@ -848,6 +940,13 @@ components:
       in: header
       description: Use the Participant prefix followed by the capability from the join response.
   parameters:
+    WorkspaceId:
+      name: workspaceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     TemplateId:
       name: templateId
       in: path
@@ -1069,6 +1168,87 @@ components:
         retentionPolicyId:
           type: string
           format: uuid
+    NpsFeature:
+      type: object
+      required: [featureKey, title, description, enabled, canRequest, canReview, requests]
+      properties:
+        featureKey:
+          const: nps
+        title:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+          description: The caller can author NPS in this workspace now.
+        canRequest:
+          type: boolean
+        canReview:
+          type: boolean
+        requests:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/NpsRequest'
+    NpsRequestInput:
+      type: object
+      additionalProperties: false
+      required: [purpose, dataClassification]
+      properties:
+        purpose:
+          type: string
+          minLength: 1
+          maxLength: 300
+        dataClassification:
+          const: anonymous
+    NpsDecisionInput:
+      type: object
+      additionalProperties: false
+      required: [decision, rationale]
+      properties:
+        decision:
+          enum: [approve, deny]
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 300
+        expiresInDays:
+          type: integer
+          minimum: 1
+          maximum: 90
+      if:
+        properties:
+          decision:
+            const: approve
+      then:
+        required: [expiresInDays]
+      else:
+        not:
+          required: [expiresInDays]
+    NpsRequest:
+      type: object
+      required: [id, purpose, dataClassification, status, requestedAt, decidedAt, rationale, expiresAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        purpose:
+          type: string
+        dataClassification:
+          const: anonymous
+        status:
+          enum: [pending, approved, denied, expired]
+        requestedAt:
+          type: string
+          format: date-time
+        decidedAt:
+          type: [string, 'null']
+          format: date-time
+        rationale:
+          type: [string, 'null']
+        expiresAt:
+          type: [string, 'null']
+          format: date-time
     Survey:
       type: object
       required:
@@ -1172,6 +1352,7 @@ components:
           - single_choice
           - multiple_choice
           - number
+          - nps
           - rating
           - dropdown
           - date

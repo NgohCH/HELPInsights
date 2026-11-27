@@ -84,3 +84,13 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - In the combined branch, migration 008 adds host controls after operations 006 and lobby 007.
 - `corepack.cmd pnpm test:stack` exited 0 in `helpinsights-test-9dc6b5905854`. Twenty-one PostgreSQL integration, two security and nine Chromium tests passed. Presenter commands reached the open guest socket and an offline guest recovered current PostgreSQL state.
+
+## ENG-008b workspace review for NPS authoring
+
+- Source commit `cd071f2560308cb185def788b4b8a70c8da6a4d7`. Fifteen real PostgreSQL integrations, two security tests, and three Chromium tests passed. The migration preserved a seeded numeric survey, and the entitlement check denied draft and publication requests once approval expired. See the [exact-source evidence](../evidence/ENG-008b/cd071f2560308cb185def788b4b8a70c8da6a4d7.md).
+
+## NPS approval integration
+
+- Staged source tree df0bf3a814201ce47274d86b0dc2de02692444b8 passed lint, type checking, four unit tests and documentation validation.
+- corepack.cmd pnpm test:stack exited 0 in helpinsights-test-ebf3e0cf3134. Twenty-five PostgreSQL integration, two security and ten Chromium tests passed. The test runner verified disposable volumes were removed.
+- The combined branch loads NPS approval as migration 009. The approved 0–10 question uses the shared respondent and saved-preview renderer, which preserves the existing template copy and guide flows.

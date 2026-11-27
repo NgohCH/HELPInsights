@@ -9,6 +9,7 @@ import {
   type SurveyDefinition,
   uuid,
 } from "../../packages/survey-runtime/definition.ts";
+import { requireSurveyFeatureAccess } from "./feature-entitlements.ts";
 import { sendJson } from "./application.ts";
 import { HttpError, readSessionProof, withActor } from "./sessions.ts";
 
@@ -258,6 +259,7 @@ export function surveyRoutes(pool: Pool) {
           )
             throw conflict();
           const draft = parseDefinition(submitted);
+          await requireSurveyFeatureAccess(client, survey.workspaceId, draft);
           await client.query(
             "UPDATE public.surveys SET draft = $2, title = $3, draft_revision = draft_revision + 1 WHERE id = $1",
             [id, JSON.stringify(draft), draft.title],
@@ -274,6 +276,7 @@ export function surveyRoutes(pool: Pool) {
           if (survey.status === "closed") throw conflict();
           if (!draft?.pages.some((page) => page.questions.length))
             throw new InvalidInput("Add a question before publishing");
+          await requireSurveyFeatureAccess(client, survey.workspaceId, draft);
           const definition = JSON.stringify(draft);
           const {
             rows: [version],

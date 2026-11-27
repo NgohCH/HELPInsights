@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, type Workspace } from "./api.ts";
 import { Results } from "./results.tsx";
+import { FeatureCatalogue } from "./features.tsx";
 import { DraftPreview } from "./draft-preview.tsx";
 import { TemplateLibrary } from "./templates.tsx";
 import { UserGuide } from "./user-guide.tsx";
@@ -12,6 +13,11 @@ export function Creator() {
   const [token, setToken] = useState("");
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [workspaceId, setWorkspaceId] = useState("");
+  const [npsWorkspaceId, setNpsWorkspaceId] = useState<string | null>(null);
+  const [questionType, setQuestionType] = useState<"single_choice" | "nps">(
+    "single_choice",
+  );
+  const canAuthorNps = workspaceId === npsWorkspaceId;
   const [draft, setDraft] = useState<Draft | null>(null);
   const [starter, setStarter] = useState<SurveyDefinition | null>(null);
   const titleInput = useRef<HTMLInputElement>(null);
@@ -97,19 +103,23 @@ export function Creator() {
             {
               id: starterQuestion?.id ?? "question",
               code: starterQuestion?.code ?? "workshop_question",
-              type: "single_choice",
               title: field("question"),
               required: starterQuestion?.required ?? true,
-              options: [
-                {
-                  code: starterOptions?.[0]?.code ?? "option_1",
-                  label: field("option1"),
-                },
-                {
-                  code: starterOptions?.[1]?.code ?? "option_2",
-                  label: field("option2"),
-                },
-              ],
+              ...(questionType === "nps"
+                ? { type: "nps" }
+                : {
+                    type: "single_choice",
+                    options: [
+                      {
+                        code: starterOptions?.[0]?.code ?? "option_1",
+                        label: field("option1"),
+                      },
+                      {
+                        code: starterOptions?.[1]?.code ?? "option_2",
+                        label: field("option2"),
+                      },
+                    ],
+                  }),
             },
           ],
         },
@@ -214,7 +224,10 @@ export function Creator() {
               Workspace
               <select
                 value={workspaceId}
-                onChange={(event) => setWorkspaceId(event.target.value)}
+                onChange={(event) => {
+                  setQuestionType("single_choice");
+                  setWorkspaceId(event.target.value);
+                }}
                 disabled={!!draft || pending}
                 required
               >
@@ -237,6 +250,7 @@ export function Creator() {
                 onClone={(copy, definition) => {
                   setDraft(copy);
                   setStarter(definition);
+                  setQuestionType("single_choice");
                   setSavedDefinition(definition);
                   setReady(true);
                   setStatus("Template copied to a draft");
@@ -254,8 +268,28 @@ export function Creator() {
                 required
               />
             </label>
+            {canAuthorNps && (
+              <label>
+                Question type
+                <select
+                  value={questionType}
+                  onChange={(event) =>
+                    setQuestionType(
+                      event.target.value === "nps" ? "nps" : "single_choice",
+                    )
+                  }
+                >
+                  <option value="single_choice">Single choice</option>
+                  <option value="nps">NPS (0–10)</option>
+                </select>
+              </label>
+            )}
             <fieldset key={starter ? "template-question" : "new-question"}>
-              <legend>Single-choice question</legend>
+              <legend>
+                {questionType === "nps"
+                  ? "NPS question"
+                  : "Single-choice question"}
+              </legend>
               <label>
                 Question
                 <input
@@ -265,26 +299,28 @@ export function Creator() {
                   required
                 />
               </label>
-              <div className="columns">
-                <label>
-                  Option 1
-                  <input
-                    name="option1"
-                    maxLength={160}
-                    defaultValue={starterOptions?.[0]?.label}
-                    required
-                  />
-                </label>
-                <label>
-                  Option 2
-                  <input
-                    name="option2"
-                    maxLength={160}
-                    defaultValue={starterOptions?.[1]?.label}
-                    required
-                  />
-                </label>
-              </div>
+              {questionType === "single_choice" && (
+                <div className="columns">
+                  <label>
+                    Option 1
+                    <input
+                      name="option1"
+                      maxLength={160}
+                      defaultValue={starterOptions?.[0]?.label}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Option 2
+                    <input
+                      name="option2"
+                      maxLength={160}
+                      defaultValue={starterOptions?.[1]?.label}
+                      required
+                    />
+                  </label>
+                </div>
+              )}
             </fieldset>
             <div className="actions">
               <button disabled={pending || !workspaceId}>Save draft</button>
@@ -321,6 +357,20 @@ export function Creator() {
           onClose={() => {
             setPreviewDefinition(null);
             previewTrigger.current?.focus();
+          }}
+        />
+      )}
+      {workspaces && workspaceId && (
+        <FeatureCatalogue
+          key={workspaceId}
+          token={token}
+          workspaceId={workspaceId}
+          onAccessChange={(enabled) => {
+            setNpsWorkspaceId(enabled ? workspaceId : null);
+            if (!enabled) {
+              setQuestionType("single_choice");
+              if (questionType === "nps") setReady(false);
+            }
           }}
         />
       )}

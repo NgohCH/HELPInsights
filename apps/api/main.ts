@@ -5,6 +5,7 @@ import { createLiveQuiz } from "./live-quiz.ts";
 import { sessionRoutes } from "./sessions.ts";
 import { surveyRoutes } from "./surveys.ts";
 import { respondentRoutes } from "./respond.ts";
+import { featureRoutes } from "./features.ts";
 import { reportRoutes } from "./reports.ts";
 import { templateRoutes } from "./templates.ts";
 import { operationsRoutes } from "./operations.ts";
@@ -27,6 +28,7 @@ const sessions = sessionRoutes(pool);
 const surveys = surveyRoutes(pool);
 const respondents = respondentRoutes(pool);
 const reports = reportRoutes(pool);
+const features = featureRoutes(pool);
 const templates = templateRoutes(pool);
 const operations = operationsRoutes(pool, (client) =>
   hasCurrentSchema(client, migrations),
@@ -48,6 +50,7 @@ const server = createApplication(
   () => hasCurrentSchema(pool, migrations),
   async (...args) =>
     (await sessions(...args)) ||
+    (await features(...args)) ||
     (await surveys(...args)) ||
     (await templates(...args)) ||
     (await respondents(...args)) ||
