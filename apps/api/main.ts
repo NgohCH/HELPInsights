@@ -9,6 +9,7 @@ import { featureRoutes } from "./features.ts";
 import { reportRoutes } from "./reports.ts";
 import { templateRoutes } from "./templates.ts";
 import { operationsRoutes } from "./operations.ts";
+import { retentionRoutes } from "./retention.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -30,6 +31,7 @@ const respondents = respondentRoutes(pool);
 const reports = reportRoutes(pool);
 const features = featureRoutes(pool);
 const templates = templateRoutes(pool);
+const retention = retentionRoutes(pool);
 const operations = operationsRoutes(pool, (client) =>
   hasCurrentSchema(client, migrations),
 );
@@ -56,6 +58,7 @@ const server = createApplication(
     (await respondents(...args)) ||
     (await reports(...args)) ||
     (await operations(...args)) ||
+    (await retention(...args)) ||
     (liveQuiz ? await liveQuiz.route(...args) : false),
   { javascript, stylesheet, creatorHelp },
   Boolean(liveQuiz),

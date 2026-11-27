@@ -94,3 +94,14 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 - Staged source tree df0bf3a814201ce47274d86b0dc2de02692444b8 passed lint, type checking, four unit tests and documentation validation.
 - corepack.cmd pnpm test:stack exited 0 in helpinsights-test-ebf3e0cf3134. Twenty-five PostgreSQL integration, two security and ten Chromium tests passed. The test runner verified disposable volumes were removed.
 - The combined branch loads NPS approval as migration 009. The approved 0–10 question uses the shared respondent and saved-preview renderer, which preserves the existing template copy and guide flows.
+
+## ENG-010a closed-survey retention and hold guard
+
+- Tested revision `c801b00963a0165c58e468a1723db950bd6dac3f` on isolated PostgreSQL 16.16 and Chromium. The stack passed 18 integration tests, 2 security tests, and 3 browser tests. See the [exact-SHA verification record](../evidence/ENG-010a/c801b00963a0165c58e468a1723db950bd6dac3f.md).
+- Real PostgreSQL tests covered authorisation, stale snapshots, deadline and hold boundaries, seeded migration, and archive restore. Scheduled disposal and post-disposal restore replay remain separate acceptance scope.
+
+## Retention integration and active development branches
+
+- Cumulative tree 11d80dd5a630ea2504d8ac7b95310e5a7ab2edb8 includes migration 010. corepack.cmd pnpm test:stack exited 0 in helpinsights-test-85507d00f92d with 29 PostgreSQL integration, two security and ten Chromium tests. Closure stamped the database clock, hold approval and audit were scope-bound, the PostgreSQL archive preserved an active hold, and a stale repeatable-read disposal transaction was denied. The runner verified disposable cleanup.
+- GitHub docs and runtime checks passed for retention holds, the read-only disposal preview and synthetic replay, synthetic Registry eligibility, and Live Poll voting. See draft PRs #10–13 and the status table for links.
+- The PostgreSQL interruption branch reproduced a fatal 57P01 checked-out client error, then passed 12 PostgreSQL integration, two security and two Chromium tests after the fix. Draft PR #14 records the independent review and exact scope.

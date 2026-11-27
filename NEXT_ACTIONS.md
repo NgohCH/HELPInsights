@@ -1,0 +1,12 @@
+# HELPInsights development handoff
+
+The untouched main checkout is C:\Project\HELPInsights at `5d5e443d13328a07a71810cd90eb3a9785a3c902`. The active cumulative worktree is C:\Project\6803\HELPInsights on `dev/eng-local-integration`.
+
+- The first Chromium-to-PostgreSQL survey and JASP-ready archive workflow is verified on draft [PR #2](https://github.com/NgohCH/HELPInsights/pull/2). The combined branch through NPS approval passed 25 PostgreSQL integration tests, two security tests and ten Chromium tests. See [the evidence ledger](docs/EVIDENCE_LEDGER.md).
+- The cumulative worktree verified retention migration 010 with `corepack.cmd pnpm test:stack`. Observed 29 PostgreSQL integrations, two security tests and ten Chromium journeys. Repeat after adding verified worker recovery and Live Poll voting.
+- Independent feature branches include [synthetic disposal PR #11](https://github.com/NgohCH/HELPInsights/pull/11) and [synthetic Registry PR #12](https://github.com/NgohCH/HELPInsights/pull/12), and [Live Poll voting PR #13](https://github.com/NgohCH/HELPInsights/pull/13). Merge into the cumulative branch one slice at a time. Append each unapplied migration with its own next number and rerun PostgreSQL and Chromium before claiming combined behavior.
+- The worker interruption fix is in C:\Project\968e\HELPInsights. Rerun `node runtime-evidence/run-focused-reconnect.ts` and `corepack.cmd pnpm test:stack`; expect an interrupted checked-out transaction to reject without process exit, an authenticated query to succeed on the same pool afterwards and exports to survive restart.
+- The conditional visibility worktree is C:\Project\3f76\HELPInsights. Verify draft parsing, mobile collection, private preview and malformed selector checks with `corepack.cmd pnpm test:stack`. Live Poll must reject definitions containing conditional questions until it can evaluate visibility.
+- Coordinate runtime suites so the local Docker host runs one full suite at a time. Save command output, exact Git revision, test counts, recovery and cleanup outcomes in the evidence ledger.
+
+Main branch protection, native JASP import, representative accessibility checks and release approval remain open. The wider task graph still covers scoring and assessments, research, production connector contracts, installation and recovery, and full independent release verification. Continue synthetic-only and keep all changes on development branches.

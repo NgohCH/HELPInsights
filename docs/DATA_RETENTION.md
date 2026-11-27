@@ -34,6 +34,34 @@ Stage 1 bundle: `survey.json` (definition/version), `responses.csv`, `codebook.j
 - Exported data outside the platform is a *separate* repository and remains the responsibility of the receiving owner and their institutional policy. The platform should advise approved storage, not assert it can delete all external copies.
 - Aggregate trend reporting after deletion is permitted only when formally assessed as non-identifying and compatible with policy; small-cell disclosures need suppression.
 
+## Development retention slice
+
+ENG-010a keeps the workspace policy's expiry when a published survey closes.
+PostgreSQL stamps closure and adds the policy duration in 24-hour days.
+Deadlines already stored before the migration are preserved. A closed
+survey with no finite deadline cannot be disposed. Workspace members can
+read the disposition and deadlines through the survey retention endpoint.
+The `eligible` disposition records an expiry and hold check only.
+
+A workspace member with a separate hold approver appointment can record a
+legal or research hold with a future UTC deadline and an opaque evidence
+reference. PostgreSQL records the verified approver and time. The
+workspace-facing status omits audit attribution and evidence references.
+Survey ownership and platform operations roles confer no hold approval.
+Approval locks its membership and appointment until the transaction ends.
+
+PostgreSQL guards deletion of core surveys, versions and responses. Approval
+and deletion serialize through the survey row. Privileged TRUNCATE and
+trigger bypass fall outside the row guards. A future disposal role must
+have narrowly scoped rights and no TRUNCATE or trigger-bypass privileges.
+This API provides no
+execution endpoint or worker for scheduled disposal. Workspace policy
+inheritance beyond the existing workspace default, notices, hold review
+and release workflows, derivative cleanup, and post-disposal tombstone
+replay remain separate acceptance scope. Removing the guard independently
+would remove hold protection. Preserve active holds and deadlines during
+any coordinated rollback or restore.
+
 ## Acceptance tests
 
 Policy inheritance; expiry calculation across time zones; user notices; inaccessible expired export links; RBAC on dataset exports; disposal retries/idempotency; preservation under valid hold; deletion of file/cache/jobs; backup expiration; restore re-applies tombstones; draft aging; exports escape formula-like cells; survey definition and codebook agree with response version.

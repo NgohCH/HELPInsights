@@ -10,10 +10,18 @@
 | ENG-008a curated template | VERIFIED_INTEGRATION | Opened in [draft PR #4](https://github.com/NgohCH/HELPInsights/pull/4). |
 | Combined preview and template development branch | VERIFIED_INTEGRATION | Chromium exercised template preview, copy, saved draft preview and editing together. |
 | ENG-009a operations roles, health and incident history | VERIFIED_INTEGRATION | Exact revision `3bf00776434715cdf34d6c3673ff40ca5363e398` passed PostgreSQL permissions, restart, upgrade, restore and Chromium. See the [verification record](../evidence/ENG-009a/3bf00776434715cdf34d6c3673ff40ca5363e398.md). |
-| ENG-014 Live Poll lobby slice | VERIFIED_INTEGRATION | Host and guest snapshots passed real PostgreSQL and Chromium restart checks at [d1e5adcc4b09](../evidence/ENG-014/d1e5adcc4b09d8ecea6c880a1ee985a2a023b3ed.md). Presenter controls and realtime broadcast acceptance remain open. |
+| ENG-014 Live Poll lobby slice | VERIFIED_INTEGRATION | Host and guest snapshots passed real PostgreSQL and Chromium restart checks at [d1e5adcc4b09](../evidence/ENG-014/d1e5adcc4b09d8ecea6c880a1ee985a2a023b3ed.md). Scoring and broader Live Quiz acceptance remain open. |
 | ENG-014b authorised live controls and single-instance updates | VERIFIED_INTEGRATION | Standalone PostgreSQL and Chromium checks passed on [draft PR #9](https://github.com/NgohCH/HELPInsights/pull/9). |
 | ENG-008b workspace review for NPS authoring | VERIFIED_INTEGRATION | PostgreSQL and Chromium verified requests, delegated decisions, expiry, preserved numeric drafts and NPS submissions. [Exact source evidence](../evidence/ENG-008b/cd071f2560308cb185def788b4b8a70c8da6a4d7.md). |
-| Other platform features | NOT_STARTED | Track remaining scope in [the task graph](TASK_GRAPH.md). |
+| ENG-010a survey closure expiry and hold guard | VERIFIED_INTEGRATION | Exact revision `c801b00963a0165c58e468a1723db950bd6dac3f` passed scoped approval, clock boundaries, concurrent disposal protection, upgrade, archive restore and Chromium regression. See the [verification record](../evidence/ENG-010a/c801b00963a0165c58e468a1723db950bd6dac3f.md). |
+| ENG-007b checked-out PostgreSQL interruption | VERIFIED_INTEGRATION | A deterministic regression recovered the same pool. The survey export passed after a database restart on [draft PR #14](https://github.com/NgohCH/HELPInsights/pull/14). |
+| ENG-010b read-only disposal preview and synthetic archive replay | VERIFIED_INTEGRATION | Standalone database and Chromium checks passed on [draft PR #11](https://github.com/NgohCH/HELPInsights/pull/11). Scheduled production disposal remains open. |
+| ENG-011a synthetic Registry eligibility | VERIFIED_INTEGRATION | Standalone browser, provider outage/recovery and PostgreSQL passed on [draft PR #12](https://github.com/NgohCH/HELPInsights/pull/12). Unlinkable one-use eligibility remains open. |
+| ENG-014c Live Poll voting and privacy-filtered aggregates | VERIFIED_INTEGRATION | Independent scope review and focused testing included 50 concurrent synthetic guests and exact SQL vote counts. See [draft PR #13](https://github.com/NgohCH/HELPInsights/pull/13). |
+| ENG-013a conditional visibility and private preview | IMPLEMENTED_UNVERIFIED | The initial collection tests passed. Updated authoring and preview await full isolated runtime verification. |
+| ENG-012a case handoff | IMPLEMENTED_UNVERIFIED | Source and tests are in an isolated worktree. PostgreSQL and Chromium checks are pending. |
+| ENG-016a consent | NOT_STARTED | The synthetic scope and test criteria are in a separate worktree. |
+| Remaining platform features | NOT_STARTED | See the uncompleted features and prerequisites in [the task graph](TASK_GRAPH.md). |
 | Production release | BLOCKED | Branch protection, required evidence and authorised approval remain pending. |
 
 See [the evidence ledger](EVIDENCE_LEDGER.md).
