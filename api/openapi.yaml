@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.9-development
-  description: Development coverage includes anonymous surveys, CSV export, curated templates, operations, opt-in Live Poll, NPS approval and retention holds.
+  version: 0.2.10-development
+  description: Development coverage includes anonymous surveys, CSV export, curated templates, operations, opt-in Live Poll, NPS approval, retention holds and read-only disposal preview.
 servers:
 - url: https://survey.example.org/api/v1
   description: Example only
@@ -479,6 +479,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /surveys/{surveyId}/retention/disposal-preview:
+    parameters:
+    - $ref: '#/components/parameters/SurveyId'
+    get:
+      tags:
+      - Survey
+      operationId: getSurveyDisposalPreview
+      description: Read-only eligibility preview for an explicitly appointed retention reviewer in the survey workspace. An eligible result does not schedule or execute disposal.
+      responses:
+        '200':
+          description: Disposal eligibility and retention deadlines
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyDisposalPreview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '503':
           $ref: '#/components/responses/Unavailable'
   /public/s/{publicToken}:
@@ -1778,6 +1803,20 @@ components:
           type: [string, 'null']
           format: date-time
           description: Latest expiry among active holds.
+    SurveyDisposalPreview:
+      type: object
+      additionalProperties: false
+      required: [disposition, expiryAt, protectedUntil]
+      properties:
+        disposition:
+          type: string
+          enum: [not_closed, scheduled, missing_deadline, held, live_session_present, export_pending, eligible]
+        expiryAt:
+          type: [string, 'null']
+          format: date-time
+        protectedUntil:
+          type: [string, 'null']
+          format: date-time
     RetentionHoldReason:
       type: string
       enum: [legal, research]

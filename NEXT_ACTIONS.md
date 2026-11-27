@@ -1,6 +1,9 @@
 # HELPInsights development handoff
 
-The untouched main checkout is C:\Project\HELPInsights at `5d5e443d13328a07a71810cd90eb3a9785a3c902`. The active cumulative worktree is C:\Project\6803\HELPInsights on `dev/eng-local-integration`.
+The untouched main checkout is C:\Project\HELPInsights at `5d5e443d13328a07a71810cd90eb3a9785a3c902`. The verified milestone is in [draft PR #18](https://github.com/NgohCH/HELPInsights/pull/18) from C:\Project\6803\HELPInsights on `dev/eng-local-integration`.
+
+
+The active lifecycle integration worktree is C:\Project\f8fc\HELPInsights on dev/eng-lifecycle-connectors. In the real PostgreSQL red run helpinsights-test-320241e3a8cf, an expired survey with a linked Live Poll room was reported eligible, then the fixture transaction hit the live-session foreign key. The candidate protects linked sessions explicitly with a read-only disposition. Run its full PostgreSQL and Chromium suite before promotion.
 
 - The first Chromium-to-PostgreSQL survey and JASP-ready archive workflow is verified on draft [PR #2](https://github.com/NgohCH/HELPInsights/pull/2). The combined branch through NPS approval passed 25 PostgreSQL integration tests, two security tests and ten Chromium tests. See [the evidence ledger](docs/EVIDENCE_LEDGER.md).
 - The cumulative worktree verified retention migration 010 with `corepack.cmd pnpm test:stack`. Observed 29 PostgreSQL integrations, two security tests and ten Chromium journeys. The later cumulative source 4a1a20f7aa68d2d2c29b9c3d5b04a9e45a463f81 also includes verified worker recovery, voting and conditional authoring. It passed 35 PostgreSQL integration, two security and 13 Chromium tests.

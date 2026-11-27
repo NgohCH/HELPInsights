@@ -116,3 +116,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 - Exact source [4a1a20f7aa68](../evidence/ENG-INTEGRATION/4a1a20f7aa68d2d2c29b9c3d5b04a9e45a463f81.md) passed lint, types, four unit, 35 PostgreSQL integration, two security and 13 Chromium tests in helpinsights-test-14c78b66dce6, with verified cleanup. The branch uses migration 011 for voting and preserved the checksummed prior history.
 - The exact cumulative stack proved stable template codes, private conditional draft preview, NPS authoring, database restart and JASP-ready export, worker pool recovery and 50-guest vote contention. Independent review confirmed stored-answer exclusion and noted that public survey definitions expose configured prompt text.
 - Standalone case handoff, conditional visibility and synthetic consent drafts are PRs #15–17. See the status table for exact scope and review links. Main remains at 5d5e443d13328a07a71810cd90eb3a9785a3c902 both locally and on GitHub.
+
+## ENG-010b disposal preview and fixture replay
+
+- Tested revision `69d42925f30cf2d76b46a2a0fa22c1a617c0b95e` on isolated PostgreSQL 16.16 and Chromium. The stack passed 20 integration tests, 2 security tests and 3 browser tests. See the [exact-SHA verification record](../evidence/ENG-010b/69d42925f30cf2d76b46a2a0fa22c1a617c0b95e.md).
+- The running API supplies a read-only preview. Cleanup, rollback, retries and stale snapshot replay were exercised in owned synthetic fixture databases.
