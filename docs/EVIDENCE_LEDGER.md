@@ -32,3 +32,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Source revision [be898f0ceea9](../evidence/ENG-014b/be898f0ceea991afef379b1c1cd8607bc7eb0c5b.md) passed 14 PostgreSQL integration, 2 security and 4 Chromium tests. PostgreSQL accepted one concurrent host transition at the same revision. Chromium confirmed two ongoing sockets and automatic guest recovery to the current revision.
 - A seeded upgrade preserved a versioned lobby and its guest, and the archive restore retained a paused session. A connected guest whose capability expired received no newer frame after a committed transition. Scoring, 50-user contention, multi-instance fan-out and release approval remain open.
+
+## ENG-014c Live Poll voting
+
+- Voting source [95307681e932](../evidence/ENG-014c/164fb832037a2b440918c363e9e2b00a8d37ab25.md) passed 17 PostgreSQL integration, 2 security and 5 Chromium tests. One presenter stream and 50 simultaneous synthetic guests converged to 50 durable ballots with role-filtered snapshots. Closed result checks suppressed small option and nonvoter cells.
+- A fresh targeted run on the conditional-admission guard added explicit 400 denial of versions with conditional questions. A seeded migration upgrade, PostgreSQL restore, app restart with same-key receipt, and revocation while a ballot waited on the room lock were observed. Scoring and the remaining release gates stay open.
