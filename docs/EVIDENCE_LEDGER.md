@@ -22,3 +22,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 - Tested revision `07c70a4627556bf6b8684609982289ae2356ea5a`. See the [exact-SHA verification record](../evidence/ENG-001/07c70a4627556bf6b8684609982289ae2356ea5a.md).
 - Local runtime passed real PostgreSQL, Chromium, dependency and redacted history scans. The development runner uses pnpm 10.34.9.
 - GitHub `rules/branches/main` returned an empty array (exit 0) and classic protection returned 404. The merge and release gate remains blocked.
+
+## ENG-008b workspace review for NPS authoring
+
+- Source commit `cd071f2560308cb185def788b4b8a70c8da6a4d7`. Fifteen real PostgreSQL integrations, two security tests, and three Chromium tests passed. The migration preserved a seeded numeric survey, and the entitlement check denied draft and publication requests once approval expired. See the [exact-source evidence](../evidence/ENG-008b/cd071f2560308cb185def788b4b8a70c8da6a4d7.md).
