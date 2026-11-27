@@ -197,3 +197,7 @@ legend {
   height: 0.9rem;
   accent-color: var(--primary);
 }
+
+.preview {
+  margin-top: 1rem;
+}

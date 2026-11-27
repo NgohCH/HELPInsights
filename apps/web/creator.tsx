@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { api, type Workspace } from "./api.ts";
 import { Results } from "./results.tsx";
+import { DraftPreview } from "./draft-preview.tsx";
 import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
 
 type Draft = { id: string; etag: string };
@@ -11,6 +12,11 @@ export function Creator() {
   const [workspaceId, setWorkspaceId] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [ready, setReady] = useState(false);
+  const [savedDefinition, setSavedDefinition] =
+    useState<SurveyDefinition | null>(null);
+  const [previewDefinition, setPreviewDefinition] =
+    useState<SurveyDefinition | null>(null);
+  const previewTrigger = useRef<HTMLButtonElement>(null);
   const [publicLink, setPublicLink] = useState("");
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("");
@@ -109,6 +115,8 @@ export function Creator() {
       if (!saved.etag)
         throw new Error("The saved draft revision is unavailable");
       setDraft({ id: current.id, etag: saved.etag });
+      setSavedDefinition(saved.data);
+      setPreviewDefinition(null);
       setReady(true);
       setStatus("Draft saved");
     });
@@ -125,6 +133,7 @@ export function Creator() {
         },
       );
       setPublicLink("/respond/" + data.publicToken);
+      setPreviewDefinition(null);
       setReady(false);
       setStatus("Survey published");
     });
@@ -192,6 +201,15 @@ export function Creator() {
               <button
                 type="button"
                 className="secondary"
+                ref={previewTrigger}
+                disabled={pending || !savedDefinition}
+                onClick={() => setPreviewDefinition(savedDefinition)}
+              >
+                Preview draft
+              </button>
+              <button
+                type="button"
+                className="secondary"
                 disabled={!ready || pending}
                 onClick={publish}
               >
@@ -205,6 +223,15 @@ export function Creator() {
             </div>
           )}
         </section>
+      )}
+      {previewDefinition && (
+        <DraftPreview
+          definition={previewDefinition}
+          onClose={() => {
+            setPreviewDefinition(null);
+            previewTrigger.current?.focus();
+          }}
+        />
       )}
       {draft && publicLink && (
         <Results key={publicLink} surveyId={draft.id} token={token} />

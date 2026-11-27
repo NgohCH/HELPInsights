@@ -5,6 +5,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 FROM base AS web
 RUN corepack pnpm install --frozen-lockfile
 COPY apps ./apps
+COPY packages/survey-runtime ./packages/survey-runtime
 RUN corepack pnpm build:web
 
 FROM base
