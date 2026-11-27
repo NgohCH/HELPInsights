@@ -41,11 +41,13 @@ export function retentionRoutes(pool: Pool) {
     path: string,
     requestId: string,
   ) => {
-    const match = /^\/api\/v1\/surveys\/([^/]+)\/retention(\/holds)?$/.exec(
-      path,
-    );
+    const match =
+      /^\/api\/v1\/surveys\/([^/]+)\/retention(?:\/(holds|disposal-preview))?$/.exec(
+        path,
+      );
     if (!match) return false;
-    const [, requestedSurvey, holds] = match;
+    const [, requestedSurvey, action] = match;
+    const holds = action === "holds";
     const allowed = holds ? "POST" : "GET";
     if (request.method !== allowed) {
       response.setHeader("Allow", allowed);
@@ -61,6 +63,24 @@ export function retentionRoutes(pool: Pool) {
       const survey = uuid(requestedSurvey, "Survey");
       const input = holds ? holdInput(await jsonBody(request)) : null;
       const result = await withActor(pool, proof, async (client) => {
+        if (action === "disposal-preview") {
+          const {
+            rows: [preview],
+          } = await client.query(
+            'SELECT outcome, disposition, expiry_at AS "expiryAt", protected_until AS "protectedUntil" FROM public.read_disposal_preview($1)',
+            [survey],
+          );
+          if (!preview) throw missing();
+          if (preview.outcome === "forbidden") {
+            throw new HttpError(
+              403,
+              "FORBIDDEN",
+              "Disposal review is required in this workspace",
+            );
+          }
+          const { outcome, ...summary } = preview;
+          return summary;
+        }
         if (!input) {
           const {
             rows: [disposition],

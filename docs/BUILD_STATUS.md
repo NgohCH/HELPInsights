@@ -22,6 +22,10 @@
 | ENG-012a case handoff | VERIFIED_INTEGRATION | Standalone synthetic approval, SQL deduplication and mobile browser passed on [draft PR #15](https://github.com/NgohCH/HELPInsights/pull/15). Delivery and governance remain open. |
 | ENG-016a synthetic consent | VERIFIED_INTEGRATION | Standalone PostgreSQL and Chromium verified versioned opt-in and atomic persistence on [draft PR #17](https://github.com/NgohCH/HELPInsights/pull/17). Cross-module integration remains open. |
 | Cumulative development stack through Live Poll voting and conditional follow-ups | VERIFIED_INTEGRATION | Exact source 4a1a20f7aa68 passed 35 PostgreSQL integration, two security and 13 Chromium checks. [Cumulative evidence](../evidence/ENG-INTEGRATION/4a1a20f7aa68d2d2c29b9c3d5b04a9e45a463f81.md). |
+| Cumulative lifecycle and Live Poll disposal protection | VERIFIED_INTEGRATION | Exact source 179289716ac8 passed 38 PostgreSQL integration, two security and 13 Chromium tests. [Cumulative evidence](../evidence/ENG-010b/179289716ac8f434114e338252965069a75008f7.md). |
+| ENG-015a Game Show timed scoring | VERIFIED_INTEGRATION | Standalone private score persistence, deadline, restart, archive and Chromium checks passed on [draft PR #20](https://github.com/NgohCH/HELPInsights/pull/20). Private score release and rankings remain open. |
+| ENG-017a export worker recovery incident | VERIFIED_INTEGRATION | Standalone verified real backend interruption and the same worker completing the export at [draft PR #19](https://github.com/NgohCH/HELPInsights/pull/19). Durable incident buffering and routing remain open. |
+| ENG-018a local install and doctor | VERIFIED_INTEGRATION | Clean Windows local install/demo passed on [draft PR #21](https://github.com/NgohCH/HELPInsights/pull/21). Persistent administrator provisioning and fresh OS/browser dependencies remain open. |
 | Remaining platform features | NOT_STARTED | See the uncompleted features and prerequisites in [the task graph](TASK_GRAPH.md). |
 | Production release | BLOCKED | Branch protection, required evidence and authorised approval remain pending. |
 

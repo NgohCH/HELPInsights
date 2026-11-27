@@ -62,6 +62,36 @@ replay remain separate acceptance scope. Removing the guard independently
 would remove hold protection. Preserve active holds and deadlines during
 any coordinated rollback or restore.
 
+## Disposal preview and fixture proof
+
+ENG-010b adds a read-only eligibility preview for explicitly appointed
+retention reviewers in the survey workspace. The same appointment can
+approve holds. The preview exposes the current deadlines and disposition
+only. Due surveys with linked Live Poll rooms show a protected disposition until a live derivative policy is implemented. Other due surveys with a queued export show `export_pending`. A deployment
+still needs an approved rule for outstanding jobs and a bounded window
+that repeated export requests cannot extend indefinitely.
+
+The runtime migration creates a restricted tombstone table containing a
+survey ID, workspace ID and disposal time. Runtime database roles have
+no tombstone write grants. The runtime has no disposal endpoint or
+automatic disposal execution.
+
+A test-only function and its runner demonstrate atomic cleanup of core
+survey records, distribution links, stored export archives and linked
+download audit in owned synthetic fixture databases. The function and
+its marker tables are excluded from packaged runtime files. In the test
+restore, a separately owned database starts with an earlier snapshot.
+The test applies the redacted tombstone before connecting an application,
+and the old survey data and generated archive are removed. A failed or
+mismatched replay requires manual escalation with the restore isolated
+from application traffic. The fixture creates no runnable repair or
+disposal path for a deployed system.
+
+Production scheduling, policy for in-flight exports, outbound notices,
+retention for minimal ledger data, external derivative stores and trusted
+post-restore replay remain separate acceptance gates. A deployment rollback
+must preserve records and any future approved tombstones.
+
 ## Acceptance tests
 
 Policy inheritance; expiry calculation across time zones; user notices; inaccessible expired export links; RBAC on dataset exports; disposal retries/idempotency; preservation under valid hold; deletion of file/cache/jobs; backup expiration; restore re-applies tombstones; draft aging; exports escape formula-like cells; survey definition and codebook agree with response version.

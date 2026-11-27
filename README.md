@@ -34,6 +34,9 @@ hold approval for appointed workspace members. PostgreSQL protects core
 survey data from deletion before expiry and during active holds. See
 [Retention policy and scope](docs/DATA_RETENTION.md).
 
+The retention API also includes a read-only disposal preview for appointed
+reviewers. Disposal and replay run only in the isolated test fixtures.
+
 ## Non-negotiable principles
 
 - Intuitive for non-technical staff, accessible, fast on mobile and consistent across workflows.
