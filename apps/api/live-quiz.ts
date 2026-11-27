@@ -275,14 +275,19 @@ export function createLiveQuiz(
       const created = await withActor(pool, proof, async (client, actor) => {
         const {
           rows: [version],
-        } = await client.query<{ definition: unknown }>(
-          `SELECT v.definition FROM public.survey_versions v
+        } = await client.query<{ definition: unknown; conditional: boolean }>(
+          `SELECT v.definition, v.definition @? '$.pages[*].questions[*].visibleWhen' AS conditional
+           FROM public.survey_versions v
            JOIN public.surveys s ON s.id = v.survey_id
            WHERE v.id = $1 AND s.status = 'published'
              AND public.workspace_role(s.workspace_id) IN ('owner', 'editor')`,
           [quizVersionId],
         );
         if (!version) throw denied();
+        if (version.conditional)
+          throw new InvalidInput(
+            "Live Poll requires questions without conditional visibility",
+          );
         const questions = parseDefinition(version.definition).pages.flatMap(
           (page) => page.questions,
         );

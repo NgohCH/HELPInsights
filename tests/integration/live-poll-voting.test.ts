@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import test from "node:test";
 import WebSocket from "ws";
-import { livePollFixture } from "../fixtures/live-poll.ts";
+import { livePollFixture, pollDefinition } from "../fixtures/live-poll.ts";
+import { liveQuizFixture } from "../fixtures/live-quiz.ts";
 
 test("scoped idempotent ballots target the current open immutable question", async () => {
   const { api, owner, outsider, path, id, join, command, sql, quizVersionId } =
@@ -305,4 +306,38 @@ test("closed counts with a single nonvoter remain private", async () => {
   assert.equal(snapshot.question.open, false);
   assert.equal(snapshot.turnout, 5);
   assert.equal(snapshot.results, null);
+});
+
+test("published conditional survey questions cannot enter Live Poll", async () => {
+  const { api, owner, quizVersionId, sql } =
+    await liveQuizFixture(pollDefinition);
+  // Seed the published shape expected from the conditional survey publisher.
+  sql(`
+    UPDATE public.survey_versions
+    SET definition = jsonb_set(
+      definition, '{pages,0,questions,1,visibleWhen}',
+      '{"questionId":"rating","optionCode":"useful"}'::jsonb
+    )
+    WHERE id = '${quizVersionId}'
+  `);
+  const result = await api(
+    "/live-sessions",
+    "POST",
+    {
+      quizVersionId,
+      mode: "live_poll",
+    },
+    owner,
+  );
+  assert.equal(result.status, 400);
+  assert.equal(
+    (await result.json()).message,
+    "Live Poll requires questions without conditional visibility",
+  );
+  assert.equal(
+    sql(
+      `SELECT count(*) FROM public.live_sessions WHERE quiz_version_id = '${quizVersionId}'`,
+    ),
+    "0",
+  );
 });

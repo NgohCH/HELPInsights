@@ -479,7 +479,7 @@ paths:
     post:
       tags: [Live Quiz Arena]
       operationId: createLiveQuizSession
-      summary: Create a Live Poll lobby from a published single-choice version
+      summary: Create a Live Poll lobby from a published unconditional single-choice version
       description: >
         Development-only and disabled by default. The workspace owner or editor
         who creates the lobby is its presenter. The join PIN is returned once.
@@ -595,7 +595,7 @@ paths:
         Commands require the host and the current revision. Start moves a lobby
         to running. Pause and resume switch between running and paused. End
         closes a lobby, running or paused session. Archive archives an ended
-        session. Next question opens the next choice in published order. Close question closes voting. Accepted transitions advance the persisted revision once.
+        session. Next question opens the next published choice question in order. Close question closes voting. Accepted transitions advance the persisted revision once.
       parameters:
       - *id002
       requestBody:
