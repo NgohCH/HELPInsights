@@ -16,7 +16,7 @@ if api.exists():
   if len(ids)!=len(set(ids)): errors.append('Duplicate operationId')
  except Exception as e:errors.append('OpenAPI parse: '+str(e))
 for directory, children, files in os.walk(root):
- children[:] = [name for name in children if name not in {'.git','node_modules','dist','playwright-report','test-results'}]
+ children[:] = [name for name in children if name not in {'.git','node_modules','dist','playwright-report','test-results','runtime-evidence'}]
  for filename in files:
   if not filename.endswith('.md'): continue
   p = Path(directory) / filename
