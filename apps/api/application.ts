@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { createServer, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 
 export function sendJson(
   response: ServerResponse,
@@ -22,7 +26,17 @@ const home = `<!doctype html>
 <body><main><h1>HELPInsights</h1></main></body>
 </html>`;
 
-export function createApplication(isReady: () => Promise<boolean>) {
+type Route = (
+  request: IncomingMessage,
+  response: ServerResponse,
+  path: string,
+  requestId: string,
+) => Promise<boolean>;
+
+export function createApplication(
+  isReady: () => Promise<boolean>,
+  route?: Route,
+) {
   return createServer(async (request, response) => {
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("X-Content-Type-Options", "nosniff");
@@ -33,7 +47,18 @@ export function createApplication(isReady: () => Promise<boolean>) {
     );
 
     const requestId = randomUUID();
-    const path = request.url?.split("?", 1)[0];
+    const path = request.url?.split("?", 1)[0] ?? "";
+    if (route) {
+      try {
+        if (await route(request, response, path, requestId)) return;
+      } catch {
+        return sendJson(response, 503, {
+          code: "UNAVAILABLE",
+          message: "Request temporarily unavailable",
+          requestId,
+        });
+      }
+    }
     if (
       path !== "/" &&
       path !== "/api/v1/health/live" &&

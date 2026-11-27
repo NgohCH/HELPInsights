@@ -30,10 +30,12 @@ test("migration and readiness use the same schema with a custom database search 
       "CREATE SCHEMA preferred",
     );
     const output = compose(
-      "exec",
-      "-T",
-      "app",
+      "run",
+      "--rm",
+      "--no-deps",
+      "--entrypoint",
       "node",
+      "migrate",
       "--input-type=module",
       "-e",
       `

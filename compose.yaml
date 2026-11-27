@@ -12,14 +12,23 @@ services:
       retries: 30
     volumes:
       - pg_data:/var/lib/postgresql/data
+  migrate:
+    build: .
+    command: ["node", "packages/database/local-migrate.ts"]
+    environment:
+      DATABASE_URL: postgresql://helpinsights:helpinsights_local_fixture@postgres:5432/helpinsights
+      LOCAL_RUNTIME_DB_PASSWORD: helpinsights_runtime_fixture
+    depends_on:
+      postgres:
+        condition: service_healthy
   app:
     build: .
     init: true
     environment:
-      DATABASE_URL: postgresql://helpinsights:helpinsights_local_fixture@postgres:5432/helpinsights
+      DATABASE_URL: postgresql://helpinsights_runtime:helpinsights_runtime_fixture@postgres:5432/helpinsights
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "127.0.0.1::3000"
     healthcheck:
