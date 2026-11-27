@@ -15,6 +15,12 @@ Use Project Listen to validate general-purpose survey creation, respondent UX, p
 
 Optional fixture-supported use case: a per-class invitation list supports one response per *eligible token* or verified student/class/distribution for identified mode. **An open anonymous QR link cannot guarantee one response per student**; do not make that promise. Use anonymous one-time tokens when eligibility must be checked without identifying answers, with careful unlinkability testing.
 
+## Synthetic Registry development slice
+
+ENG-011a adds a network adapter and private HTTP Registry simulator to the disposable test stack. In that stack only, an authorised creator can publish a distribution with `eligibilityMode: registry-synthetic`. The respondent verifies a synthetic credential before seeing the questionnaire or submitting. The adapter sends only that opaque fixture credential to the simulator. The simulator returns a boolean without seeing the survey or answers.
+
+A successful check issues a signed capability that is scoped to the exact distribution and expires in five to ten minutes. The browser keeps it in memory and sends it in a header. Survey responses, receipts, application logs, and simulator logs store no capability, credential, or person ID. The capability is shared across successful checks for the same distribution in the same time window. It can be shared or reused until expiry, so there is no one-use or per-person guarantee. Timing and small-group risks, one-use unlinkable collection, and live-provider approval remain production gates. If the simulator is unavailable, no new capability is issued. Existing unexpired capabilities retain their expiry.
+
 ## Stage 1B feedback-to-action process (operational rollout)
 
 `Response collected -> authorised triage -> classify -> decide action required -> create/route case in external tracker -> assign owner -> follow up/escalate -> verify resolution -> communicate outcome where possible -> close and report.`
@@ -44,3 +50,7 @@ Triage rules:
 ## Proposed initial KPIs — require approval
 
 95% actionable feedback triaged in 2 working days; 100% accepted cases with an owner; all critical/overdue cases escalated under policy; closure requires evidence. These are proposed targets, not current institutional KPIs.
+
+## University eligibility and research governance
+
+Microsoft Entra is the external authority for institutional identity and student eligibility. The Research Ethics Board clears a research project before kickoff. The university's approved external study process governs participant consent. Apply these boundaries when choosing the minimum information the survey platform may receive. The Registry and consent simulators exercise local failure and privacy behavior with synthetic data.

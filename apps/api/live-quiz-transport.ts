@@ -8,7 +8,7 @@ import { HttpError } from "./sessions.ts";
 
 export type LiveSnapshot = {
   id: string;
-  mode: "live_poll";
+  mode: "live_poll" | "game_show";
   state: "lobby" | "running" | "paused" | "ended" | "archived";
   revision: number;
   quizVersionId?: string;
@@ -18,6 +18,7 @@ export type LiveSnapshot = {
     options: Array<{ code: string; label: string }>;
     openedRevision: number;
     open: boolean;
+    closesAt?: string;
   };
   hasVoted?: boolean;
   hasNextQuestion?: boolean;

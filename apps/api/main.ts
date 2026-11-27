@@ -10,6 +10,8 @@ import { reportRoutes } from "./reports.ts";
 import { templateRoutes } from "./templates.ts";
 import { operationsRoutes } from "./operations.ts";
 import { retentionRoutes } from "./retention.ts";
+import { syntheticRegistry } from "./registry.ts";
+import { syntheticConsentEnabled } from "./research-consent.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -26,8 +28,18 @@ const pool = new pg.Pool({
 pool.on("error", () => console.error("Idle PostgreSQL connection interrupted"));
 
 const sessions = sessionRoutes(pool);
-const surveys = surveyRoutes(pool);
-const respondents = respondentRoutes(pool);
+const registryGate = syntheticRegistry(process.env);
+const syntheticResearchConsent = syntheticConsentEnabled(process.env);
+const surveys = surveyRoutes(
+  pool,
+  registryGate !== null,
+  syntheticResearchConsent,
+);
+const respondents = respondentRoutes(
+  pool,
+  registryGate,
+  syntheticResearchConsent,
+);
 const reports = reportRoutes(pool);
 const features = featureRoutes(pool);
 const templates = templateRoutes(pool);
@@ -35,12 +47,14 @@ const retention = retentionRoutes(pool);
 const operations = operationsRoutes(pool, (client) =>
   hasCurrentSchema(client, migrations),
 );
+const gameShowEnabled = process.env.LIVE_GAME_SHOW_ENABLED === "true";
 const liveQuiz =
   process.env.LIVE_QUIZ_ENABLED === "true"
     ? createLiveQuiz(
         pool,
         process.env.LIVE_QUIZ_PIN_KEY,
         process.env.LIVE_QUIZ_ORIGIN,
+        gameShowEnabled,
       )
     : undefined;
 const [javascript, stylesheet, creatorHelp] = await Promise.all([
@@ -62,6 +76,7 @@ const server = createApplication(
     (liveQuiz ? await liveQuiz.route(...args) : false),
   { javascript, stylesheet, creatorHelp },
   Boolean(liveQuiz),
+  gameShowEnabled,
 );
 const closeLiveSockets = liveQuiz?.attachSockets(server);
 server.listen(3000, "0.0.0.0", () =>

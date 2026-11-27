@@ -7,13 +7,15 @@
 | SurveyDefinition | Editable design, questions, pages, logic and metadata; draft only. |
 | Question visibility | An optional match against a stable option code of an earlier unconditional single-choice question. Hidden questions accept no answers. |
 | SurveyVersion | Immutable published snapshot with stable question and option IDs. |
-| Distribution | Channel/campaign referencing exactly one published version. |
+| Distribution | Channel/campaign referencing exactly one published version. The synthetic test Registry policy, when selected at publication, is bound to its distribution. |
 | Participation | Eligibility/attempt ledger; separated from answers for anonymous modes. |
 | Response | A submission against a single version, with idempotency and server validation. |
 | Attempt | Quiz/self-paced attempt governed by attempt policy, distinct from Response. |
 | LiveSession | Ephemeral hosted game referencing a published quiz version; server authoritative transitions. |
 | LiveAnswer | Participant/session/question attempt with unique constraints; server timestamp and scoring. |
 | ResearchStudy | Study consent, governance and approved retention settings; may have waves. |
+| SyntheticConsentVersion | A fixed test notice snapshot bound to one published distribution. Its revision follows the survey version. |
+| SyntheticConsentOptIn | A private affirmative event linked to the consent version. No respondent or response pointer is stored. |
 | CaseHandoff | Privacy-reviewed outbox event and delivery receipt, not an internal ticket. |
 | RetentionHold | Authorised limited-time exception, reason/review date, audit and policy control. |
 | Incident | Immutable operational detection/recovery/action history; redacted, no response content. |

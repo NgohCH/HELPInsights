@@ -129,6 +129,10 @@ The development **Feature catalogue** lets workspace owners and editors request 
 
 During authoring, **Show a follow-up when** lets you attach a required text question to one choice. The saved preview uses the same rule as the published form. Exported blanks can mean a question was hidden or was visible and unanswered. The analytics response count covers the entire published version.
 
+The disposable test stack also starts a private Person Registry simulator for synthetic eligibility checks. Tests publish a restricted test distribution, verify a synthetic credential, and collect an anonymous response. The default local stack uses open survey links. The temporary capability grants access to a restricted test link, and the separate `Idempotency-Key` handles retries of one submission. Simulator outages suspend new verification until recovery. Existing capabilities remain valid until expiry. [Project Listen development scope](docs/PROJECT_LISTEN.md#synthetic-registry-development-slice)
+
+The disposable test runtime also supports a versioned, fixed synthetic consent notice on opted-in single-choice surveys. Declining leaves no response. Academic studies, governed research retention, and production activation require separate release evidence. [Research acceptance scope](docs/FEATURE_MATRIX.md#synthetic-research-consent-development-slice)
+
 Follow the [development runbook](docs/progress/ENG-001-002-setup.md) to install the locked dependencies and Chromium. Run the full synthetic demonstration from the survey workflow branch:
 
 ```sh
@@ -142,6 +146,14 @@ The Playwright journey creates its own development session and workspace, submit
 The disposable test stack enables the Live Poll lobby. The normal stack leaves it disabled. Open `/live/host` on the loopback app with a development session token and the ID from an authorised survey's publish response. Use a published version with unconditional single-choice questions. Share the eight-digit PIN with a synthetic guest at `/live/join` within 30 minutes.
 
 The presenter can start, pause, resume, end and archive the poll. The presenter and guest see committed state changes over a same-origin WebSocket. A disconnected tab reconnects to the current PostgreSQL state. Refresh lobby also reopens the connection. Guest credentials stay in the current page and expire after eight hours. Once running, the presenter opens and advances questions in published order. Each guest can cast one vote per question and see their own receipt. The presenter sees turnout in groups of five and may close the question to reveal exact counts when the category and nonvoter groups meet the privacy threshold. See the [voting test criteria](docs/LIVE_POLL_VOTING_TEST_CRITERIA.md) and [remaining Live Quiz Arena release gates](docs/LIVE_QUIZ_ARENA.md).
+
+### Local timed Game Show
+
+The disposable test stack opts in to Game Show through LIVE_GAME_SHOW_ENABLED. Open /live/game-host and supply a published version with one unconditional single-choice question. The presenter enters its exact correct option code and sets an answer time of 5 to 120 seconds. Guests join at /live/join.
+
+Opening the question starts the PostgreSQL clock. A pause prevents new answers while the deadline continues. Resuming and reconnecting keep the same deadline. The private accuracy_v1 rule records 1000 points for a correct answer and zero otherwise. Participants receive their own answer receipt. Scores and the answer key stay private in this slice.
+
+An anonymous room requires an open distribution. The Registry and research consent integration must establish that a source version permits anonymous reuse before activation. See the [Game Show verification criteria](docs/GAME_SHOW_SCORING_TEST_CRITERIA.md).
 
 ## Product governance
 

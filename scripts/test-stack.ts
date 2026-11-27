@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { localDockerContext, testDocker } from "./test-docker.ts";
 
 const project = "helpinsights-test-" + randomBytes(6).toString("hex");
+process.env.HELPINSIGHTS_TEST_REGISTRY_KEY = randomBytes(32).toString("hex");
 const context = localDockerContext();
 const { compose, docker, baseUrl } = testDocker(context, project);
 const pnpm = process.env.npm_execpath;

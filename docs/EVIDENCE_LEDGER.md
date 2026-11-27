@@ -126,3 +126,21 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Exact source [179289716ac8](../evidence/ENG-010b/179289716ac8f434114e338252965069a75008f7.md) passed 38 PostgreSQL integration, two security and 13 Chromium tests in helpinsights-test-e42d471b89f5. Seeded migration 012 preserved the existing room and migration checksums. The red reproduced an incorrect eligible disposition and a real foreign-key failure. The fixed preview and fixture transaction protect the linked room, all survey derivatives and the tombstone ledger.
 - The GitHub docs-contract and runtime-required checks passed on cumulative PR #18 and standalone worker recovery and Game Show PRs #19–20. The clean Windows installer demo passed standalone locally and is drafted in PR #21.
+
+## ENG-015a private timed Game Show
+
+- Source [0de928312a2f](../evidence/ENG-015a/0de928312a2fbef0a8fb8dd90ed6cd32cc0dc9c2.md) verified a private version-pinned fixed scoring rule on real PostgreSQL and recovered the same deadline and receipt over Chromium WebSockets. Full Docker passed 21 integration, 2 security and 6 Chromium tests. The scored archive, seeded upgrade and restart replay passed in the same disposable project.
+- The source eligibility guard denied synthetic Registry and Research-consent bindings. Game Show remains opt-in. Results release, rankings, production approval and wider Game Show acceptance remain open.
+
+## ENG-011a synthetic Registry eligibility
+
+- Source commit `e4f63d9b2b24db853c4c08aaecd453e6f56f2687`. Fifteen PostgreSQL integration, two security, three Chromium and five unit tests passed. The Registry-adapter outage and recovery, direct SQL checks, seeded upgrade and absence of eligibility material in response rows passed. This is synthetic test-only and still requires unlinkable one-use collection for production. See the [exact-source evidence](../evidence/ENG-011a/e4f63d9b2b24db853c4c08aaecd453e6f56f2687.md).
+
+## ENG-016a synthetic research consent
+
+- Source commit `7534ff6591239a9ab013a33de17e643198cb386f`. Fifteen PostgreSQL integration, two security, three Chromium and four unit tests passed. Decline left no stored rows. The write-failure recovery stored the answer and separate opt-in atomically, and the seeded upgrade preserved open collection. [Exact-source evidence](../evidence/ENG-016a/7534ff6591239a9ab013a33de17e643198cb386f.md).
+
+## Cumulative student-facing survey policy checks
+
+- Source [2edb7592e419](../evidence/ENG-016a/2edb7592e419c784835df19edeccda79aa3a8511.md) passed 53 real PostgreSQL integration, two security, 16 Chromium and seven unit checks. The runner confirmed disposable cleanup. The exact evidence records failed mixed-policy tests, the SQL parameter-count regression and its repair, independent challenge, and the distinction between synthetic fixtures and the university's external eligibility and research process.
+- The guided five-question after-class feedback draft passed GitHub docs and runtime checks in [PR #25](https://github.com/NgohCH/HELPInsights/pull/25). The cumulative disposal guard, private score release and recovery notices passed in PRs #22–24.

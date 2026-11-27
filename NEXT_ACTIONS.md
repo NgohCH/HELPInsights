@@ -14,3 +14,7 @@ The active lifecycle integration worktree is C:\Project\f8fc\HELPInsights. Exact
 - Coordinate runtime suites so the local Docker host runs one full suite at a time. Save command output, exact Git revision, test counts, recovery and cleanup outcomes in the evidence ledger.
 
 Main branch protection, native JASP import, representative accessibility checks and release approval remain open. The wider task graph still covers scoring and assessments, research, production connector contracts, installation and recovery, and full independent release verification. Continue synthetic-only and keep all changes on development branches.
+
+## University student-facing scope
+
+Microsoft Entra is the external authority for institutional identity and student eligibility. The Research Ethics Board clears research before the study starts. Participant consent follows the university's approved external study process. Keep the synthetic Registry and consent exercises scoped to disposable development and CI. Production wiring needs the approved interface and minimum eligibility claims. Continue local student-facing tests with synthetic data.
