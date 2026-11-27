@@ -4,6 +4,7 @@ import { createApplication } from "./application.ts";
 import { sessionRoutes } from "./sessions.ts";
 import { surveyRoutes } from "./surveys.ts";
 import { respondentRoutes } from "./respond.ts";
+import { featureRoutes } from "./features.ts";
 import { reportRoutes } from "./reports.ts";
 import {
   hasCurrentSchema,
@@ -24,6 +25,7 @@ const sessions = sessionRoutes(pool);
 const surveys = surveyRoutes(pool);
 const respondents = respondentRoutes(pool);
 const reports = reportRoutes(pool);
+const features = featureRoutes(pool);
 const [javascript, stylesheet] = await Promise.all([
   readFile(new URL("../../dist/web/main.js", import.meta.url)),
   readFile(new URL("../../dist/web/main.css", import.meta.url)),
@@ -32,6 +34,7 @@ const server = createApplication(
   () => hasCurrentSchema(pool, migrations),
   async (...args) =>
     (await sessions(...args)) ||
+    (await features(...args)) ||
     (await surveys(...args)) ||
     (await respondents(...args)) ||
     (await reports(...args)),

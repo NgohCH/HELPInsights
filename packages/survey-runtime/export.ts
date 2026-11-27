@@ -65,14 +65,23 @@ export function createExport(source: ExportSource, now: Date) {
         ]);
       }
     } else {
-      const kind = question.type === "number" ? "scale" : "text";
+      const kind =
+        question.type === "nps"
+          ? "ordinal"
+          : question.type === "number"
+            ? "scale"
+            : "text";
       codebook.push([
         ...common,
         kind,
         "",
         "",
         ...missingAndVersion,
-        kind === "text" ? "spreadsheet formula escaping" : "",
+        kind === "text"
+          ? "spreadsheet formula escaping"
+          : question.type === "nps"
+            ? "recommendation score (0–10)"
+            : "",
       ]);
     }
   }

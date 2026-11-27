@@ -16,7 +16,8 @@
 | CaseHandoff | Privacy-reviewed outbox event and delivery receipt, not an internal ticket. |
 | RetentionHold | Authorised limited-time exception, reason/review date, audit and policy control. |
 | Incident | Immutable operational detection/recovery/action history; redacted, no response content. |
-| FeatureEntitlement | Tenant/workspace/user policy enforcing backend capability access. |
+| FeatureEntitlement | Tenant/workspace/user policy enforcing backend capability access. The development NPS grant is derived from a workspace request approved by a delegated reviewer and whose expiry is in the future. |
+| FeatureRequest | Workspace request with a stated purpose and data classification. A delegated reviewer records a decision and rationale with expiry when approved. |
 
 ## Security and correctness invariants
 - Published version never mutates; subsequent edits produce a new snapshot.

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { api, type Workspace } from "./api.ts";
 import { Results } from "./results.tsx";
+import { FeatureCatalogue } from "./features.tsx";
 import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
 
 type Draft = { id: string; etag: string };
@@ -9,6 +10,11 @@ export function Creator() {
   const [token, setToken] = useState("");
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [workspaceId, setWorkspaceId] = useState("");
+  const [npsWorkspaceId, setNpsWorkspaceId] = useState<string | null>(null);
+  const [questionType, setQuestionType] = useState<"single_choice" | "nps">(
+    "single_choice",
+  );
+  const canAuthorNps = workspaceId === npsWorkspaceId;
   const [draft, setDraft] = useState<Draft | null>(null);
   const [ready, setReady] = useState(false);
   const [publicLink, setPublicLink] = useState("");
@@ -63,13 +69,17 @@ export function Creator() {
             {
               id: "question",
               code: "workshop_question",
-              type: "single_choice",
               title: field("question"),
               required: true,
-              options: [
-                { code: "option_1", label: field("option1") },
-                { code: "option_2", label: field("option2") },
-              ],
+              ...(questionType === "nps"
+                ? { type: "nps" }
+                : {
+                    type: "single_choice",
+                    options: [
+                      { code: "option_1", label: field("option1") },
+                      { code: "option_2", label: field("option2") },
+                    ],
+                  }),
             },
           ],
         },
@@ -154,7 +164,10 @@ export function Creator() {
               Workspace
               <select
                 value={workspaceId}
-                onChange={(event) => setWorkspaceId(event.target.value)}
+                onChange={(event) => {
+                  setQuestionType("single_choice");
+                  setWorkspaceId(event.target.value);
+                }}
                 disabled={!!draft || pending}
                 required
               >
@@ -172,20 +185,42 @@ export function Creator() {
               Survey title
               <input name="title" maxLength={200} required />
             </label>
+            {canAuthorNps && (
+              <label>
+                Question type
+                <select
+                  value={questionType}
+                  onChange={(event) =>
+                    setQuestionType(
+                      event.target.value === "nps" ? "nps" : "single_choice",
+                    )
+                  }
+                >
+                  <option value="single_choice">Single choice</option>
+                  <option value="nps">NPS (0–10)</option>
+                </select>
+              </label>
+            )}
             <fieldset>
-              <legend>Single-choice question</legend>
+              <legend>
+                {questionType === "nps"
+                  ? "NPS question"
+                  : "Single-choice question"}
+              </legend>
               <label>
                 Question
                 <input name="question" maxLength={300} required />
               </label>
-              <div className="columns">
-                <label>
-                  Option 1<input name="option1" maxLength={160} required />
-                </label>
-                <label>
-                  Option 2<input name="option2" maxLength={160} required />
-                </label>
-              </div>
+              {questionType === "single_choice" && (
+                <div className="columns">
+                  <label>
+                    Option 1<input name="option1" maxLength={160} required />
+                  </label>
+                  <label>
+                    Option 2<input name="option2" maxLength={160} required />
+                  </label>
+                </div>
+              )}
             </fieldset>
             <div className="actions">
               <button disabled={pending || !workspaceId}>Save draft</button>
@@ -205,6 +240,20 @@ export function Creator() {
             </div>
           )}
         </section>
+      )}
+      {workspaces && workspaceId && (
+        <FeatureCatalogue
+          key={workspaceId}
+          token={token}
+          workspaceId={workspaceId}
+          onAccessChange={(enabled) => {
+            setNpsWorkspaceId(enabled ? workspaceId : null);
+            if (!enabled) {
+              setQuestionType("single_choice");
+              if (questionType === "nps") setReady(false);
+            }
+          }}
+        />
       )}
       {draft && publicLink && (
         <Results key={publicLink} surveyId={draft.id} token={token} />

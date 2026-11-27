@@ -6,7 +6,7 @@ export type Question = {
   required: boolean;
 } & (
   | { type: "single_choice"; options: Option[] }
-  | { type: "short_text" | "number" }
+  | { type: "short_text" | "number" | "nps" }
 );
 export type SurveyDefinition = {
   schemaVersion: "1";
@@ -120,7 +120,9 @@ export function parseDefinition(value: unknown): SurveyDefinition {
           return { ...base, type: "single_choice", options };
         }
         if (
-          (q.type === "short_text" || q.type === "number") &&
+          (q.type === "short_text" ||
+            q.type === "number" ||
+            q.type === "nps") &&
           q.options === undefined
         ) {
           return { ...base, type: q.type };
