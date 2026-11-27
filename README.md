@@ -107,9 +107,7 @@ The source repository on GitHub is the single source of truth. See [GitHub, loca
 
 ## Getting started
 
-This archive is a **design and handoff pack**, not a runnable application. A developer or authorised coding agent must first implement the skeleton and install/run instructions described in `HANDOFF.md` and `docs/DEVELOPMENT.md`. Do not claim the application, endpoints, Docker services, security controls or tests are working until implemented and verified with evidence.
-
-The first deliverable is a bootable local stack with migration/seed, a health endpoint, sample authenticated workspace, tests and working documentation. After that, implement the vertical Stage 1 survey path rather than building all infrastructure in isolation.
+The development bootstrap serves a HELPInsights home page and two health endpoints backed by PostgreSQL. Start and verify the local stack using the [bootstrap runbook](docs/progress/ENG-001-002-setup.md). The survey journey is tracked in [build status](docs/BUILD_STATUS.md).
 
 ## Product governance
 

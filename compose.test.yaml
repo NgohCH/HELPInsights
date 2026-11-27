@@ -1,0 +1,9 @@
+services:
+  postgres:
+    labels:
+      org.helpinsights.test-run: ${HELPINSIGHTS_TEST_PROJECT:?Run pnpm test:stack}
+  app:
+    labels:
+      org.helpinsights.test-run: ${HELPINSIGHTS_TEST_PROJECT:?Run pnpm test:stack}
+    environment:
+      NODE_ENV: test

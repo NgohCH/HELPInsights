@@ -1,0 +1,2 @@
+# Historical documentation example. The Idempotency-Key header is a retry identifier, not a credential.
+41f817f82958d809216064b4b28ae72b91c78acb:docs/API_GUIDE.md:generic-api-key:69

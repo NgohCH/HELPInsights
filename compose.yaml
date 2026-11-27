@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:f2f98726820d0342055351c6e9d36e705f5bfffb3dd53ff556325114b08afb6d
+    environment:
+      POSTGRES_DB: helpinsights
+      POSTGRES_USER: helpinsights
+      POSTGRES_PASSWORD: helpinsights_local_fixture
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "helpinsights", "-d", "helpinsights"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+  app:
+    build: .
+    init: true
+    environment:
+      DATABASE_URL: postgresql://helpinsights:helpinsights_local_fixture@postgres:5432/helpinsights
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1::3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+volumes:
+  pg_data:

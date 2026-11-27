@@ -1,9 +1,8 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.1-design
-  description: Design-only baseline from earlier package restored in v2.1. Live Quiz Arena HTTP endpoints are
-    proposed, unimplemented. All endpoints require runtime verification before claiming availability.
+  version: 0.2.2-bootstrap
+  description: The local runtime implements the liveness and readiness endpoints. Other endpoints describe planned capabilities.
 servers:
 - url: https://survey.example.org/api/v1
   description: Example only
