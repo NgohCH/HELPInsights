@@ -53,6 +53,7 @@ test("readiness depends on migrated PostgreSQL and boot preserves data after a d
   }
 
   assert.equal((await health("ready")).status, 200);
+  compose("run", "--rm", "--no-deps", "migrate");
   compose("restart", "app");
   for (let attempt = 0; attempt < 20; attempt++) {
     const status = await health("ready").then(

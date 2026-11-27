@@ -5,10 +5,12 @@ import { runningTestStack } from "../../scripts/test-docker.ts";
 test("migration waits for the transaction lock and rolls back an unsuccessful migration", () => {
   const { compose } = runningTestStack();
   const output = compose(
-    "exec",
-    "-T",
-    "app",
+    "run",
+    "--rm",
+    "--no-deps",
+    "--entrypoint",
     "node",
+    "migrate",
     "--input-type=module",
     "-e",
     `
@@ -32,11 +34,11 @@ test("migration waits for the transaction lock and rolls back an unsuccessful mi
       const sql = 'CREATE TABLE public.rollback_probe (id integer); SELECT 1 / 0';
       const checksum = createHash('sha256').update(sql).digest('hex');
       await assert.rejects(migrate(pool, [...initial, {
-        name: '002-rollback-probe.sql', sql, checksum,
+        name: '999-rollback-probe.sql', sql, checksum,
       }]), { code: '22012' });
       const result = await pool.query(
         "SELECT to_regclass('public.rollback_probe') IS NULL AS no_table, " +
-        "NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name = '002-rollback-probe.sql') AS no_entry"
+        "NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name = '999-rollback-probe.sql') AS no_entry"
       );
       assert.deepEqual(result.rows, [{ no_table: true, no_entry: true }]);
       console.log('migration lock and rollback verified');

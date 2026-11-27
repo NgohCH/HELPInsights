@@ -1,0 +1,5 @@
+# Survey definition and publication acceptance
+
+A workspace owner creates an anonymous SurveyDefinition using a policy from the same workspace. Foreign workspace creation returns 403 and a foreign survey is undiscoverable. A revision ETag prevents lost draft updates. Publication validates the complete definition, stores one immutable SurveyVersion and issues a link to that version. Opening an old link after draft edits and republication returns the old definition. SQL independently checks both version rows. The first slice supports choice, short text and number questions. Remaining question families keep their feature gates.
+
+The public submission checks cover wrong version, invalid choice, missing required answer, idempotent identical retry, conflict on changed payload, and SQL evidence for concurrent requests. The stored anonymous response contains survey version and answers only, plus the minimum fields for receipt and retry handling. Close must prevent new submissions. Direct SQL confirms one durable row after retries.
