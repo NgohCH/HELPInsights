@@ -121,3 +121,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Tested revision `69d42925f30cf2d76b46a2a0fa22c1a617c0b95e` on isolated PostgreSQL 16.16 and Chromium. The stack passed 20 integration tests, 2 security tests and 3 browser tests. See the [exact-SHA verification record](../evidence/ENG-010b/69d42925f30cf2d76b46a2a0fa22c1a617c0b95e.md).
 - The running API supplies a read-only preview. Cleanup, rollback, retries and stale snapshot replay were exercised in owned synthetic fixture databases.
+
+## Cumulative lifecycle integration
+
+- Exact source [179289716ac8](../evidence/ENG-010b/179289716ac8f434114e338252965069a75008f7.md) passed 38 PostgreSQL integration, two security and 13 Chromium tests in helpinsights-test-e42d471b89f5. Seeded migration 012 preserved the existing room and migration checksums. The red reproduced an incorrect eligible disposition and a real foreign-key failure. The fixed preview and fixture transaction protect the linked room, all survey derivatives and the tombstone ledger.
+- The GitHub docs-contract and runtime-required checks passed on cumulative PR #18 and standalone worker recovery and Game Show PRs #19–20. The clean Windows installer demo passed standalone locally and is drafted in PR #21.
