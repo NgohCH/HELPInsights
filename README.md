@@ -109,6 +109,8 @@ The source repository on GitHub is the single source of truth. See [GitHub, loca
 
 The local development workflow creates and publishes a single-choice survey, collects anonymous responses, and displays results and an authenticated JASP CSV export. It uses a React browser client, PostgreSQL and a separate export worker.
 
+In the creator, choose a workspace and select **Browse templates** to preview **Event feedback**. A workspace owner or editor can select **Use this template** to start an independent anonymous draft under the workspace’s retention policy. The preview does not open a respondent link.
+
 Follow the [development runbook](docs/progress/ENG-001-002-setup.md) to install the locked dependencies and Chromium. Run the full synthetic demonstration from the survey workflow branch:
 
 ```sh

@@ -20,6 +20,8 @@ See [`../api/openapi.yaml`](../api/openapi.yaml) for the initial machine-readabl
 |---|---|---|
 | `GET /health/live`, `GET /health/ready` | 1 | Infrastructure checks; no secrets |
 | `GET /me`, `GET /workspaces` | 1 | Caller identity and permitted workspaces |
+| `GET /templates`, `GET /templates/{id}` | 1 | Authenticated curated catalogue and read-only preview |
+| `POST /templates/{id}/clone` | 1 | Copy the previewed revision to an independent draft in a workspace where the caller is an owner or editor |
 | `POST /surveys`, `GET /surveys`, `GET /surveys/{id}` | 1 | Workspace-scoped survey CRUD/read |
 | `PUT /surveys/{id}/draft`, `POST /surveys/{id}/publish` | 1 | Validate definition, create immutable published version |
 | `GET /surveys/{id}/versions` | 1 | Version history |

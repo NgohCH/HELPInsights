@@ -94,12 +94,48 @@ const denied = () =>
 const conflict = () =>
   new HttpError(409, "CONFLICT", "The draft or survey state changed");
 
-async function requireEditor(client: PoolClient, workspaceId: string) {
+export async function requireEditor(client: PoolClient, workspaceId: string) {
   const { rows } = await client.query<{ role: string | null }>(
     "SELECT public.workspace_role($1) AS role",
     [workspaceId],
   );
   if (rows[0].role !== "owner" && rows[0].role !== "editor") throw denied();
+}
+
+export async function createSurveyDraft(
+  client: PoolClient,
+  input: {
+    workspaceId: string;
+    title: string;
+    retentionPolicyId?: string;
+    draft?: SurveyDefinition;
+  },
+) {
+  const { workspaceId, title, retentionPolicyId = null, draft } = input;
+  const {
+    rows: [survey],
+  } = await client.query(
+    `INSERT INTO public.surveys (workspace_id, title, privacy_mode, retention_policy_id)
+     SELECT $1, $2, 'anonymous', id FROM public.retention_policies
+     WHERE workspace_id = $1 AND ($3::uuid IS NULL OR id = $3)
+     RETURNING ${surveyColumns}`,
+    [workspaceId, title, retentionPolicyId],
+  );
+  if (!survey)
+    throw new InvalidInput(
+      retentionPolicyId
+        ? "Retention policy does not belong to this workspace"
+        : "Choose a workspace with a retention policy",
+    );
+  if (draft) {
+    const updated = await client.query(
+      "UPDATE public.surveys SET draft = $2 WHERE id = $1",
+      [survey.id, JSON.stringify(draft)],
+    );
+    if (updated.rowCount !== 1)
+      throw new Error("Initial survey draft was not saved");
+  }
+  return survey;
 }
 
 function setRevision(response: ServerResponse, revision: number) {
@@ -143,17 +179,12 @@ export function surveyRoutes(pool: Pool) {
               throw new InvalidInput(
                 "Only anonymous survey collection is enabled",
               );
-            const result = await client.query(
-              `INSERT INTO public.surveys (workspace_id, title, privacy_mode, retention_policy_id)
-               SELECT $1, $2, 'anonymous', id FROM public.retention_policies
-               WHERE id = $3 AND workspace_id = $1 RETURNING ${surveyColumns}`,
-              [workspace, label(body.title, "Title", 200), policy],
-            );
-            if (!result.rows[0])
-              throw new InvalidInput(
-                "Retention policy does not belong to this workspace",
-              );
-            return { status: 201, body: result.rows[0], revision: 1 };
+            const survey = await createSurveyDraft(client, {
+              workspaceId: workspace,
+              title: label(body.title, "Title", 200),
+              retentionPolicyId: policy,
+            });
+            return { status: 201, body: survey, revision: 1 };
           }
           if (method === "GET") {
             const url = new URL(request.url!, "http://localhost");
