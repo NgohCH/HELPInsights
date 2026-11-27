@@ -3,6 +3,7 @@ import pg from "pg";
 import { createApplication } from "./application.ts";
 import { createLiveQuiz } from "./live-quiz.ts";
 import { sessionRoutes } from "./sessions.ts";
+import { institutionalOAuth } from "./institutional-oauth.ts";
 import { surveyRoutes } from "./surveys.ts";
 import { respondentRoutes } from "./respond.ts";
 import { featureRoutes } from "./features.ts";
@@ -27,7 +28,7 @@ const pool = new pg.Pool({
 });
 pool.on("error", () => console.error("Idle PostgreSQL connection interrupted"));
 
-const sessions = sessionRoutes(pool);
+const sessions = sessionRoutes(pool, institutionalOAuth(process.env));
 const registryGate = syntheticRegistry(process.env);
 const syntheticResearchConsent = syntheticConsentEnabled(process.env);
 const surveys = surveyRoutes(

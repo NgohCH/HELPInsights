@@ -143,6 +143,14 @@ corepack pnpm test:stack
 
 The Playwright journey creates its own development session and workspace, submits answers, restarts PostgreSQL, checks stored answers directly in SQL, and reconciles the browser chart and downloaded ZIP. The test retains the chart screenshot and sample archive under `test-results/`. See [build status](docs/BUILD_STATUS.md) for implementation and release scope.
 
+### Institutional OAuth development scope
+
+The API can verify a delegated institutional access token for `GET /api/v1/me` and `GET /api/v1/workspaces`. Enable the path by setting all four server runtime variables `HELPINSIGHTS_OAUTH_ISSUER`, `HELPINSIGHTS_OAUTH_AUDIENCE`, `HELPINSIGHTS_OAUTH_SCOPE` and `HELPINSIGHTS_OAUTH_JWKS`. Leave them unset to keep this path disabled. Supply the canonical HTTPS issuer and a dedicated single API audience. The JSON public key set accepts up to eight approved RSA signature keys containing only `kty`, `alg`, `use`, `kid`, `n` and `e` (RSA, RS256 and sig). Key updates require replacing the configured set and restarting. The verifier has no external network dependency.
+
+A deployment administrator provisions the explicit issuer and subject binding to an existing local user through controlled database access. The API checks the signed delegated `scp` claim and reads only workspaces in that user's actual PostgreSQL memberships. The bearer and provider subject stay out of API responses. The existing development session and anonymous respondent flows retain their current entry points.
+
+Approval, a live Entra tenant application, interactive OAuth sign-in, MFA assurance and institutional creator access remain separate release work.
+
 ### Local Live Poll lobby
 
 The disposable test stack enables the Live Poll lobby. The normal stack leaves it disabled. Open `/live/host` on the loopback app with a development session token and the ID from an authorised survey's publish response. Use a published version with unconditional single-choice questions. Share the eight-digit PIN with a synthetic guest at `/live/join` within 30 minutes.

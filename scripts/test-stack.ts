@@ -1,10 +1,21 @@
-import { randomBytes } from "node:crypto";
+import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { localDockerContext, testDocker } from "./test-docker.ts";
 
 const project = "helpinsights-test-" + randomBytes(6).toString("hex");
 process.env.HELPINSIGHTS_TEST_REGISTRY_KEY = randomBytes(32).toString("hex");
+const oauthFixture = generateKeyPairSync("rsa", { modulusLength: 2048 });
+process.env.HELPINSIGHTS_TEST_OAUTH_PUBLIC_JWKS = JSON.stringify({
+  keys: [
+    {
+      ...oauthFixture.publicKey.export({ format: "jwk" }),
+      alg: "RS256",
+      use: "sig",
+      kid: "disposable-rsa",
+    },
+  ],
+});
 const context = localDockerContext();
 const { compose, docker, baseUrl } = testDocker(context, project);
 const pnpm = process.env.npm_execpath;
@@ -23,6 +34,11 @@ try {
         APP_BASE_URL: baseUrl(),
         HELPINSIGHTS_TEST_CONTEXT: context,
         HELPINSIGHTS_TEST_PROJECT: project,
+        ...(suite === "test:e2e" && {
+          HELPINSIGHTS_TEST_OAUTH_SIGNING_JWK: JSON.stringify(
+            oauthFixture.privateKey.export({ format: "jwk" }),
+          ),
+        }),
       },
       stdio: "inherit",
     });

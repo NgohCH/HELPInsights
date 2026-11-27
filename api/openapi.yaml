@@ -54,6 +54,7 @@ paths:
       tags:
       - Workspace
       operationId: getCurrentUser
+      description: Accepts the existing bearer session or a configured institutional JWT access token with the delegated API scope and an explicit local principal binding.
       responses:
         '200':
           description: Authenticated principal
@@ -68,6 +69,7 @@ paths:
       tags:
       - Workspace
       operationId: listMyWorkspaces
+      description: Accepts the existing bearer session or a configured institutional JWT access token with the delegated API scope and an explicit local principal binding. Workspace membership is evaluated in PostgreSQL.
       responses:
         '200':
           description: Authorised workspaces
