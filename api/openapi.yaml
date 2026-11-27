@@ -18,7 +18,7 @@ tags:
 - name: Notices
 - name: Administration
 - name: Live Quiz Arena
-  description: Development Live Poll lobby and snapshot access. Command, answer and result endpoints describe planned features.
+  description: Development Live Poll lobby, host lifecycle and snapshot stream. Answer and result endpoints describe planned features.
 paths:
   /health/live:
     get:
@@ -728,10 +728,11 @@ paths:
       summary: Retrieve the durable lobby snapshot over a same-origin WebSocket
       description: >
         Send one text frame containing a JSON object with its authorization field
-        set to a Bearer or Participant credential. Receive one JSON frame with type
-        snapshot and the same role-filtered snapshot as the HTTP endpoint. The
-        server then closes the connection. The client can reconnect for a fresh
-        snapshot. The server requires an allowed Origin.
+        set to a Bearer or Participant credential. The server sends the current
+        role-filtered state and committed updates as JSON frames with type snapshot.
+        A reconnect starts from the current durable revision. Revisions increase
+        but updates can coalesce. Send presenter commands through the HTTP API.
+        The server requires an allowed Origin.
       security: []
       parameters:
       - *id002
@@ -741,9 +742,14 @@ paths:
         '403': *id001
   /live-sessions/{sessionId}/commands:
     post:
-      tags:
-      - Live Quiz Arena
+      tags: [Live Quiz Arena]
       operationId: commandLiveQuizSession
+      summary: Apply a presenter lifecycle command
+      description: >
+        Commands require the host and the current revision. Start moves a lobby
+        to running. Pause and resume switch between running and paused. End
+        closes a lobby, running or paused session. Archive archives an ended
+        session. Accepted transitions advance the persisted revision once.
       parameters:
       - *id002
       requestBody:
@@ -752,25 +758,28 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-              - command
-              - expectedRevision
+              required: [command, expectedRevision]
               properties:
                 command:
                   type: string
+                  enum: [start, pause, resume, end, archive]
                 expectedRevision:
                   type: string
-              additionalProperties: true
+                  pattern: '^[1-9][0-9]{0,9}$'
+                  description: Decimal string representing the current revision, at most 2147483647.
+              additionalProperties: false
       responses:
         '200':
-          description: Accepted presenter state transition
+          description: Committed presenter snapshot with the new revision
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '#/components/schemas/LiveLobbySnapshot'
+        '400': *id001
+        '401': *id001
         '403': *id001
-        '409': *id001
+        '409':
+          description: The expected revision is stale or the current state disallows the command.
   /live-sessions/{sessionId}/answers:
     post:
       tags:
@@ -914,7 +923,7 @@ components:
       properties:
         id: { type: string, format: uuid }
         mode: { const: live_poll }
-        state: { const: lobby }
+        state: { enum: [lobby, running, paused, ended, archived] }
         revision: { type: integer, minimum: 1 }
         quizVersionId: { type: string, format: uuid }
     ApiError:
