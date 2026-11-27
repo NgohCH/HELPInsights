@@ -17,7 +17,7 @@ tags:
 - name: Notices
 - name: Administration
 - name: Live Quiz Arena
-  description: Development Live Poll lobby, host lifecycle and snapshot stream. Answer and result endpoints describe planned features.
+  description: Development Live Poll lobby, question controls, ballots and the snapshot stream. The dedicated historical result endpoint describes a planned feature.
 paths:
   /health/live:
     get:
@@ -479,7 +479,7 @@ paths:
     post:
       tags: [Live Quiz Arena]
       operationId: createLiveQuizSession
-      summary: Create a Live Poll lobby from a published single-choice version
+      summary: Create a Live Poll lobby from a published unconditional single-choice version
       description: >
         Development-only and disabled by default. The workspace owner or editor
         who creates the lobby is its presenter. The join PIN is returned once.
@@ -576,8 +576,8 @@ paths:
         Send one text frame containing a JSON object with its authorization field
         set to a Bearer or Participant credential. The server sends the current
         role-filtered state and committed updates as JSON frames with type snapshot.
-        A reconnect starts from the current durable revision. Revisions increase
-        but updates can coalesce. Send presenter commands through the HTTP API.
+        A reconnect starts from the current durable state. Lifecycle revisions increase
+        but vote receipts and presenter counts may update within a revision. Send commands and votes through the HTTP API.
         The server requires an allowed Origin.
       security: []
       parameters:
@@ -595,7 +595,7 @@ paths:
         Commands require the host and the current revision. Start moves a lobby
         to running. Pause and resume switch between running and paused. End
         closes a lobby, running or paused session. Archive archives an ended
-        session. Accepted transitions advance the persisted revision once.
+        session. Next question opens the next published choice question in order. Close question closes voting. Accepted transitions advance the persisted revision once.
       parameters:
       - *id002
       requestBody:
@@ -608,7 +608,7 @@ paths:
               properties:
                 command:
                   type: string
-                  enum: [start, pause, resume, end, archive]
+                  enum: [start, pause, resume, end, archive, next_question, close_question]
                 expectedRevision:
                   type: string
                   pattern: '^[1-9][0-9]{0,9}$'
@@ -628,40 +628,46 @@ paths:
           description: The expected revision is stale or the current state disallows the command.
   /live-sessions/{sessionId}/answers:
     post:
-      tags:
-      - Live Quiz Arena
+      tags: [Live Quiz Arena]
       operationId: submitLiveQuizAnswer
-      security: []
+      summary: Cast one vote per published question as an admitted guest
+      description: >
+        New votes require the running room's open question and its opening
+        revision. Retrying the same key with exactly the same payload returns
+        the original server receipt. A conflicting payload or vote returns 409.
+      security:
+      - liveParticipantAuth: []
       parameters:
       - *id002
       - name: Idempotency-Key
         in: header
         required: true
-        schema:
-          type: string
+        schema: { type: string, format: uuid }
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-              - questionId
-              - answer
+              required: [questionId, answer, openedRevision]
               properties:
-                questionId:
-                  type: string
-                answer:
-                  type: string
-              additionalProperties: true
+                questionId: { type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$' }
+                answer: { type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$' }
+                openedRevision: { type: integer, minimum: 1, maximum: 2147483647 }
+              additionalProperties: false
       responses:
         '200':
-          description: Durable answer receipt or same-key repeat receipt
+          description: Durable vote receipt or exact repeat receipt
           content:
             application/json:
               schema:
                 type: object
-                additionalProperties: true
+                required: [questionId, acceptedAt]
+                properties:
+                  questionId: { type: string }
+                  acceptedAt: { type: string, format: date-time }
+        '400': *id001
+        '401': *id001
         '403': *id001
         '409': *id001
         '422': *id001
@@ -765,6 +771,45 @@ components:
         state: { enum: [lobby, running, paused, ended, archived] }
         revision: { type: integer, minimum: 1 }
         quizVersionId: { type: string, format: uuid }
+        question:
+          type: object
+          required: [id, title, options, openedRevision, open]
+          properties:
+            id: { type: string }
+            title: { type: string }
+            openedRevision: { type: integer, minimum: 1 }
+            open: { type: boolean }
+            options:
+              type: array
+              items:
+                type: object
+                required: [code, label]
+                properties:
+                  code: { type: string }
+                  label: { type: string }
+        hasVoted:
+          type: boolean
+          description: Participant only. Whether the authenticated guest voted on this question.
+        hasNextQuestion:
+          type: boolean
+          description: Presenter only. Whether another published question follows the active one.
+        turnout:
+          description: Presenter only. Rounded down to a multiple of five. Null below five.
+          type: [integer, 'null']
+          minimum: 5
+        results:
+          description: Presenter only. Exact totals after closing when all nonempty cells and the unanswered complement pass the minimum of five.
+          type: [object, 'null']
+          properties:
+            total: { type: integer, minimum: 5 }
+            counts:
+              type: array
+              items:
+                type: object
+                required: [code, count]
+                properties:
+                  code: { type: string }
+                  count: { type: integer, minimum: 0 }
     ApiError:
       type: object
       required:

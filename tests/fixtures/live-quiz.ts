@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { definition, surveyFixture } from "./survey.ts";
+import { definition as defaultDefinition, surveyFixture } from "./survey.ts";
 
-export async function liveQuizFixture() {
+export async function liveQuizFixture(definition = defaultDefinition) {
   const fixture = surveyFixture();
   const baseUrl = fixture.stack.baseUrl();
   const api = (

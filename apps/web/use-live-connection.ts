@@ -14,7 +14,7 @@ export function useLiveConnection(
 
   function acceptSnapshot(next: LiveSnapshot) {
     setSnapshot((current) =>
-      !current || current.id !== next.id || current.revision < next.revision
+      !current || current.id !== next.id || current.revision <= next.revision
         ? next
         : current,
     );
@@ -121,5 +121,5 @@ export function useLiveConnection(
     };
   }, [access, refresh]);
 
-  return { snapshot, connection, acceptSnapshot };
+  return { snapshot, connection };
 }

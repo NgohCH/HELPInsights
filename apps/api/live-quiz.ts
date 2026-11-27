@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, randomInt } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import {
   InvalidInput,
   object,
@@ -17,7 +17,7 @@ import { digest, jsonBody, writeClientError } from "./surveys.ts";
 
 const collection = "/api/v1/live-sessions";
 const roomPath =
-  /^\/api\/v1\/live-sessions\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:\/(socket|commands))?$/i;
+  /^\/api\/v1\/live-sessions\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:\/(socket|commands|answers))?$/i;
 const denied = () => new HttpError(403, "FORBIDDEN", "Live room unavailable");
 const snapshotColumns =
   'id, mode, state, revision, quiz_version_id AS "quizVersionId"';
@@ -64,23 +64,32 @@ export function createLiveQuiz(
     return allowed !== null && request.headers.origin === allowed;
   }
 
+  async function readSnapshot(
+    executor: Pool | PoolClient,
+    id: string,
+    proof: ReturnType<typeof credentials>,
+  ) {
+    const {
+      rows: [data],
+    } = await executor.query<{ snapshot: LiveSnapshot | null }>(
+      "SELECT public.read_live_poll_question($1, $2, $3) AS snapshot",
+      [id, proof.hash, proof.isHost],
+    );
+    return data.snapshot;
+  }
+
   async function snapshot(
     id: string,
     proof: ReturnType<typeof credentials>,
   ): Promise<LiveSnapshot> {
-    const result = proof.isHost
-      ? await withActor(pool, proof.hash, (client) =>
-          client.query<LiveSnapshot>(
-            `SELECT ${snapshotColumns} FROM public.live_sessions WHERE id = $1`,
-            [id],
-          ),
-        )
-      : await pool.query<LiveSnapshot>(
-          "SELECT * FROM public.read_participant_lobby($1, $2)",
-          [id, proof.hash],
-        );
-    if (!result.rows[0]) throw denied();
-    return result.rows[0];
+    const current = await readSnapshot(pool, id, proof);
+    if (current) return current;
+    // Preserve 401 for an expired presenter credential and 403 for a foreign room.
+    if (proof.isHost)
+      await withActor(pool, proof.hash, async () => {
+        throw denied();
+      });
+    throw denied();
   }
 
   const events = createLiveRoomTransport(
@@ -92,7 +101,10 @@ export function createLiveQuiz(
     },
     (id, authorization) => {
       const proof = credentials(authorization);
-      return () => snapshot(id, proof);
+      return {
+        read: () => snapshot(id, proof),
+        participant: proof.isHost ? undefined : proof.hash.toString("hex"),
+      };
     },
   );
 
@@ -106,37 +118,100 @@ export function createLiveQuiz(
     const revision = body.expectedRevision;
     if (
       typeof body.command !== "string" ||
-      !["start", "pause", "resume", "end", "archive"].includes(body.command) ||
+      ![
+        "start",
+        "pause",
+        "resume",
+        "end",
+        "archive",
+        "next_question",
+        "close_question",
+      ].includes(body.command) ||
       typeof revision !== "string" ||
       !/^[1-9][0-9]{0,9}$/.test(revision) ||
       Number(revision) > 2_147_483_647
     )
       throw new InvalidInput("Choose a valid command and revision");
 
+    const updated = await withActor(pool, proof.hash, async (client) => {
+      const {
+        rows: [outcome],
+      } = await client.query<{ result: string }>(
+        "SELECT result FROM public.command_live_session($1, $2, $3, $4)",
+        [proof.hash, id, Number(revision), body.command],
+      );
+      if (outcome.result === "unauthorised")
+        throw new HttpError(401, "UNAUTHORISED", "A valid session is required");
+      if (outcome.result === "forbidden") throw denied();
+      if (outcome.result === "conflict")
+        throw new HttpError(
+          409,
+          "CONFLICT",
+          "The live room changed or cannot perform that command",
+        );
+      const current = await readSnapshot(client, id, proof);
+      if (!current) throw denied();
+      return current;
+    });
+    events.update(updated.id);
+    return updated;
+  }
+
+  async function vote(id: string, request: IncomingMessage) {
+    const proof = credentials(request.headers.authorization);
+    if (proof.isHost) throw denied();
+    const key = uuid(request.headers["idempotency-key"], "Idempotency key");
+    const body = object(await jsonBody(request), [
+      "questionId",
+      "answer",
+      "openedRevision",
+    ]);
+    const { questionId, answer, openedRevision } = body;
+    const isCode = (value: unknown) =>
+      typeof value === "string" &&
+      /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(value);
+    if (
+      !isCode(questionId) ||
+      !isCode(answer) ||
+      typeof openedRevision !== "number" ||
+      !Number.isInteger(openedRevision) ||
+      openedRevision < 1 ||
+      openedRevision > 2_147_483_647
+    )
+      throw new InvalidInput(
+        "Choose a valid question, answer and opening revision",
+      );
+
     const {
       rows: [outcome],
-    } = await pool.query<
-      LiveSnapshot & {
-        result: "unauthorised" | "forbidden" | "conflict" | "accepted";
-      }
-    >("SELECT * FROM public.command_live_session($1, $2, $3, $4)", [
-      proof.hash,
+    } = await pool.query<{
+      result: string;
+      questionId: string;
+      acceptedAt: Date;
+    }>("SELECT * FROM public.submit_live_poll_vote($1, $2, $3, $4, $5, $6)", [
       id,
-      Number(revision),
-      body.command,
+      proof.hash,
+      questionId,
+      openedRevision,
+      answer,
+      key,
     ]);
-    const { result, ...updated } = outcome;
-    if (result === "unauthorised")
-      throw new HttpError(401, "UNAUTHORISED", "A valid session is required");
+    const { result, ...receipt } = outcome;
     if (result === "forbidden") throw denied();
     if (result === "conflict")
       throw new HttpError(
         409,
         "CONFLICT",
-        "The live room changed or cannot perform that command",
+        "This ballot was already cast or the question changed",
       );
-    events.update(updated.id);
-    return updated;
+    if (result === "invalid")
+      throw new HttpError(
+        422,
+        "INVALID_ANSWER",
+        "Choose an option on the published question",
+      );
+    if (result === "accepted") events.update(id, proof.hash.toString("hex"));
+    return receipt;
   }
 
   async function route(
@@ -161,7 +236,9 @@ export function createLiveQuiz(
         const body =
           room[2] === "commands"
             ? await command(id, request)
-            : await snapshot(id, credentials(request.headers.authorization));
+            : room[2] === "answers"
+              ? await vote(id, request)
+              : await snapshot(id, credentials(request.headers.authorization));
         sendJson(response, 200, body);
         return true;
       }
@@ -198,14 +275,19 @@ export function createLiveQuiz(
       const created = await withActor(pool, proof, async (client, actor) => {
         const {
           rows: [version],
-        } = await client.query<{ definition: unknown }>(
-          `SELECT v.definition FROM public.survey_versions v
+        } = await client.query<{ definition: unknown; conditional: boolean }>(
+          `SELECT v.definition, v.definition @? '$.pages[*].questions[*].visibleWhen' AS conditional
+           FROM public.survey_versions v
            JOIN public.surveys s ON s.id = v.survey_id
            WHERE v.id = $1 AND s.status = 'published'
              AND public.workspace_role(s.workspace_id) IN ('owner', 'editor')`,
           [quizVersionId],
         );
         if (!version) throw denied();
+        if (version.conditional)
+          throw new InvalidInput(
+            "Live Poll requires questions without conditional visibility",
+          );
         const questions = parseDefinition(version.definition).pages.flatMap(
           (page) => page.questions,
         );
