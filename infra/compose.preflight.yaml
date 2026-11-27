@@ -1,0 +1,17 @@
+# Disposable test-only PostgreSQL. No published ports and no application service.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: survey_preflight
+      POSTGRES_PASSWORD: preflight_test_only_not_for_production
+      POSTGRES_DB: survey_preflight
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U survey_preflight -d survey_preflight"]
+      interval: 2s
+      timeout: 3s
+      retries: 25
+    volumes:
+      - pg_preflight:/var/lib/postgresql/data
+volumes:
+  pg_preflight:
