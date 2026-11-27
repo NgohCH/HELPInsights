@@ -27,3 +27,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Source revision [d1e5adcc4b09](../evidence/ENG-014/d1e5adcc4b09d8ecea6c880a1ee985a2a023b3ed.md) passed 13 real PostgreSQL integration tests, 2 security tests and 3 Chromium journeys. The live journey captured separate presenter and guest WebSocket frames and recovered the same state after PostgreSQL restarted.
 - A disposable run at the source revision verified the 005-to-006 upgrade, an archive restore of the live room and guest records, and the disabled feature response. The release gate remains open.
+
+## ENG-014b Live Poll host controls
+
+- Source revision [be898f0ceea9](../evidence/ENG-014b/be898f0ceea991afef379b1c1cd8607bc7eb0c5b.md) passed 14 PostgreSQL integration, 2 security and 4 Chromium tests. PostgreSQL accepted one concurrent host transition at the same revision. Chromium confirmed two ongoing sockets and automatic guest recovery to the current revision.
+- A seeded upgrade preserved a versioned lobby and its guest, and the archive restore retained a paused session. A connected guest whose capability expired received no newer frame after a committed transition. Scoring, 50-user contention, multi-instance fan-out and release approval remain open.

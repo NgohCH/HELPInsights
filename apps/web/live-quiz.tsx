@@ -1,74 +1,42 @@
 import { useState, type FormEvent } from "react";
 import { api } from "./api.ts";
 
-type LobbySnapshot = {
-  id: string;
-  state: "lobby";
-  mode: "live_poll";
-  revision: number;
-};
-type HostLobby = LobbySnapshot & { pin: string; pinExpiresAt: string };
-type GuestLobby = { snapshot: LobbySnapshot; participantToken: string };
-type Access = { id: string; authorization: string };
+import type { LiveSnapshot } from "../api/live-quiz-transport.ts";
+import { useLiveConnection, type LiveAccess } from "./use-live-connection.ts";
 
-function requestSnapshot({
-  id,
-  authorization,
-}: Access): Promise<LobbySnapshot> {
-  return new Promise((resolve, reject) => {
-    const url = new URL(
-      "/api/v1/live-sessions/" + id + "/socket",
-      location.href,
-    );
-    url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    const socket = new WebSocket(url);
-    const unavailable = () =>
-      reject(
-        new Error("Lobby connection unavailable. Try refreshing the lobby."),
-      );
-    const timeout = window.setTimeout(() => {
-      unavailable();
-      socket.close();
-    }, 6000);
-    socket.addEventListener(
-      "open",
-      () => socket.send(JSON.stringify({ authorization })),
-      { once: true },
-    );
-    socket.addEventListener(
-      "message",
-      (event) => {
-        try {
-          const { type, snapshot } = JSON.parse(String(event.data));
-          if (
-            type !== "snapshot" ||
-            snapshot?.id !== id ||
-            snapshot.state !== "lobby"
-          )
-            return unavailable();
-          resolve(snapshot as LobbySnapshot);
-        } catch {
-          unavailable();
-        } finally {
-          socket.close();
-        }
-      },
-      { once: true },
-    );
-    socket.addEventListener(
-      "close",
-      () => {
-        window.clearTimeout(timeout);
-        unavailable();
-      },
-      { once: true },
-    );
-  });
-}
+type HostLobby = LiveSnapshot & { pin: string; pinExpiresAt: string };
+type GuestLobby = { snapshot: LiveSnapshot; participantToken: string };
+
+const actions = {
+  lobby: ["start", "end"],
+  running: ["pause", "end"],
+  paused: ["resume", "end"],
+  ended: ["archive"],
+  archived: [],
+} as const;
+
+const buttonLabels = {
+  start: "Start live poll",
+  pause: "Pause live poll",
+  resume: "Resume live poll",
+  end: "End live poll",
+  archive: "Archive live poll",
+};
+
+const connectionLabels = {
+  connecting: "Connecting to the lobby",
+  connected: "Connected to the lobby",
+  reconnecting: "Reconnecting to the lobby",
+  forbidden: "Access to this lobby expired",
+};
 
 export function LiveQuiz({ isHost }: { isHost: boolean }) {
-  const [access, setAccess] = useState<Access>();
-  const [snapshot, setSnapshot] = useState<LobbySnapshot>();
+  const [access, setAccess] = useState<LiveAccess>();
+  const [refresh, setRefresh] = useState(0);
+  const { snapshot, connection, acceptSnapshot } = useLiveConnection(
+    access,
+    refresh,
+  );
   const [hostLobby, setHostLobby] = useState<HostLobby>();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -89,7 +57,7 @@ export function LiveQuiz({ isHost }: { isHost: boolean }) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     void run(async () => {
-      let newAccess: Access;
+      let newAccess: LiveAccess;
       if (isHost) {
         const token = String(fields.get("token")).trim();
         const { data } = await api<HostLobby>("/live-sessions", {
@@ -113,7 +81,21 @@ export function LiveQuiz({ isHost }: { isHost: boolean }) {
         };
       }
       setAccess(newAccess);
-      setSnapshot(await requestSnapshot(newAccess));
+    });
+  }
+
+  function sendCommand(command: keyof typeof buttonLabels) {
+    if (!access || !snapshot || connection !== "connected") return;
+    void run(async () => {
+      const { data } = await api<LiveSnapshot>(
+        "/live-sessions/" + access.id + "/commands",
+        {
+          headers: { Authorization: access.authorization },
+          method: "POST",
+          body: { command, expectedRevision: String(snapshot.revision) },
+        },
+      );
+      acceptSnapshot(data);
     });
   }
 
@@ -125,37 +107,37 @@ export function LiveQuiz({ isHost }: { isHost: boolean }) {
       <section className="panel compact">
         <h2>
           {snapshot
-            ? "Live Poll lobby"
+            ? "Live Poll " + snapshot.state
             : isHost
               ? "Present a Live Poll"
               : "Join a Live Poll"}
         </h2>
         {access ? (
           <>
-            <p role="status">
-              {pending
-                ? "Connecting to the lobby"
-                : snapshot
-                  ? "Lobby snapshot received"
-                  : "Lobby connection unavailable"}
-            </p>
-            {hostLobby && (
+            <p role="status">{connectionLabels[connection]}</p>
+            {hostLobby && snapshot?.state === "lobby" && (
               <p>
                 Join PIN <output aria-label="Join PIN">{hostLobby.pin}</output>
-                {" · "}Expires at{" "}
+                {" Â· "}Expires at{" "}
                 {new Date(hostLobby.pinExpiresAt).toLocaleTimeString()}
-                {" · "}
+                {" Â· "}
                 <a href="/live/join">Open guest join page</a>
               </p>
             )}
-            <button
-              disabled={pending}
-              onClick={() =>
-                void run(async () => {
-                  setSnapshot(await requestSnapshot(access));
-                })
-              }
-            >
+            {isHost && snapshot && actions[snapshot.state].length > 0 && (
+              <div>
+                {actions[snapshot.state].map((command) => (
+                  <button
+                    key={command}
+                    disabled={pending || connection !== "connected"}
+                    onClick={() => sendCommand(command)}
+                  >
+                    {buttonLabels[command]}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setRefresh((generation) => generation + 1)}>
               Refresh lobby
             </button>
           </>
