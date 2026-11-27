@@ -41,6 +41,23 @@ Main tiles: service health, database/storage/job state, scheduled and verified b
 
 Notice states: `open`, `acknowledged`, `assigned`, `in_progress`, `resolved`, `closed`. Each notice has severity (`critical`, `action_required`, `advisory`, `information`), source, evidence pointers, recommended action, responsible role, timestamps and escalation policy. Deduplicate repeated events and avoid routine alert spam. Delivery channels: in-app and email in Stage 1; webhooks/Teams optional adapters later.
 
+The ENG-009a development slice exposes /admin, /api/v1/admin/health and
+/api/v1/admin/incidents. Explicit platform operations viewers and operators can
+read the platform-wide readiness and history. Operators can append an event
+containing a fixed component, state and severity. PostgreSQL adds server time,
+event ID and authenticated audit attribution. API responses omit the audit
+actor and the database schema accepts only fixed event codes. Platform
+operations membership is empty at installation and gives no workspace or
+survey permissions. Automated detection, incident lifecycle correlation,
+notices and role provisioning are later scopes.
+
+The application database role can append the three event fields and select the
+redacted projection under row-level security. Mutation of history or audit
+attribution requires database-owner privileges. The migration is additive.
+Retain both tables when reverting the application. The previous runtime
+compares exact migration history for readiness, so a rollback needs a
+compatible build or a coordinated, explicitly approved database restore.
+
 ## Safe operational workflows
 
 - Health checks `/health/live` and `/health/ready` disclose no secrets or tenant data.

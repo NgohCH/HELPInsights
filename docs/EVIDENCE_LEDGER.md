@@ -24,6 +24,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 - GitHub `rules/branches/main` returned an empty array (exit 0) and classic protection returned 404. The merge and release gate remains blocked.
 
 
+
 ## First anonymous survey workflow
 
 - Source `838fa64abe0f4bebb515abe666434145304ad662` passed the exact local PostgreSQL, Chromium and export verification. See [the verification report](../evidence/ENG-007/838fa64abe0f4bebb515abe666434145304ad662.md) for commands, findings and remedies.
@@ -43,3 +44,13 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Chromium first reproduced that Preview draft stayed disabled after cloning. The combined creator now keeps the clone response as its saved definition. The repaired browser test checks the copied question and option, return focus, and the private draft SQL record.
 - `corepack.cmd pnpm test:stack` exited 0 in disposable Compose project `helpinsights-test-b440bff8f6c3`. Fifteen direct PostgreSQL integration, two security and four Chromium tests passed. The project volume was removed.
+
+## ENG-009a operations development slice
+
+- Tested revision `3bf00776434715cdf34d6c3673ff40ca5363e398` on isolated local PostgreSQL 16.16 and Chromium. The stack passed 14 integration, 2 security and 3 browser tests. See the [exact-SHA verification record](../evidence/ENG-009a/3bf00776434715cdf34d6c3673ff40ca5363e398.md).
+- The integration reviewer examined the role boundary and persistence. The findings, fix, and remaining scope are recorded with the test evidence.
+
+## Operations integration
+
+- The combined survey, preview, template and operations stack passed 18 PostgreSQL integration, two security and five Chromium tests. The run verified the seeded 006 upgrade and restore, separate operations role, public survey roundtrip, and disposal of the uniquely labeled Compose project volume.
+- `corepack.cmd pnpm test:stack` exited 0 in `helpinsights-test-116d5f3f5fc4`. The local transcript is `runtime-evidence/integration-operations.log`.

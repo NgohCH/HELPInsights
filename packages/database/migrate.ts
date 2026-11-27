@@ -80,7 +80,10 @@ export async function migrate(pool: Pool, migrations: Migration[]) {
   }
 }
 
-export async function hasCurrentSchema(pool: Pool, migrations: Migration[]) {
+export async function hasCurrentSchema(
+  pool: Pick<Pool, "query">,
+  migrations: Migration[],
+) {
   const { rows } = await pool.query<
     AppliedMigration & { base_table_exists: boolean }
   >(

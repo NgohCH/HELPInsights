@@ -6,6 +6,7 @@ import { surveyRoutes } from "./surveys.ts";
 import { respondentRoutes } from "./respond.ts";
 import { reportRoutes } from "./reports.ts";
 import { templateRoutes } from "./templates.ts";
+import { operationsRoutes } from "./operations.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -26,6 +27,9 @@ const surveys = surveyRoutes(pool);
 const respondents = respondentRoutes(pool);
 const reports = reportRoutes(pool);
 const templates = templateRoutes(pool);
+const operations = operationsRoutes(pool, (client) =>
+  hasCurrentSchema(client, migrations),
+);
 const [javascript, stylesheet] = await Promise.all([
   readFile(new URL("../../dist/web/main.js", import.meta.url)),
   readFile(new URL("../../dist/web/main.css", import.meta.url)),
@@ -37,7 +41,8 @@ const server = createApplication(
     (await surveys(...args)) ||
     (await templates(...args)) ||
     (await respondents(...args)) ||
-    (await reports(...args)),
+    (await reports(...args)) ||
+    (await operations(...args)),
   { javascript, stylesheet },
 );
 server.listen(3000, "0.0.0.0", () =>
