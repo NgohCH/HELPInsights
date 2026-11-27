@@ -1,6 +1,7 @@
 import pg from "pg";
 import { createApplication } from "./application.ts";
 import { sessionRoutes } from "./sessions.ts";
+import { surveyRoutes } from "./surveys.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -16,9 +17,11 @@ const pool = new pg.Pool({
 });
 pool.on("error", () => console.error("Idle PostgreSQL connection interrupted"));
 
+const sessions = sessionRoutes(pool);
+const surveys = surveyRoutes(pool);
 const server = createApplication(
   () => hasCurrentSchema(pool, migrations),
-  sessionRoutes(pool),
+  async (...args) => (await sessions(...args)) || (await surveys(...args)),
 );
 server.listen(3000, "0.0.0.0", () =>
   console.log("HELPInsights listening on port 3000"),

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Independent Survey Platform API
   version: 0.2.3-development
-  description: The local runtime implements health and authenticated profile and workspace endpoints. Other endpoints describe planned capabilities.
+  description: The local runtime implements health, profile, workspaces, draft, publication, close and public questionnaire retrieval.
 servers:
 - url: https://survey.example.org/api/v1
   description: Example only
@@ -928,6 +928,9 @@ components:
         publishedAt:
           type: string
           format: date-time
+        publicToken:
+          type: string
+          description: Opaque public link token returned at publication.
     PublicSurvey:
       type: object
       required:
