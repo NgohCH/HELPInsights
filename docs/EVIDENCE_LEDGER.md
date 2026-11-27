@@ -27,3 +27,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Tested revision `3bf00776434715cdf34d6c3673ff40ca5363e398` on isolated local PostgreSQL 16.16 and Chromium. The stack passed 14 integration, 2 security and 3 browser tests. See the [exact-SHA verification record](../evidence/ENG-009a/3bf00776434715cdf34d6c3673ff40ca5363e398.md).
 - The integration reviewer examined the role boundary and persistence. The findings, fix, and remaining scope are recorded with the test evidence.
+
+## ENG-012a synthetic case approval and outbox
+
+- Tested revision `8ccc76906fec222045f76a94da4f92976c125deb` with isolated PostgreSQL 16.16 and Chromium. The stack passed 16 integration tests, 2 security tests and 4 browser tests. See the [exact-SHA verification record](../evidence/ENG-012a/8ccc76906fec222045f76a94da4f92976c125deb.md).
+- The verified flow queues one redacted event per approved request and enforces a scoped active synthetic basis. Production governance, delivery and reconciliation remain separate gates.
