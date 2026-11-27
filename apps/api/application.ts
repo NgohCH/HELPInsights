@@ -38,7 +38,7 @@ type Route = (
 export function createApplication(
   isReady: () => Promise<boolean>,
   route?: Route,
-  assets?: { javascript: Buffer; stylesheet: Buffer },
+  assets?: { javascript: Buffer; stylesheet: Buffer; creatorHelp: Buffer },
 ) {
   return createServer(
     { requestTimeout: 15000, headersTimeout: 10000 },
@@ -60,6 +60,12 @@ export function createApplication(
             "Content-Type": "text/javascript; charset=utf-8",
           });
           return response.end(assets.javascript);
+        }
+        if (path === "/assets/creator-help.en.json") {
+          response.writeHead(200, {
+            "Content-Type": "application/json; charset=utf-8",
+          });
+          return response.end(assets.creatorHelp);
         }
         if (path === "/assets/main.css") {
           response.writeHead(200, {

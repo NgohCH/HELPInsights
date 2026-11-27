@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "locale": "en",
+  "audience": "creator",
+  "topics": [
+    {
+      "key": "create",
+      "title": "Save a survey draft",
+      "body": "Open a workspace with a retention policy. Enter a survey title, a question and its answer options, then select Save draft. You can edit the draft before publishing."
+    },
+    {
+      "key": "preview",
+      "title": "Preview a saved draft",
+      "body": "After saving, select Preview draft. Choose an answer and use Check preview answer to verify the respondent controls. Preview answers stay in your browser and never enter survey results."
+    },
+    {
+      "key": "publish",
+      "title": "Publish and share a link",
+      "body": "Publish the saved draft to create a fixed version of the questionnaire. Use Open respondent link to test the published version in a separate browser context. Responses belong to the version you shared."
+    },
+    {
+      "key": "export",
+      "title": "Export for JASP",
+      "body": "Select View results and then Export JASP CSV. The download includes responses.csv, a codebook and import instructions. Extract the archive and use the codebook to check measurement levels in JASP."
+    }
+  ]
+}

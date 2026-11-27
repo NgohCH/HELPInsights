@@ -24,9 +24,10 @@ const sessions = sessionRoutes(pool);
 const surveys = surveyRoutes(pool);
 const respondents = respondentRoutes(pool);
 const reports = reportRoutes(pool);
-const [javascript, stylesheet] = await Promise.all([
+const [javascript, stylesheet, creatorHelp] = await Promise.all([
   readFile(new URL("../../dist/web/main.js", import.meta.url)),
   readFile(new URL("../../dist/web/main.css", import.meta.url)),
+  readFile(new URL("../web/content/creator-help.en.json", import.meta.url)),
 ]);
 const server = createApplication(
   () => hasCurrentSchema(pool, migrations),
@@ -35,7 +36,7 @@ const server = createApplication(
     (await surveys(...args)) ||
     (await respondents(...args)) ||
     (await reports(...args)),
-  { javascript, stylesheet },
+  { javascript, stylesheet, creatorHelp },
 );
 server.listen(3000, "0.0.0.0", () =>
   console.log("HELPInsights listening on port 3000"),

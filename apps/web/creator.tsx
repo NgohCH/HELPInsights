@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { api, type Workspace } from "./api.ts";
 import { Results } from "./results.tsx";
 import { DraftPreview } from "./draft-preview.tsx";
+import { UserGuide } from "./user-guide.tsx";
 import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
 
 type Draft = { id: string; etag: string };
@@ -21,6 +22,19 @@ export function Creator() {
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+
+  const [guideTopic, setGuideTopic] = useState<string | null>(null);
+  const guideTrigger = useRef<HTMLButtonElement>(null);
+
+  function openGuide(trigger: HTMLButtonElement, topic = "") {
+    guideTrigger.current = trigger;
+    setGuideTopic(topic);
+  }
+
+  function closeGuide() {
+    setGuideTopic(null);
+    guideTrigger.current?.focus();
+  }
 
   async function run(operation: () => Promise<void>) {
     setPending(true);
@@ -143,7 +157,23 @@ export function Creator() {
     <main className="shell">
       <header className="brand">
         <h1>HELPInsights</h1>
+        <button
+          type="button"
+          className="secondary"
+          aria-controls="creator-user-guide"
+          aria-expanded={guideTopic !== null}
+          onClick={(event) => openGuide(event.currentTarget)}
+        >
+          Open user guide
+        </button>
       </header>
+      {guideTopic !== null && (
+        <UserGuide
+          key={guideTopic}
+          topicKey={guideTopic}
+          onClose={closeGuide}
+        />
+      )}
       {workspaces === null ? (
         <section className="panel compact" aria-labelledby="workspace-heading">
           <h2 id="workspace-heading">Open your workspace</h2>
@@ -227,6 +257,7 @@ export function Creator() {
       {previewDefinition && (
         <DraftPreview
           definition={previewDefinition}
+          onHelp={(button) => openGuide(button, "preview")}
           onClose={() => {
             setPreviewDefinition(null);
             previewTrigger.current?.focus();
