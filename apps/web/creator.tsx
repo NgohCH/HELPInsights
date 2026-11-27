@@ -3,6 +3,7 @@ import { api, type Workspace } from "./api.ts";
 import { Results } from "./results.tsx";
 import { FeatureCatalogue } from "./features.tsx";
 import { DraftPreview } from "./draft-preview.tsx";
+import { FeedbackFields, readFeedbackDefinition } from "./guided-feedback.tsx";
 import { TemplateLibrary } from "./templates.tsx";
 import { UserGuide } from "./user-guide.tsx";
 import type {
@@ -23,6 +24,14 @@ export function Creator() {
   );
   const canAuthorNps = workspaceId === npsWorkspaceId;
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [startingPoint, setStartingPoint] = useState<
+    "simple" | "feedback" | "returned"
+  >("simple");
+  const guided = startingPoint === "feedback";
+  const guidedTrigger = useRef<HTMLButtonElement>(null);
+  const selectedWorkspace = workspaces?.find(
+    (entry) => entry.id === workspaceId,
+  );
   const [starter, setStarter] = useState<SurveyDefinition | null>(null);
   const titleInput = useRef<HTMLInputElement>(null);
   const starterQuestion = starter?.pages[0]?.questions[0];
@@ -44,6 +53,9 @@ export function Creator() {
   useEffect(() => {
     if (starter) titleInput.current?.focus();
   }, [starter]);
+  useEffect(() => {
+    if (startingPoint === "returned") guidedTrigger.current?.focus();
+  }, [startingPoint]);
   const [guideTopic, setGuideTopic] = useState<string | null>(null);
   const guideTrigger = useRef<HTMLButtonElement>(null);
   const guideButton = useRef<HTMLButtonElement>(null);
@@ -91,9 +103,7 @@ export function Creator() {
     });
   }
 
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+  function readSimpleDefinition(form: FormData): SurveyDefinition {
     const field = (name: string) => String(form.get(name) ?? "").trim();
     const title = field("title");
     const questionId = starterQuestion?.id ?? "question";
@@ -129,18 +139,26 @@ export function Creator() {
         visibleWhen: { questionId, optionCode },
       });
     }
-    const definition: SurveyDefinition = {
+    return {
       ...starter,
       schemaVersion: "1",
       title,
       pages: [{ ...(starter?.pages[0] ?? { id: "first" }), questions }],
     };
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const definition = guided
+      ? readFeedbackDefinition(form)
+      : readSimpleDefinition(form);
 
     setStatus("");
     await run(async () => {
       let current = draft;
       if (!current) {
-        const workspace = workspaces?.find((entry) => entry.id === workspaceId);
+        const workspace = selectedWorkspace;
         if (!workspace?.defaultRetentionPolicyId)
           throw new Error("Choose a workspace with a retention policy");
         const created = await api<{ id: string }>("/surveys", {
@@ -148,7 +166,7 @@ export function Creator() {
           method: "POST",
           body: {
             workspaceId,
-            title,
+            title: definition.title,
             privacyMode: "anonymous",
             retentionPolicyId: workspace.defaultRetentionPolicyId,
           },
@@ -184,6 +202,7 @@ export function Creator() {
         {
           token,
           method: "POST",
+          headers: { "If-Match": draft.etag },
         },
       );
       setPublicLink("/respond/" + data.publicToken);
@@ -252,115 +271,172 @@ export function Creator() {
                 ))}
               </select>
             </label>
-            {!draft && (
-              <TemplateLibrary
-                token={token}
-                workspaceId={workspaceId}
-                pending={pending}
-                run={run}
-                onClone={(copy, definition) => {
-                  setDraft(copy);
-                  setStarter(definition);
-                  setQuestionType("single_choice");
-                  setFollowUpWhen("");
-                  setSavedDefinition(definition);
-                  setReady(true);
-                  setStatus("Template copied to a draft");
-                }}
-              />
-            )}
-            <label>
-              Survey title
-              <input
-                key={starter ? "template-title" : "new-title"}
-                ref={titleInput}
-                name="title"
-                maxLength={200}
-                defaultValue={starter?.title}
-                required
-              />
-            </label>
-            {canAuthorNps && (
-              <label>
-                Question type
-                <select
-                  value={questionType}
-                  onChange={(event) => {
-                    setQuestionType(
-                      event.target.value === "nps" ? "nps" : "single_choice",
-                    );
-                    setFollowUpWhen("");
-                  }}
+            {!draft &&
+              (guided ? (
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={pending}
+                  onClick={() => setStartingPoint("returned")}
                 >
-                  <option value="single_choice">Single choice</option>
-                  <option value="nps">NPS (0–10)</option>
-                </select>
-              </label>
+                  Back to simple creation
+                </button>
+              ) : (
+                <fieldset>
+                  <legend>Guided creation</legend>
+                  <p>
+                    Start with five questions about clarity, pace and improving
+                    the next class.
+                  </p>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={pending || !workspaceId}
+                    ref={guidedTrigger}
+                    onClick={() => setStartingPoint("feedback")}
+                  >
+                    After-class feedback
+                  </button>
+                </fieldset>
+              ))}
+            {startingPoint !== "simple" && (
+              <FeedbackFields
+                active={guided}
+                pending={pending}
+                hasRetentionPolicy={
+                  !!selectedWorkspace?.defaultRetentionPolicyId
+                }
+              />
             )}
-            <fieldset key={starter ? "template-question" : "new-question"}>
-              <legend>
-                {questionType === "nps"
-                  ? "NPS question"
-                  : "Single-choice question"}
-              </legend>
-              <label>
-                Question
-                <input
-                  name="question"
-                  maxLength={300}
-                  defaultValue={starterQuestion?.title}
-                  required
-                />
-              </label>
-              {questionType === "single_choice" && (
-                <div className="columns">
+            <div hidden={guided}>
+              <fieldset className="creator-inputs" disabled={guided}>
+                {!draft && (
+                  <TemplateLibrary
+                    token={token}
+                    workspaceId={workspaceId}
+                    pending={pending}
+                    run={run}
+                    onClone={(copy, definition) => {
+                      setDraft(copy);
+                      setStarter(definition);
+                      setQuestionType("single_choice");
+                      setFollowUpWhen("");
+                      setSavedDefinition(definition);
+                      setReady(true);
+                      setStatus("Template copied to a draft");
+                    }}
+                  />
+                )}
+                <label>
+                  Survey title
+                  <input
+                    key={starter ? "template-title" : "new-title"}
+                    ref={titleInput}
+                    name="title"
+                    maxLength={200}
+                    defaultValue={starter?.title}
+                    required
+                  />
+                </label>
+                {canAuthorNps && (
                   <label>
-                    Option 1
-                    <input
-                      name="option1"
-                      maxLength={160}
-                      defaultValue={starterOptions?.[0]?.label}
-                      required
-                    />
-                  </label>
-                  <label>
-                    Option 2
-                    <input
-                      name="option2"
-                      maxLength={160}
-                      defaultValue={starterOptions?.[1]?.label}
-                      required
-                    />
-                  </label>
-                </div>
-              )}
-              {questionType === "single_choice" && (
-                <>
-                  <div>
-                    <label htmlFor="follow-up-condition">
-                      Show a follow-up when
-                    </label>
+                    Question type
                     <select
-                      id="follow-up-condition"
-                      value={followUpWhen}
-                      onChange={(event) => setFollowUpWhen(event.target.value)}
+                      value={questionType}
+                      onChange={(event) => {
+                        setQuestionType(
+                          event.target.value === "nps"
+                            ? "nps"
+                            : "single_choice",
+                        );
+                        setFollowUpWhen("");
+                      }}
                     >
-                      <option value="">No follow-up</option>
-                      <option value="option_1">Option 1 is selected</option>
-                      <option value="option_2">Option 2 is selected</option>
+                      <option value="single_choice">Single choice</option>
+                      <option value="nps">NPS (0–10)</option>
                     </select>
-                  </div>
-                  {followUpWhen && (
-                    <label>
-                      Follow-up question
-                      <input name="followUpQuestion" maxLength={300} required />
-                    </label>
+                  </label>
+                )}
+                <fieldset key={starter ? "template-question" : "new-question"}>
+                  <legend>
+                    {questionType === "nps"
+                      ? "NPS question"
+                      : "Single-choice question"}
+                  </legend>
+                  <label>
+                    Question
+                    <input
+                      name="question"
+                      maxLength={300}
+                      defaultValue={starterQuestion?.title}
+                      required
+                    />
+                  </label>
+                  {questionType === "single_choice" && (
+                    <div className="columns">
+                      <label>
+                        Option 1
+                        <input
+                          name="option1"
+                          maxLength={160}
+                          defaultValue={starterOptions?.[0]?.label}
+                          required
+                        />
+                      </label>
+                      <label>
+                        Option 2
+                        <input
+                          name="option2"
+                          maxLength={160}
+                          defaultValue={starterOptions?.[1]?.label}
+                          required
+                        />
+                      </label>
+                    </div>
                   )}
-                </>
-              )}
-            </fieldset>
+                  {questionType === "single_choice" && (
+                    <>
+                      <div>
+                        <label htmlFor="follow-up-condition">
+                          Show a follow-up when
+                        </label>
+                        <select
+                          id="follow-up-condition"
+                          value={followUpWhen}
+                          onChange={(event) =>
+                            setFollowUpWhen(event.target.value)
+                          }
+                        >
+                          <option value="">No follow-up</option>
+                          <option value="option_1">Option 1 is selected</option>
+                          <option value="option_2">Option 2 is selected</option>
+                        </select>
+                      </div>
+                      {followUpWhen && (
+                        <label>
+                          Follow-up question
+                          <input
+                            name="followUpQuestion"
+                            maxLength={300}
+                            required
+                          />
+                        </label>
+                      )}
+                    </>
+                  )}
+                </fieldset>
+              </fieldset>
+            </div>
             <div className="actions">
-              <button disabled={pending || !workspaceId}>Save draft</button>
+              <button
+                disabled={
+                  pending ||
+                  !workspaceId ||
+                  (guided && !selectedWorkspace?.defaultRetentionPolicyId)
+                }
+              >
+                Save draft
+              </button>
               <button
                 type="button"
                 className="secondary"

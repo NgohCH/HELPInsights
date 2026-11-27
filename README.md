@@ -123,6 +123,8 @@ The source repository on GitHub is the single source of truth. See [GitHub, loca
 
 The local development workflow creates and publishes a single-choice survey, collects anonymous responses, and displays results and an authenticated JASP CSV export. It uses a React browser client, PostgreSQL and a separate export worker.
 
+For a guided draft, select a workspace with a retention policy and choose **After-class feedback** under **Guided creation**. Edit the five prompts and choice labels, then save and open **Preview draft**. Only **Publish survey** creates an anonymous respondent link. If the saved draft changes elsewhere between preview and publication, publication returns a revision conflict and leaves the existing draft and versions intact.
+
 In the creator, choose a workspace and select **Browse templates** to preview **Event feedback**. A workspace owner or editor can select **Use this template** to start an independent anonymous draft under the workspace’s retention policy. The preview does not open a respondent link.
 
 The development **Feature catalogue** lets workspace owners and editors request NPS authoring for anonymous surveys. A delegated workspace reviewer can approve time-limited access or deny the request. Approval unlocks 0–10 NPS questions for authoring and publishing.

@@ -144,3 +144,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Source [2edb7592e419](../evidence/ENG-016a/2edb7592e419c784835df19edeccda79aa3a8511.md) passed 53 real PostgreSQL integration, two security, 16 Chromium and seven unit checks. The runner confirmed disposable cleanup. The exact evidence records failed mixed-policy tests, the SQL parameter-count regression and its repair, independent challenge, and the distinction between synthetic fixtures and the university's external eligibility and research process.
 - The guided five-question after-class feedback draft passed GitHub docs and runtime checks in [PR #25](https://github.com/NgohCH/HELPInsights/pull/25). The cumulative disposal guard, private score release and recovery notices passed in PRs #22–24.
+
+## ENG-006d guided after-class feedback
+
+- Exact source `926b185a51e517cdef4845b3e02d13276b400724` passed 35 PostgreSQL integration, 2 security and 15 Chromium tests and confirmed the disposable Compose volume was removed. Keyboard authoring created a private five-question draft, an anonymous respondent submitted to the immutable version, and a concurrent draft edit blocked publication without creating a version or distribution. See the [verification report](../evidence/ENG-006d/926b185a51e517cdef4845b3e02d13276b400724.md).

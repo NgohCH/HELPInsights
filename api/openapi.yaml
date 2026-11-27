@@ -369,7 +369,7 @@ paths:
       tags:
       - Survey
       operationId: publishSurvey
-      description: Validate and snapshot an immutable survey version. NPS authoring requires an active workspace approval. Disposable test environments support optional synthetic Registry eligibility and versioned consent.
+      description: Validate and snapshot an immutable survey version. NPS authoring requires an active workspace approval. Supply the saved draft ETag to require the same revision. Disposable test environments support optional synthetic Registry eligibility and versioned consent.
       requestBody:
         required: false
         content:
@@ -389,6 +389,13 @@ paths:
                 properties:
                   eligibilityMode:
                     const: registry-synthetic
+      parameters:
+      - name: If-Match
+        in: header
+        required: false
+        schema:
+          type: string
+        description: Saved draft ETag. A different revision returns 409 without publishing.
       responses:
         '201':
           description: New published version
@@ -408,6 +415,8 @@ paths:
                 $ref: '#/components/schemas/ApiError'
         '503':
           $ref: '#/components/responses/Unavailable'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /surveys/{surveyId}/versions:
     parameters:
     - $ref: '#/components/parameters/SurveyId'

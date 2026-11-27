@@ -144,8 +144,10 @@ export async function createSurveyDraft(
   return survey;
 }
 
+const draftEtag = (revision: number) => '"' + revision + '"';
+
 function setRevision(response: ServerResponse, revision: number) {
-  response.setHeader("ETag", '"' + revision + '"');
+  response.setHeader("ETag", draftEtag(revision));
 }
 
 export function surveyRoutes(
@@ -267,7 +269,7 @@ export function surveyRoutes(
 
         if (action === "draft" && method === "PUT") {
           if (
-            request.headers["if-match"] !== '"' + survey.draft_revision + '"' ||
+            request.headers["if-match"] !== draftEtag(survey.draft_revision) ||
             survey.status === "closed"
           )
             throw conflict();
@@ -284,9 +286,15 @@ export function surveyRoutes(
           };
         }
         if (action === "publish" && method === "POST") {
+          const revision = request.headers["if-match"];
+          if (
+            survey.status === "closed" ||
+            (revision !== undefined &&
+              revision !== draftEtag(survey.draft_revision))
+          )
+            throw conflict();
           const draft =
             survey.draft === null ? null : parseDefinition(survey.draft);
-          if (survey.status === "closed") throw conflict();
           if (!draft?.pages.some((page) => page.questions.length))
             throw new InvalidInput("Add a question before publishing");
           await requireSurveyFeatureAccess(client, survey.workspaceId, draft);
