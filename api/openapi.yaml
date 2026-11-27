@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.4-development
-  description: The development runtime supports anonymous survey creation, publication, submission, analytics and CSV exports. The remaining design endpoints describe planned features.
+  version: 0.2.5-development
+  description: The development runtime supports anonymous survey creation, publication, submission, analytics and CSV exports. Synthetic Registry eligibility is available in disposable tests. The remaining design endpoints describe planned features.
 servers:
 - url: https://survey.example.org/api/v1
   description: Example only
@@ -187,7 +187,19 @@ paths:
       tags:
       - Survey
       operationId: publishSurvey
-      description: Validate and snapshot an immutable survey version.
+      description: Validate and snapshot an immutable survey version. An optional distribution policy enables the synthetic Registry gate in tests.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                eligibilityMode:
+                  type: string
+                  enum: [open, registry-synthetic]
+                  default: open
       responses:
         '201':
           description: New published version
@@ -199,6 +211,14 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '415':
+          description: Publication options require application/json
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /surveys/{surveyId}/versions:
     parameters:
     - $ref: '#/components/parameters/SurveyId'
@@ -239,18 +259,71 @@ paths:
       - Respondent
       operationId: getPublishedPublicSurvey
       security: []
-      description: Returns a public-safe published definition; excludes administrative metadata and secrets.
+      description: Returns a public-safe published definition for open distributions and a verification prompt for synthetic Registry distributions without a valid capability.
+      parameters:
+      - $ref: '#/components/parameters/SurveyCapability'
       responses:
         '200':
-          description: Published questionnaire
+          description: Published questionnaire or synthetic Registry prompt
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PublicSurvey'
+                oneOf:
+                - $ref: '#/components/schemas/PublicSurvey'
+                - type: object
+                  additionalProperties: false
+                  required: [eligibilityRequired]
+                  properties:
+                    eligibilityRequired:
+                      const: true
         '404':
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/RateLimited'
+  /public/s/{publicToken}/eligibility:
+    parameters:
+    - $ref: '#/components/parameters/PublicToken'
+    post:
+      tags:
+      - Respondent
+      operationId: verifySyntheticRegistryEligibility
+      security: []
+      description: Available for synthetic test distributions. Issues a temporary capability scoped to this distribution after successful verification.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [proof]
+              properties:
+                proof:
+                  type: string
+                  pattern: '^[A-Za-z0-9_-]{16,128}$'
+      responses:
+        '200':
+          description: Temporary access, with no identity or provider receipt
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [capability, expiresAt]
+                properties:
+                  capability:
+                    type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /public/s/{publicToken}/responses:
     parameters:
     - $ref: '#/components/parameters/PublicToken'
@@ -260,6 +333,7 @@ paths:
       operationId: submitResponse
       security: []
       parameters:
+      - $ref: '#/components/parameters/SurveyCapability'
       - name: Idempotency-Key
         in: header
         required: true
@@ -288,6 +362,8 @@ paths:
                 $ref: '#/components/schemas/ResponseReceipt'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
@@ -661,6 +737,14 @@ components:
       schema:
         type: string
         format: uuid
+    SurveyCapability:
+      name: X-Survey-Capability
+      in: header
+      required: false
+      description: Required by the collection endpoint for a synthetic Registry distribution. Send only in this header.
+      schema:
+        type: string
+        pattern: '^[0-9]{13}\.[A-Za-z0-9_-]{43}$'
     PublicToken:
       name: publicToken
       in: path

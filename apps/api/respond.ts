@@ -9,9 +9,14 @@ import {
 } from "../../packages/survey-runtime/definition.ts";
 import { sendJson } from "./application.ts";
 import { HttpError } from "./sessions.ts";
+import { RegistryUnavailable, type RegistryGate } from "./registry.ts";
 import { digest, jsonBody, tokenPattern, writeClientError } from "./surveys.ts";
 
-type PublishedLink = { surveyVersionId: string; definition: SurveyDefinition };
+type PublishedLink = {
+  surveyVersionId: string;
+  definition: SurveyDefinition;
+  eligibilityMode: "open" | "registry-synthetic";
+};
 type Receipt = {
   outcome: "closed" | "accepted" | "retry" | "conflict";
   receiptId: string;
@@ -19,34 +24,76 @@ type Receipt = {
 };
 const notFound = () => new HttpError(404, "NOT_FOUND", "Survey not found");
 
-export function respondentRoutes(pool: Pool) {
+export function respondentRoutes(
+  pool: Pool,
+  registryGate: RegistryGate | null = null,
+) {
   return async (
     request: IncomingMessage,
     response: ServerResponse,
     path: string,
     requestId: string,
   ) => {
-    const route = /^\/api\/v1\/public\/s\/([^/]+)(\/responses)?$/.exec(path);
+    const route =
+      /^\/api\/v1\/public\/s\/([^/]+)(?:\/(responses|eligibility))?$/.exec(
+        path,
+      );
     if (!route) return false;
-    const [, token, submit] = route;
+    const [, token, action] = route;
     try {
       if (!tokenPattern.test(token)) throw notFound();
-      const method = submit ? "POST" : "GET";
+      const method = action ? "POST" : "GET";
       if (request.method !== method) {
         response.setHeader("Allow", method);
         throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method not allowed");
       }
       const tokenHash = digest(token);
       const { rows } = await pool.query<PublishedLink>(
-        'SELECT id AS "surveyVersionId", definition FROM public.resolve_distribution($1)',
+        'SELECT id AS "surveyVersionId", definition, eligibility_mode AS "eligibilityMode" FROM public.resolve_collection_distribution($1)',
         [tokenHash],
       );
       const link = rows[0];
       if (!link) throw notFound();
-      if (!submit) {
-        sendJson(response, 200, link);
+      const { surveyVersionId, definition, eligibilityMode } = link;
+      const restricted = eligibilityMode === "registry-synthetic";
+      if (action === "eligibility") {
+        if (!restricted) throw notFound();
+        if (!registryGate) throw new RegistryUnavailable();
+        const { proof } = object(await jsonBody(request), ["proof"]);
+        if (typeof proof !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(proof))
+          throw new InvalidInput("Enter a valid synthetic Registry credential");
+        if (!(await registryGate.registry.checkEligibility(proof)))
+          throw new HttpError(
+            403,
+            "FORBIDDEN",
+            "You are not eligible for this survey",
+          );
+        sendJson(response, 200, registryGate.capabilities.issue(tokenHash));
         return true;
       }
+
+      const registryAllowed =
+        restricted &&
+        registryGate?.capabilities.verify(
+          tokenHash,
+          request.headers["x-survey-capability"],
+        ) === true;
+      if (!action) {
+        sendJson(
+          response,
+          200,
+          restricted && !registryAllowed
+            ? { eligibilityRequired: true }
+            : { surveyVersionId, definition },
+        );
+        return true;
+      }
+      if (restricted && !registryAllowed)
+        throw new HttpError(
+          403,
+          "FORBIDDEN",
+          "Check eligibility before submitting",
+        );
 
       const key = request.headers["idempotency-key"];
       if (typeof key !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(key)) {
@@ -67,8 +114,15 @@ export function respondentRoutes(pool: Pool) {
       const {
         rows: [receipt],
       } = await pool.query<Receipt>(
-        'SELECT outcome, receipt_id AS "receiptId", accepted_at AS "acceptedAt" FROM public.accept_response($1, $2, $3, $4, $5)',
-        [tokenHash, version, digest(key), digest(answers), answers],
+        'SELECT outcome, receipt_id AS "receiptId", accepted_at AS "acceptedAt" FROM public.accept_response($1, $2, $3, $4, $5, $6)',
+        [
+          tokenHash,
+          version,
+          digest(key),
+          digest(answers),
+          answers,
+          registryAllowed,
+        ],
       );
       if (receipt.outcome === "closed") throw notFound();
       if (receipt.outcome === "conflict")
@@ -82,7 +136,17 @@ export function respondentRoutes(pool: Pool) {
         acceptedAt: receipt.acceptedAt,
       });
     } catch (error) {
-      writeClientError(response, error, requestId);
+      writeClientError(
+        response,
+        error instanceof RegistryUnavailable
+          ? new HttpError(
+              503,
+              "UNAVAILABLE",
+              "Eligibility verification is temporarily unavailable",
+            )
+          : error,
+        requestId,
+      );
     }
     return true;
   };

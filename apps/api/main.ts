@@ -5,6 +5,7 @@ import { sessionRoutes } from "./sessions.ts";
 import { surveyRoutes } from "./surveys.ts";
 import { respondentRoutes } from "./respond.ts";
 import { reportRoutes } from "./reports.ts";
+import { syntheticRegistry } from "./registry.ts";
 import {
   hasCurrentSchema,
   loadMigrations,
@@ -21,8 +22,9 @@ const pool = new pg.Pool({
 pool.on("error", () => console.error("Idle PostgreSQL connection interrupted"));
 
 const sessions = sessionRoutes(pool);
-const surveys = surveyRoutes(pool);
-const respondents = respondentRoutes(pool);
+const registryGate = syntheticRegistry(process.env);
+const surveys = surveyRoutes(pool, registryGate !== null);
+const respondents = respondentRoutes(pool, registryGate);
 const reports = reportRoutes(pool);
 const [javascript, stylesheet] = await Promise.all([
   readFile(new URL("../../dist/web/main.js", import.meta.url)),

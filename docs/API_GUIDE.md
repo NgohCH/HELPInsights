@@ -24,7 +24,8 @@ See [`../api/openapi.yaml`](../api/openapi.yaml) for the initial machine-readabl
 | `PUT /surveys/{id}/draft`, `POST /surveys/{id}/publish` | 1 | Validate definition, create immutable published version |
 | `GET /surveys/{id}/versions` | 1 | Version history |
 | `POST /surveys/{id}/close` | 1 | Close collection and calculate retention clock |
-| `GET /public/s/{token}` | 1 | Fetch **public-safe** published definition |
+| `GET /public/s/{token}` | 1 | Fetch the public-safe published definition, or a synthetic Registry prompt for a restricted test distribution |
+| `POST /public/s/{token}/eligibility` | Development | Verify a synthetic credential and issue a short-lived distribution-scoped capability |
 | `POST /public/s/{token}/responses` | 1 | Validated idempotent submission |
 | `GET /surveys/{id}/analytics` | 1 | Aggregates with privacy/small-cell policy |
 | `POST /surveys/{id}/exports`, `GET /exports/{id}` | 1 | Controlled async dataset export |
