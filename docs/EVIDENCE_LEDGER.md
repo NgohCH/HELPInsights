@@ -27,3 +27,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Tested revision `3bf00776434715cdf34d6c3673ff40ca5363e398` on isolated local PostgreSQL 16.16 and Chromium. The stack passed 14 integration, 2 security and 3 browser tests. See the [exact-SHA verification record](../evidence/ENG-009a/3bf00776434715cdf34d6c3673ff40ca5363e398.md).
 - The integration reviewer examined the role boundary and persistence. The findings, fix, and remaining scope are recorded with the test evidence.
+
+## ENG-010a closed-survey retention and hold guard
+
+- Tested revision `c801b00963a0165c58e468a1723db950bd6dac3f` on isolated PostgreSQL 16.16 and Chromium. The stack passed 18 integration tests, 2 security tests, and 3 browser tests. See the [exact-SHA verification record](../evidence/ENG-010a/c801b00963a0165c58e468a1723db950bd6dac3f.md).
+- Real PostgreSQL tests covered authorisation, stale snapshots, deadline and hold boundaries, seeded migration, and archive restore. Scheduled disposal and post-disposal restore replay remain separate acceptance scope.
