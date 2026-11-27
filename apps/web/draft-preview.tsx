@@ -6,9 +6,11 @@ import { QuestionFields, readAnswers } from "./question-fields.tsx";
 export function DraftPreview({
   definition,
   onClose,
+  onHelp,
 }: {
   definition: SurveyDefinition;
   onClose: () => void;
+  onHelp: (button: HTMLButtonElement) => void;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   const [checked, setChecked] = useState(false);
@@ -53,6 +55,14 @@ export function DraftPreview({
         <QuestionFields definition={definition} pageHeading="h3" />
         <div className="actions">
           <button>Check preview answer</button>
+          <button
+            type="button"
+            className="secondary"
+            aria-controls="creator-user-guide"
+            onClick={(event) => onHelp(event.currentTarget)}
+          >
+            Help with preview
+          </button>
           <button type="button" className="secondary" onClick={onClose}>
             Close preview
           </button>

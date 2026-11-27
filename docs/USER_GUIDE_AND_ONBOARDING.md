@@ -35,3 +35,11 @@ Task-based usability test with representative first-time staff: median creation 
 ## Starting a live quiz — lecturer guide outline
 
 In **Create → Pop Quiz → Delivery**, select Live Game Show, Classroom Learning, Live Polling or Formal Assessment. Set question timing, score model, optional leaderboard, join/access policy and answer reveal. Preview as host and as student. When ready, choose **Start Live Session**, display the PIN/QR on the lecture screen, wait for students in the lobby and begin. Advance questions and show explanations; pause if necessary. End to review item difficulty, attendance/participation where permitted, session scores and downloadable results. Display practical help for network interruptions, forgotten PIN, late arrivals and privacy implications of public nicknames. Never describe a leaderboard as private if it is projected publicly.
+
+## Verified creator guide slice
+
+The creator can search the User guide from the workspace entry screen and open the preview topic directly from a saved draft. The guide covers the implemented draft, preview, publish and JASP export workflows.
+
+English creator topics live in the versioned data file [creator-help.en.json](../apps/web/content/creator-help.en.json). Content updates use the JSON asset and take effect when the application restarts with the updated asset. Keep credentials and respondent details out of the public guide content. Verify edited instructions against the creator browser workflow before publishing the content.
+
+Additional audiences, a replayable first-run tour, localisation and representative usability acceptance retain their own gates.
