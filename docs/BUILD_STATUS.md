@@ -8,6 +8,7 @@
 | Remaining ENG-004–ENG-019 scopes | NOT_STARTED | The first complete survey workflow and later modules await the dependencies in [the task graph](TASK_GRAPH.md). |
 | ENG-009a operations roles, health and incident history | VERIFIED_INTEGRATION | Exact revision `3bf00776434715cdf34d6c3673ff40ca5363e398` passed PostgreSQL permissions, restart, upgrade, restore and Chromium. See the [verification record](../evidence/ENG-009a/3bf00776434715cdf34d6c3673ff40ca5363e398.md). |
 | ENG-010a survey closure expiry and hold guard | VERIFIED_INTEGRATION | Exact revision `c801b00963a0165c58e468a1723db950bd6dac3f` passed scoped approval, clock boundaries, concurrent disposal protection, upgrade, archive restore and Chromium regression. See the [verification record](../evidence/ENG-010a/c801b00963a0165c58e468a1723db950bd6dac3f.md). |
+| ENG-010b read-only disposal preview and fixture replay | VERIFIED_INTEGRATION | Exact revision `69d42925f30cf2d76b46a2a0fa22c1a617c0b95e` passed PostgreSQL disposal protection, archive rollback and cleanup, concurrent retry, tombstone replay and Chromium regression. See the [verification record](../evidence/ENG-010b/69d42925f30cf2d76b46a2a0fa22c1a617c0b95e.md). |
 | Merge and production release | BLOCKED | GitHub reported no active main branch protection. Human release approval is pending. |
 
 See [the evidence ledger](EVIDENCE_LEDGER.md) for commands and scope.
