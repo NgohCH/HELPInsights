@@ -26,7 +26,7 @@ See [`../api/openapi.yaml`](../api/openapi.yaml) for the initial machine-readabl
 | `POST /surveys/{id}/close` | 1 | Close collection and calculate retention clock |
 | `GET /public/s/{token}` | 1 | Fetch the public-safe published definition, or a synthetic Registry prompt for a restricted test distribution |
 | `POST /public/s/{token}/eligibility` | Development | Verify a synthetic credential and issue a short-lived distribution-scoped capability |
-| `POST /public/s/{token}/responses` | 1 | Validated idempotent submission |
+| `POST /public/s/{token}/responses` | 1 | Validated idempotent submission. A gated test distribution additionally requires `X-Survey-Capability`. |
 | `GET /surveys/{id}/analytics` | 1 | Aggregates with privacy/small-cell policy |
 | `POST /surveys/{id}/exports`, `GET /exports/{id}` | 1 | Controlled async dataset export |
 | `GET /me/notices`, `POST /me/notices/{id}/acknowledge` | 1 | User notices |
@@ -35,6 +35,8 @@ See [`../api/openapi.yaml`](../api/openapi.yaml) for the initial machine-readabl
 | `POST /integrations/action-requests` | 1B | Authorised privacy-safe request to external workflow |
 | `GET/POST /webhooks` | 2 | Manage registered outbound subscriptions |
 | Advanced routing, multilingual definitions, research | 2/3 | Introduce only with versioned schemas and stage approval |
+
+For synthetic Registry tests, `X-Survey-Capability` authorises access to the selected link through its expiry and can be reused or shared. The separate `Idempotency-Key` deduplicates one submission. If verification returns 503, the simulator has issued no new capability. Verification resumes when the simulator recovers, and previously issued capabilities keep their expiry. Production eligibility remains gated on privacy review and unlinkable one-use collection.
 
 ## JASP-oriented export contract
 

@@ -288,7 +288,7 @@ paths:
       - Respondent
       operationId: verifySyntheticRegistryEligibility
       security: []
-      description: Available for synthetic test distributions. Issues a temporary capability scoped to this distribution after successful verification.
+      description: Available for synthetic test distributions. Issues a temporary capability scoped to this distribution after successful verification. Provider outages prevent new issuance. Existing unexpired capabilities remain valid.
       requestBody:
         required: true
         content:
@@ -337,6 +337,7 @@ paths:
       - name: Idempotency-Key
         in: header
         required: true
+        description: Retry key for a single answer submission. Eligibility uses the separate X-Survey-Capability header.
         schema:
           type: string
           minLength: 16
@@ -741,7 +742,7 @@ components:
       name: X-Survey-Capability
       in: header
       required: false
-      description: Required by the collection endpoint for a synthetic Registry distribution. Send only in this header.
+      description: Required by the collection endpoint for a synthetic Registry distribution. Send only in this header. The bearer capability can be reused or shared until expiry.
       schema:
         type: string
         pattern: '^[0-9]{13}\.[A-Za-z0-9_-]{43}$'

@@ -22,3 +22,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 - Tested revision `07c70a4627556bf6b8684609982289ae2356ea5a`. See the [exact-SHA verification record](../evidence/ENG-001/07c70a4627556bf6b8684609982289ae2356ea5a.md).
 - Local runtime passed real PostgreSQL, Chromium, dependency and redacted history scans. The development runner uses pnpm 10.34.9.
 - GitHub `rules/branches/main` returned an empty array (exit 0) and classic protection returned 404. The merge and release gate remains blocked.
+
+## ENG-011a synthetic Registry eligibility
+
+- Source commit `e4f63d9b2b24db853c4c08aaecd453e6f56f2687`. Fifteen PostgreSQL integration, two security, three Chromium and five unit tests passed. The Registry-adapter outage and recovery, direct SQL checks, seeded upgrade and absence of eligibility material in response rows passed. This is synthetic test-only and still requires unlinkable one-use collection for production. See the [exact-source evidence](../evidence/ENG-011a/e4f63d9b2b24db853c4c08aaecd453e6f56f2687.md).

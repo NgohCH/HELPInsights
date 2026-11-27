@@ -109,7 +109,7 @@ The source repository on GitHub is the single source of truth. See [GitHub, loca
 
 The local development workflow creates and publishes a single-choice survey, collects anonymous responses, and displays results and an authenticated JASP CSV export. It uses a React browser client, PostgreSQL and a separate export worker.
 
-The disposable test stack also starts a private Person Registry simulator for synthetic eligibility checks. Tests publish a restricted test distribution, verify a synthetic credential, and collect an anonymous response. The default local stack uses open survey links and does not run a Registry provider. [Project Listen development scope](docs/PROJECT_LISTEN.md#synthetic-registry-development-slice)
+The disposable test stack also starts a private Person Registry simulator for synthetic eligibility checks. Tests publish a restricted test distribution, verify a synthetic credential, and collect an anonymous response. The default local stack uses open survey links. The temporary capability grants access to a restricted test link, and the separate `Idempotency-Key` handles retries of one submission. Simulator outages suspend new verification until recovery. Existing capabilities remain valid until expiry. [Project Listen development scope](docs/PROJECT_LISTEN.md#synthetic-registry-development-slice)
 
 Follow the [development runbook](docs/progress/ENG-001-002-setup.md) to install the locked dependencies and Chromium. Run the full synthetic demonstration from the survey workflow branch:
 
