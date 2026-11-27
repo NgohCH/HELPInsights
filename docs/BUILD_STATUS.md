@@ -7,6 +7,7 @@
 | ENG-003 through ENG-007 first anonymous survey roundtrip | VERIFIED_INTEGRATION | Opened in [draft PR #2](https://github.com/NgohCH/HELPInsights/pull/2). |
 | ENG-006b saved draft preview | VERIFIED_INTEGRATION | Opened in [draft PR #3](https://github.com/NgohCH/HELPInsights/pull/3). |
 | ENG-006c searchable creator guide | VERIFIED_INTEGRATION | Browser search and contextual preview help passed on the combined stack and [draft PR #7](https://github.com/NgohCH/HELPInsights/pull/7). |
+| ENG-006d guided after-class feedback | VERIFIED_INTEGRATION | Keyboard authoring, private saved preview, stale publication refusal and anonymous collection passed real Chromium and PostgreSQL checks. See the [exact-revision record](../evidence/ENG-006d/926b185a51e517cdef4845b3e02d13276b400724.md). |
 | ENG-008a curated template | VERIFIED_INTEGRATION | Opened in [draft PR #4](https://github.com/NgohCH/HELPInsights/pull/4). |
 | Combined preview and template development branch | VERIFIED_INTEGRATION | Chromium exercised template preview, copy, saved draft preview and editing together. |
 | ENG-009a operations roles, health and incident history | VERIFIED_INTEGRATION | Exact revision `3bf00776434715cdf34d6c3673ff40ca5363e398` passed PostgreSQL permissions, restart, upgrade, restore and Chromium. See the [verification record](../evidence/ENG-009a/3bf00776434715cdf34d6c3673ff40ca5363e398.md). |
