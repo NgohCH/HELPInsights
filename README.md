@@ -109,6 +109,8 @@ The source repository on GitHub is the single source of truth. See [GitHub, loca
 
 The local development workflow creates and publishes a single-choice survey, collects anonymous responses, and displays results and an authenticated JASP CSV export. It uses a React browser client, PostgreSQL and a separate export worker.
 
+For a first-run development check, run `corepack pnpm doctor:local` to report local prerequisites and `corepack pnpm install:demo` to install locked dependencies and verify the synthetic workspace-owner survey journey on disposable PostgreSQL and Chromium. The demo cleans up its Compose resources and prints a redacted receipt. [Local first-run instructions](docs/DEPLOYMENT_GUIDE.md#local-development-first-run)
+
 Follow the [development runbook](docs/progress/ENG-001-002-setup.md) to install the locked dependencies and Chromium. Run the full synthetic demonstration from the survey workflow branch:
 
 ```sh

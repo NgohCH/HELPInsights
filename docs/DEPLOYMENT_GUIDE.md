@@ -4,6 +4,23 @@
 
 **Status:** Required product deliverable; commands below describe the intended command interface. They are not operational until implemented and tested.
 
+## Local development first run
+
+Run from a versioned HELPInsights checkout with the Node version declared in `package.json`, Corepack, Docker Engine and Compose. Select a local Docker context with a Linux engine. The doctor checks the revision and worktree state, pinned pnpm, lockfile, Docker and Chromium, and reports a nonzero exit code on failure. It does not install dependencies or start containers.
+
+```powershell
+corepack.cmd pnpm doctor:local
+corepack.cmd pnpm install:demo
+```
+
+On macOS or Linux, use `corepack` without the `.cmd` extension. On a fresh checkout the doctor can report that Chromium or the locked dependencies are missing. The install demo checks the host first, installs the pinned packages and Chromium, and then uses the existing disposable Compose verification runner. It seeds a synthetic workspace owner and development session and exercises create, publish, respond, PostgreSQL restart, results, and JASP export in Chromium. It never bootstraps a reusable administrator.
+
+A successful run removes its own named Compose services and volume and prints `LOCAL_INSTALL_RECEIPT` with checkout, toolchain, readiness and verification results. The receipt describes a completed test run, so there is no retained service URL. A failed stage exits nonzero and leaves no success receipt. The runtime log remains under `runtime-evidence/`, and any retained browser traces belong under `test-results/`.
+
+A receipt marked `modified` shows an advisory revision SHA. Run from a clean checkout for exact-revision evidence. On Linux, a Chromium launch failure from missing system libraries may require a separately approved `corepack pnpm exec playwright install --with-deps chromium` run.
+
+Separate deployment work covers signed release setup, approved database provisioning, TLS, time-limited first administrator setup, MFA or SSO, and reviewed upgrade and rollback procedures.
+
 ## Supported initial deployment
 
 - Linux x86_64/arm64 host capable of running a supported Docker Engine and Compose plugin; backed by persistent volumes; non-root application containers.

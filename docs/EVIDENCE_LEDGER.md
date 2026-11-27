@@ -27,3 +27,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Source `838fa64abe0f4bebb515abe666434145304ad662` passed the exact local PostgreSQL, Chromium and export verification. See [the verification report](../evidence/ENG-007/838fa64abe0f4bebb515abe666434145304ad662.md) for commands, findings and remedies.
 - Bootstrap GitHub docs-contract and runtime-required checks passed on draft PR #1. The survey draft stacks on that branch.
+
+## ENG-018a disposable local install and doctor
+
+- Clean source `8e0452ad6c5e373b3c5dccacb0acd2a5239f2c2e` passed the Windows first-run demo with real PostgreSQL and Chromium. The demo verified the synthetic workspace-owner survey through PostgreSQL restart and a matching JASP export, then confirmed its Compose volume was removed. See [the verification report](../evidence/ENG-018a/8e0452ad6c5e373b3c5dccacb0acd2a5239f2c2e.md).
