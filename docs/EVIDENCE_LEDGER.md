@@ -126,3 +126,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Exact source [179289716ac8](../evidence/ENG-010b/179289716ac8f434114e338252965069a75008f7.md) passed 38 PostgreSQL integration, two security and 13 Chromium tests in helpinsights-test-e42d471b89f5. Seeded migration 012 preserved the existing room and migration checksums. The red reproduced an incorrect eligible disposition and a real foreign-key failure. The fixed preview and fixture transaction protect the linked room, all survey derivatives and the tombstone ledger.
 - The GitHub docs-contract and runtime-required checks passed on cumulative PR #18 and standalone worker recovery and Game Show PRs #19–20. The clean Windows installer demo passed standalone locally and is drafted in PR #21.
+
+## ENG-015a private timed Game Show
+
+- Source [0de928312a2f](../evidence/ENG-015a/0de928312a2fbef0a8fb8dd90ed6cd32cc0dc9c2.md) verified a private version-pinned fixed scoring rule on real PostgreSQL and recovered the same deadline and receipt over Chromium WebSockets. Full Docker passed 21 integration, 2 security and 6 Chromium tests. The scored archive, seeded upgrade and restart replay passed in the same disposable project.
+- The source eligibility guard denied synthetic Registry and Research-consent bindings. Game Show remains opt-in. Results release, rankings, production approval and wider Game Show acceptance remain open.

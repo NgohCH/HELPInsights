@@ -268,7 +268,7 @@ test(
       assert.equal(
         sql(`
       SET ROLE helpinsights_runtime;
-      SELECT public.read_live_poll_question('${id}', decode('${proof}', 'hex'), NULL) IS NULL
+      SELECT public.read_live_room_snapshot('${id}', decode('${proof}', 'hex'), NULL, false) IS NULL
     `),
         "t",
       );

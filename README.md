@@ -143,6 +143,14 @@ The disposable test stack enables the Live Poll lobby. The normal stack leaves i
 
 The presenter can start, pause, resume, end and archive the poll. The presenter and guest see committed state changes over a same-origin WebSocket. A disconnected tab reconnects to the current PostgreSQL state. Refresh lobby also reopens the connection. Guest credentials stay in the current page and expire after eight hours. Once running, the presenter opens and advances questions in published order. Each guest can cast one vote per question and see their own receipt. The presenter sees turnout in groups of five and may close the question to reveal exact counts when the category and nonvoter groups meet the privacy threshold. See the [voting test criteria](docs/LIVE_POLL_VOTING_TEST_CRITERIA.md) and [remaining Live Quiz Arena release gates](docs/LIVE_QUIZ_ARENA.md).
 
+### Local timed Game Show
+
+The disposable test stack opts in to Game Show through LIVE_GAME_SHOW_ENABLED. Open /live/game-host and supply a published version with one unconditional single-choice question. The presenter enters its exact correct option code and sets an answer time of 5 to 120 seconds. Guests join at /live/join.
+
+Opening the question starts the PostgreSQL clock. A pause prevents new answers while the deadline continues. Resuming and reconnecting keep the same deadline. The private accuracy_v1 rule records 1000 points for a correct answer and zero otherwise. Participants receive their own answer receipt. Scores and the answer key stay private in this slice.
+
+An anonymous room requires an open distribution. The Registry and research consent integration must establish that a source version permits anonymous reuse before activation. See the [Game Show verification criteria](docs/GAME_SHOW_SCORING_TEST_CRITERIA.md).
+
 ## Product governance
 
 - Publication is versioned and immutable once collecting responses.

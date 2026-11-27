@@ -1,0 +1,6 @@
+# ENG-015a timed Game Show scoring tests
+
+- Opt-in Game Show uses one published unconditional single-choice question. The presenter supplies a private correct option and an integer deadline duration. Scoring rule accuracy_v1 awards 1000 points for a correct answer and zero otherwise. The rule and attempt are pinned to the immutable published version. Keep restricted survey versions out of rooms.
+- PostgreSQL opens the deadline from its server clock. A pause rejects new answers without extending time. Resume changes the opening revision, while reconnect keeps the original deadline. Late, stale, foreign, malformed and client-clock or client-points inputs are denied.
+- One attempt is written for a participant and question. Identical racing retries share an original receipt. Changed payloads and new keys cannot replace a score. Poll and survey response rows remain isolated. PostgreSQL restore preserves rule, timing and score.
+- Presenter and mobile Chromium guest see the active question and its deadline on the real live socket. Guest receives only a durable answer receipt. Correctness, individual points and rankings remain private. Release, speed scoring, multi-question configuration and production gates remain separate.

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.10-development
+  version: 0.2.11-development
   description: Development coverage includes anonymous surveys, CSV export, curated templates, operations, opt-in Live Poll, NPS approval, retention holds and read-only disposal preview.
 servers:
 - url: https://survey.example.org/api/v1
@@ -19,7 +19,7 @@ tags:
 - name: Notices
 - name: Administration
 - name: Live Quiz Arena
-  description: Development Live Poll lobby, question controls, ballots and the snapshot stream. The dedicated historical result endpoint describes a planned feature.
+  description: Development Live Poll and opt-in Game Show rooms, private scoring, and the snapshot stream. Score release and historical results describe planned features.
 paths:
   /health/live:
     get:
@@ -818,10 +818,11 @@ paths:
     post:
       tags: [Live Quiz Arena]
       operationId: createLiveQuizSession
-      summary: Create a Live Poll lobby from a published unconditional single-choice version
+      summary: Create a Live Poll or Game Show lobby from a published unconditional single-choice version
       description: >
         Development-only and disabled by default. The workspace owner or editor
         who creates the lobby is its presenter. The join PIN is returned once.
+        Game Show accepts one question and keeps the private rule on the server.
       requestBody:
         required: true
         content:
@@ -831,7 +832,23 @@ paths:
               required: [quizVersionId, mode]
               properties:
                 quizVersionId: { type: string, format: uuid }
-                mode: { const: live_poll }
+                mode: { enum: [live_poll, game_show] }
+                scoring:
+                  type: object
+                  description: Required for opted-in Game Show and private to the scoring implementation.
+                  required: [correctOptionCode, durationSeconds]
+                  properties:
+                    correctOptionCode: { type: string, maxLength: 64 }
+                    durationSeconds: { type: integer, minimum: 5, maximum: 120 }
+                  additionalProperties: false
+              if:
+                properties:
+                  mode: { const: game_show }
+              then:
+                required: [scoring]
+              else:
+                not:
+                  required: [scoring]
               additionalProperties: false
       responses:
         '201':
@@ -969,11 +986,13 @@ paths:
     post:
       tags: [Live Quiz Arena]
       operationId: submitLiveQuizAnswer
-      summary: Cast one vote per published question as an admitted guest
+      summary: Cast one vote or answer per published question as an admitted guest
       description: >
         New votes require the running room's open question and its opening
         revision. Retrying the same key with exactly the same payload returns
         the original server receipt. A conflicting payload or vote returns 409.
+        Game Show accepts answers strictly before its PostgreSQL deadline. Pausing
+        keeps the deadline running. Receipts omit correctness and points.
       security:
       - liveParticipantAuth: []
       parameters:
@@ -1120,7 +1139,7 @@ components:
       required: [id, mode, state, revision]
       properties:
         id: { type: string, format: uuid }
-        mode: { const: live_poll }
+        mode: { enum: [live_poll, game_show] }
         state: { enum: [lobby, running, paused, ended, archived] }
         revision: { type: integer, minimum: 1 }
         quizVersionId: { type: string, format: uuid }
@@ -1132,6 +1151,7 @@ components:
             title: { type: string }
             openedRevision: { type: integer, minimum: 1 }
             open: { type: boolean }
+            closesAt: { type: string, format: date-time }
             options:
               type: array
               items:
