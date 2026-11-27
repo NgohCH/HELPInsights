@@ -1,5 +1,6 @@
 import {
   InvalidInput,
+  isQuestionVisible,
   label,
   object,
   type SurveyDefinition,
@@ -28,6 +29,11 @@ export function parseAnswers(
 
   const answers: Answer[] = [];
   for (const question of questions) {
+    if (!isQuestionVisible(question, byId)) {
+      if (byId.has(question.id))
+        throw new InvalidInput("An answer references a hidden question");
+      continue;
+    }
     if (!byId.has(question.id)) {
       if (question.required)
         throw new InvalidInput("Answer every required question");

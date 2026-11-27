@@ -2,7 +2,10 @@ import { useRef, useState, type FormEvent } from "react";
 import { api, type Workspace } from "./api.ts";
 import { Results } from "./results.tsx";
 import { DraftPreview } from "./draft-preview.tsx";
-import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
+import type {
+  Question,
+  SurveyDefinition,
+} from "../../packages/survey-runtime/definition.ts";
 
 type Draft = { id: string; etag: string };
 
@@ -10,6 +13,7 @@ export function Creator() {
   const [token, setToken] = useState("");
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [workspaceId, setWorkspaceId] = useState("");
+  const [followUpWhen, setFollowUpWhen] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [ready, setReady] = useState(false);
   const [savedDefinition, setSavedDefinition] =
@@ -59,27 +63,33 @@ export function Creator() {
     const form = new FormData(event.currentTarget);
     const field = (name: string) => String(form.get(name) ?? "").trim();
     const title = field("title");
+    const questions: Question[] = [
+      {
+        id: "question",
+        code: "workshop_question",
+        type: "single_choice",
+        title: field("question"),
+        required: true,
+        options: [
+          { code: "option_1", label: field("option1") },
+          { code: "option_2", label: field("option2") },
+        ],
+      },
+    ];
+    if (followUpWhen) {
+      questions.push({
+        id: "follow_up",
+        code: "workshop_follow_up",
+        type: "short_text",
+        title: field("followUpQuestion"),
+        required: true,
+        visibleWhen: { questionId: "question", optionCode: followUpWhen },
+      });
+    }
     const definition: SurveyDefinition = {
       schemaVersion: "1",
       title,
-      pages: [
-        {
-          id: "first",
-          questions: [
-            {
-              id: "question",
-              code: "workshop_question",
-              type: "single_choice",
-              title: field("question"),
-              required: true,
-              options: [
-                { code: "option_1", label: field("option1") },
-                { code: "option_2", label: field("option2") },
-              ],
-            },
-          ],
-        },
-      ],
+      pages: [{ id: "first", questions }],
     };
 
     setStatus("");
@@ -195,6 +205,26 @@ export function Creator() {
                   Option 2<input name="option2" maxLength={160} required />
                 </label>
               </div>
+              <div>
+                <label htmlFor="follow-up-condition">
+                  Show a follow-up when
+                </label>
+                <select
+                  id="follow-up-condition"
+                  value={followUpWhen}
+                  onChange={(event) => setFollowUpWhen(event.target.value)}
+                >
+                  <option value="">No follow-up</option>
+                  <option value="option_1">Option 1 is selected</option>
+                  <option value="option_2">Option 2 is selected</option>
+                </select>
+              </div>
+              {followUpWhen && (
+                <label>
+                  Follow-up question
+                  <input name="followUpQuestion" maxLength={300} required />
+                </label>
+              )}
             </fieldset>
             <div className="actions">
               <button disabled={pending || !workspaceId}>Save draft</button>

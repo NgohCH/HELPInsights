@@ -917,6 +917,14 @@ components:
           type: string
         required:
           type: boolean
+        visibleWhen:
+          type: object
+          description: Show this question only when the respondent selects the given option of an earlier unconditional single-choice question. Required checks apply while visible.
+          additionalProperties: false
+          required: [questionId, optionCode]
+          properties:
+            questionId: { type: string }
+            optionCode: { type: string }
         options:
           type: array
           items:
