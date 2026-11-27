@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.4-development
-  description: The development runtime supports anonymous survey creation, publication, submission, analytics and CSV exports. The remaining design endpoints describe planned features.
+  version: 0.2.5-development
+  description: The development runtime supports anonymous survey creation, publication, submission, analytics, CSV exports and platform operations health and incident history. The remaining design endpoints describe planned features.
 servers:
 - url: https://survey.example.org/api/v1
   description: Example only
@@ -419,7 +419,7 @@ paths:
       tags:
       - Administration
       operationId: getAdminHealth
-      description: Requires ops:read. No private respondent contents.
+      description: Requires a platform operations viewer or operator. Reports API, database and migration readiness. Returns 503 if access or health cannot be verified because a dependency is unavailable.
       responses:
         '200':
           description: Privileged operational health
@@ -427,8 +427,72 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdminHealth'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /admin/incidents:
+    get:
+      tags:
+      - Administration
+      operationId: listAdminIncidents
+      description: Requires a platform operations viewer or operator. Returns the latest 100 platform incident events, newest first, without actor attribution or survey data.
+      responses:
+        '200':
+          description: Redacted incident history
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items:
+                  $ref: '#/components/schemas/OperationIncident'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    post:
+      tags:
+      - Administration
+      operationId: recordAdminIncident
+      description: Requires a platform operations operator. Appends a structured event with server-generated time, identifier and audit attribution.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationIncidentInput'
+      responses:
+        '201':
+          description: Recorded incident event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationIncident'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          description: Request body is too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '415':
+          description: Request body must be JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /admin/notices:
     get:
       tags:
@@ -1137,28 +1201,67 @@ components:
           format: date-time
     AdminHealth:
       type: object
+      additionalProperties: false
       required:
       - status
       - components
       properties:
         status:
           type: string
-          enum:
-          - ok
-          - degraded
-          - down
+          enum: [ok, degraded]
         components:
           type: array
+          minItems: 3
+          maxItems: 3
           items:
             type: object
+            additionalProperties: false
             required:
             - name
             - status
             properties:
               name:
-                type: string
+                $ref: '#/components/schemas/OperationComponent'
               status:
                 type: string
+                enum: [ok, degraded]
+    OperationComponent:
+      type: string
+      enum: [api, database, schema]
+    OperationIncidentState:
+      type: string
+      enum: [detected, recovered]
+    OperationIncidentSeverity:
+      type: string
+      enum: [information, advisory, action_required, critical]
+    OperationIncidentInput:
+      type: object
+      additionalProperties: false
+      required: [component, state, severity]
+      properties:
+        component:
+          $ref: '#/components/schemas/OperationComponent'
+        state:
+          $ref: '#/components/schemas/OperationIncidentState'
+        severity:
+          $ref: '#/components/schemas/OperationIncidentSeverity'
+    OperationIncident:
+      type: object
+      additionalProperties: false
+      required: [id, component, state, severity, recordedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        component:
+          $ref: '#/components/schemas/OperationComponent'
+        state:
+          $ref: '#/components/schemas/OperationIncidentState'
+        severity:
+          $ref: '#/components/schemas/OperationIncidentSeverity'
+        recordedAt:
+          type: string
+          format: date-time
     RetentionStatus:
       type: object
       required:

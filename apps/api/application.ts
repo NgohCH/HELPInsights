@@ -90,6 +90,7 @@ export function createApplication(
       if (
         !publicPage &&
         path !== "/" &&
+        path !== "/admin" &&
         path !== "/api/v1/health/live" &&
         path !== "/api/v1/health/ready"
       ) {
@@ -107,7 +108,7 @@ export function createApplication(
           requestId,
         });
       }
-      if (path === "/" || publicPage) {
+      if (path === "/" || path === "/admin" || publicPage) {
         response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
         return response.end(home);
       }

@@ -23,6 +23,12 @@ Three interfaces share one application backend:
 2. **Respondent experience:** mobile-first survey completion; no account required for public or genuinely anonymous surveys.
 3. **Administration centre:** tenants, workspaces, policies, platform health, security and recovery events, notices, audit trails, and controlled operations.
 
+The development Operations page at /admin shows API, database and migration
+health and up to 100 recent incidents for a session with an explicit platform
+operations role. Operators can record allowlisted incident events through
+the API. Workspace ownership and survey access use separate permissions. See
+[Operations and security](docs/SECURITY_OPERATIONS.md).
+
 ## Non-negotiable principles
 
 - Intuitive for non-technical staff, accessible, fast on mobile and consistent across workflows.
