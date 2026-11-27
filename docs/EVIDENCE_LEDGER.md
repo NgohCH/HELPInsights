@@ -135,3 +135,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-011a synthetic Registry eligibility
 
 - Source commit `e4f63d9b2b24db853c4c08aaecd453e6f56f2687`. Fifteen PostgreSQL integration, two security, three Chromium and five unit tests passed. The Registry-adapter outage and recovery, direct SQL checks, seeded upgrade and absence of eligibility material in response rows passed. This is synthetic test-only and still requires unlinkable one-use collection for production. See the [exact-source evidence](../evidence/ENG-011a/e4f63d9b2b24db853c4c08aaecd453e6f56f2687.md).
+
+## ENG-016a synthetic research consent
+
+- Source commit `7534ff6591239a9ab013a33de17e643198cb386f`. Fifteen PostgreSQL integration, two security, three Chromium and four unit tests passed. Decline left no stored rows. The write-failure recovery stored the answer and separate opt-in atomically, and the seeded upgrade preserved open collection. [Exact-source evidence](../evidence/ENG-016a/7534ff6591239a9ab013a33de17e643198cb386f.md).

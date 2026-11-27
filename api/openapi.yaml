@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.12-development
-  description: Development coverage includes anonymous surveys, CSV export, curated templates, operations, opt-in live rooms, NPS approval, retention and synthetic Registry eligibility.
+  version: 0.2.13-development
+  description: Development coverage includes anonymous surveys, CSV export, curated templates, operations, opt-in live rooms, NPS approval, retention, synthetic Registry eligibility and synthetic research consent.
 servers:
 - url: https://survey.example.org/api/v1
   description: Example only
@@ -369,7 +369,7 @@ paths:
       tags:
       - Survey
       operationId: publishSurvey
-      description: Validate and snapshot an immutable survey version. NPS questions require active workspace approval. Disposable tests can opt into the synthetic Registry gate.
+      description: Validate and snapshot an immutable survey version. NPS authoring requires an active workspace approval. Disposable test environments support optional synthetic Registry eligibility and versioned consent.
       requestBody:
         required: false
         content:
@@ -382,6 +382,13 @@ paths:
                   type: string
                   enum: [open, registry-synthetic]
                   default: open
+                researchConsent:
+                  const: synthetic
+              not:
+                required: [eligibilityMode, researchConsent]
+                properties:
+                  eligibilityMode:
+                    const: registry-synthetic
       responses:
         '201':
           description: New published version
@@ -534,7 +541,7 @@ paths:
       - Respondent
       operationId: getPublishedPublicSurvey
       security: []
-      description: Returns a public-safe published definition for open distributions and a verification prompt for synthetic Registry distributions without a valid capability.
+      description: Returns a public-safe published definition for open distributions and a verification prompt for synthetic Registry distributions without a valid capability. A consent-required test survey includes its immutable consent notice.
       parameters:
       - $ref: '#/components/parameters/SurveyCapability'
       responses:
@@ -646,6 +653,8 @@ paths:
           $ref: '#/components/responses/Conflict'
         '429':
           $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /surveys/{surveyId}/analytics:
     parameters:
     - $ref: '#/components/parameters/SurveyId'
@@ -1670,6 +1679,24 @@ components:
           - string
           - 'null'
           format: date-time
+        researchConsent:
+          $ref: '#/components/schemas/ResearchConsentVersion'
+    ResearchConsentVersion:
+      type: object
+      additionalProperties: false
+      required: [id, studyKey, revision, notice]
+      properties:
+        id:
+          type: string
+          format: uuid
+        studyKey:
+          const: synthetic-consent-study
+        revision:
+          type: integer
+          minimum: 1
+        notice:
+          type: string
+          maxLength: 2000
     SubmitResponseRequest:
       type: object
       additionalProperties: false
@@ -1680,6 +1707,17 @@ components:
         surveyVersionId:
           type: string
           format: uuid
+        consent:
+          type: object
+          description: Required only when the supplied distribution requests synthetic research consent. The version must match the notice on the link.
+          additionalProperties: false
+          required: [versionId, accepted]
+          properties:
+            versionId:
+              type: string
+              format: uuid
+            accepted:
+              const: true
         answers:
           type: array
           items:

@@ -8,6 +8,10 @@ import {
   uuid,
 } from "../../packages/survey-runtime/definition.ts";
 import { sendJson } from "./application.ts";
+import {
+  supportsSyntheticConsent,
+  type ResearchConsent,
+} from "./research-consent.ts";
 import { HttpError } from "./sessions.ts";
 import { RegistryUnavailable, type RegistryGate } from "./registry.ts";
 import { digest, jsonBody, tokenPattern, writeClientError } from "./surveys.ts";
@@ -16,17 +20,26 @@ type PublishedLink = {
   surveyVersionId: string;
   definition: SurveyDefinition;
   eligibilityMode: "open" | "registry-synthetic";
+  researchConsent: ResearchConsent | null;
 };
 type Receipt = {
-  outcome: "closed" | "accepted" | "retry" | "conflict";
+  outcome: "closed" | "accepted" | "retry" | "conflict" | "consent_required";
   receiptId: string;
   acceptedAt: Date;
 };
 const notFound = () => new HttpError(404, "NOT_FOUND", "Survey not found");
 
+const consentRequired = () =>
+  new HttpError(
+    403,
+    "FORBIDDEN",
+    "Agree to the current study consent notice before submitting",
+  );
+
 export function respondentRoutes(
   pool: Pool,
   registryGate: RegistryGate | null = null,
+  syntheticResearchConsent = false,
 ) {
   return async (
     request: IncomingMessage,
@@ -49,13 +62,34 @@ export function respondentRoutes(
       }
       const tokenHash = digest(token);
       const { rows } = await pool.query<PublishedLink>(
-        'SELECT id AS "surveyVersionId", definition, eligibility_mode AS "eligibilityMode" FROM public.resolve_collection_distribution($1)',
+        `SELECT l.id AS "surveyVersionId", l.definition, l.eligibility_mode AS "eligibilityMode",
+          CASE WHEN c.id IS NULL THEN NULL ELSE jsonb_build_object(
+            'id', c.id, 'studyKey', c.study_key, 'revision', c.revision, 'notice', c.notice
+          ) END AS "researchConsent"
+         FROM public.resolve_collection_distribution($1) l
+         LEFT JOIN public.resolve_research_consent($1) c ON true`,
         [tokenHash],
       );
       const link = rows[0];
       if (!link) throw notFound();
-      const { surveyVersionId, definition, eligibilityMode } = link;
+      const { surveyVersionId, definition, eligibilityMode, researchConsent } =
+        link;
+      if (
+        researchConsent &&
+        (!syntheticResearchConsent || !supportsSyntheticConsent(definition))
+      )
+        throw new HttpError(
+          503,
+          "UNAVAILABLE",
+          "Synthetic research consent is unavailable",
+        );
       const restricted = eligibilityMode === "registry-synthetic";
+      if (restricted && researchConsent)
+        throw new HttpError(
+          503,
+          "UNAVAILABLE",
+          "This survey restriction configuration is unavailable",
+        );
       if (action === "eligibility") {
         if (!restricted) throw notFound();
         if (!registryGate) throw new RegistryUnavailable();
@@ -84,7 +118,11 @@ export function respondentRoutes(
           200,
           restricted && !registryAllowed
             ? { eligibilityRequired: true }
-            : { surveyVersionId, definition },
+            : {
+                surveyVersionId,
+                definition,
+                ...(researchConsent ? { researchConsent } : {}),
+              },
         );
         return true;
       }
@@ -102,7 +140,20 @@ export function respondentRoutes(
       const body = object(await jsonBody(request), [
         "surveyVersionId",
         "answers",
+        "consent",
       ]);
+      if (researchConsent) {
+        if (body.consent === undefined) throw consentRequired();
+        const consent = object(body.consent, ["versionId", "accepted"]);
+        if (
+          consent.versionId !== researchConsent.id ||
+          consent.accepted !== true
+        )
+          throw consentRequired();
+      } else if (body.consent !== undefined) {
+        throw new InvalidInput("This survey does not request research consent");
+      }
+
       const version = uuid(body.surveyVersionId, "Survey version");
       if (version !== link.surveyVersionId)
         throw new InvalidInput(
@@ -111,19 +162,27 @@ export function respondentRoutes(
       const answers = JSON.stringify(
         parseAnswers(link.definition, body.answers),
       );
+      const parameters = [
+        tokenHash,
+        version,
+        digest(key),
+        digest(answers),
+        answers,
+      ];
+      const columns =
+        'outcome, receipt_id AS "receiptId", accepted_at AS "acceptedAt"';
       const {
         rows: [receipt],
-      } = await pool.query<Receipt>(
-        'SELECT outcome, receipt_id AS "receiptId", accepted_at AS "acceptedAt" FROM public.accept_response($1, $2, $3, $4, $5, $6)',
-        [
-          tokenHash,
-          version,
-          digest(key),
-          digest(answers),
-          answers,
-          registryAllowed,
-        ],
-      );
+      } = researchConsent
+        ? await pool.query<Receipt>(
+            `SELECT ${columns} FROM public.accept_research_response($1, $2, $3, $4, $5, $6)`,
+            [...parameters, researchConsent.id],
+          )
+        : await pool.query<Receipt>(
+            `SELECT ${columns} FROM public.accept_response($1, $2, $3, $4, $5, $6)`,
+            [...parameters, registryAllowed],
+          );
+      if (receipt.outcome === "consent_required") throw consentRequired();
       if (receipt.outcome === "closed") throw notFound();
       if (receipt.outcome === "conflict")
         throw new HttpError(

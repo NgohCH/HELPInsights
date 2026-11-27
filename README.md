@@ -131,6 +131,8 @@ During authoring, **Show a follow-up when** lets you attach a required text ques
 
 The disposable test stack also starts a private Person Registry simulator for synthetic eligibility checks. Tests publish a restricted test distribution, verify a synthetic credential, and collect an anonymous response. The default local stack uses open survey links. The temporary capability grants access to a restricted test link, and the separate `Idempotency-Key` handles retries of one submission. Simulator outages suspend new verification until recovery. Existing capabilities remain valid until expiry. [Project Listen development scope](docs/PROJECT_LISTEN.md#synthetic-registry-development-slice)
 
+The disposable test runtime also supports a versioned, fixed synthetic consent notice on opted-in single-choice surveys. Declining leaves no response. Academic studies, governed research retention, and production activation require separate release evidence. [Research acceptance scope](docs/FEATURE_MATRIX.md#synthetic-research-consent-development-slice)
+
 Follow the [development runbook](docs/progress/ENG-001-002-setup.md) to install the locked dependencies and Chromium. Run the full synthetic demonstration from the survey workflow branch:
 
 ```sh

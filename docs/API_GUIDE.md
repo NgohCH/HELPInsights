@@ -43,6 +43,10 @@ See [`../api/openapi.yaml`](../api/openapi.yaml) for the initial machine-readabl
 
 For synthetic Registry tests, `X-Survey-Capability` authorises access to the selected link through its expiry and can be reused or shared. The separate `Idempotency-Key` deduplicates one submission. If verification returns 503, the simulator has issued no new capability. Verification resumes when the simulator recovers, and previously issued capabilities keep their expiry. Production eligibility remains gated on privacy review and unlinkable one-use collection.
 
+## Synthetic research consent
+
+In the disposable test runtime, authorised creators can send `{"researchConsent":"synthetic"}` when publishing a single-choice survey. The public survey payload then includes the immutable `researchConsent` notice. Before sending answers on that link, the respondent supplies `consent` with its exact `versionId` and `accepted: true`. Missing, declined or mismatched consent returns 403. Open links keep their existing form and request shape. A publication can use one synthetic restriction. The consent option accepts open eligibility, and a Registry-gated publication cannot include consent. The `Idempotency-Key` still identifies a single response retry.
+
 ## JASP-oriented export contract
 
 - `POST /api/v1/surveys/{surveyId}/exports` accepts `format: "jasp_csv_bundle"` in Stage 1, in addition to `csv_bundle`.

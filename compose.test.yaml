@@ -7,6 +7,7 @@ services:
       org.helpinsights.test-run: ${HELPINSIGHTS_TEST_PROJECT:?Run pnpm test:stack}
     environment:
       NODE_ENV: test
+      HELPINSIGHTS_DEV_RESEARCH_CONSENT: synthetic
       LIVE_QUIZ_ENABLED: "true"
       LIVE_GAME_SHOW_ENABLED: "true"
       LIVE_QUIZ_PIN_KEY: "helpinsights_disposable_test_only_join_pin_key"
@@ -21,6 +22,7 @@ services:
     command: ["node", "apps/worker/registry-simulator.ts"]
     environment:
       NODE_ENV: test
+      HELPINSIGHTS_DEV_RESEARCH_CONSENT: synthetic
     labels:
       org.helpinsights.test-run: ${HELPINSIGHTS_TEST_PROJECT:?Run pnpm test:stack}
     healthcheck:

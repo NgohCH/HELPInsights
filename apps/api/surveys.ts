@@ -11,6 +11,11 @@ import {
 } from "../../packages/survey-runtime/definition.ts";
 import { requireSurveyFeatureAccess } from "./feature-entitlements.ts";
 import { sendJson } from "./application.ts";
+import {
+  supportsSyntheticConsent,
+  syntheticConsentNotice,
+  syntheticStudyKey,
+} from "./research-consent.ts";
 import { HttpError, readSessionProof, withActor } from "./sessions.ts";
 
 export const digest = (value: string) =>
@@ -143,7 +148,11 @@ function setRevision(response: ServerResponse, revision: number) {
   response.setHeader("ETag", '"' + revision + '"');
 }
 
-export function surveyRoutes(pool: Pool, syntheticRegistryEnabled = false) {
+export function surveyRoutes(
+  pool: Pool,
+  syntheticRegistryEnabled = false,
+  syntheticResearchConsent = false,
+) {
   return async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -284,7 +293,7 @@ export function surveyRoutes(pool: Pool, syntheticRegistryEnabled = false) {
           const publishOptions =
             submitted === undefined
               ? {}
-              : object(submitted, ["eligibilityMode"]);
+              : object(submitted, ["eligibilityMode", "researchConsent"]);
           const eligibilityMode =
             publishOptions.eligibilityMode === undefined
               ? "open"
@@ -294,6 +303,12 @@ export function surveyRoutes(pool: Pool, syntheticRegistryEnabled = false) {
             eligibilityMode !== "registry-synthetic"
           )
             throw new InvalidInput("Choose a supported eligibility mode");
+          const researchConsent = publishOptions.researchConsent;
+          if (
+            researchConsent !== undefined &&
+            eligibilityMode === "registry-synthetic"
+          )
+            throw new InvalidInput("Choose one synthetic survey restriction");
           if (
             eligibilityMode === "registry-synthetic" &&
             !syntheticRegistryEnabled
@@ -303,6 +318,22 @@ export function surveyRoutes(pool: Pool, syntheticRegistryEnabled = false) {
               "UNAVAILABLE",
               "The synthetic Registry is unavailable",
             );
+          if (researchConsent !== undefined) {
+            if (researchConsent !== "synthetic")
+              throw new InvalidInput(
+                "Choose a supported research consent option",
+              );
+            if (!syntheticResearchConsent)
+              throw new HttpError(
+                503,
+                "UNAVAILABLE",
+                "Synthetic research consent is unavailable",
+              );
+            if (!supportsSyntheticConsent(draft))
+              throw new InvalidInput(
+                "Synthetic consent surveys support only single-choice questions",
+              );
+          }
           const definition = JSON.stringify(draft);
           const {
             rows: [version],
@@ -317,6 +348,18 @@ export function surveyRoutes(pool: Pool, syntheticRegistryEnabled = false) {
             "INSERT INTO public.distributions (token_hash, survey_version_id, eligibility_mode) VALUES ($1, $2, $3)",
             [digest(publicToken), version.id, eligibilityMode],
           );
+          if (researchConsent === "synthetic") {
+            await client.query(
+              `INSERT INTO public.research_consent_versions
+                (survey_version_id, study_key, revision, notice) VALUES ($1, $2, $3, $4)`,
+              [
+                version.id,
+                syntheticStudyKey,
+                version.version,
+                syntheticConsentNotice,
+              ],
+            );
+          }
           await client.query(
             "UPDATE public.surveys SET status = 'published' WHERE id = $1",
             [id],

@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
 import { api } from "./api.ts";
+import type { ResearchConsent } from "../api/research-consent.ts";
 import { QuestionFields, readAnswers } from "./question-fields.tsx";
 
 type PublishedSurvey = {
   surveyVersionId: string;
   definition: SurveyDefinition;
+  researchConsent?: ResearchConsent;
 };
 
 type SurveyView = PublishedSurvey | { eligibilityRequired: true };
@@ -13,6 +15,10 @@ type VerifiedAccess = { capability: string; expiresAt: string };
 
 export function Respondent({ token }: { token: string }) {
   const [survey, setSurvey] = useState<PublishedSurvey | null>(null);
+  const [decision, setDecision] = useState<{
+    versionId: string;
+    accepted: boolean;
+  } | null>(null);
   const [eligibilityRequired, setEligibilityRequired] = useState(false);
   const [access, setAccess] = useState<VerifiedAccess | null>(null);
   const [pending, setPending] = useState(false);
@@ -78,6 +84,12 @@ export function Respondent({ token }: { token: string }) {
       setError("Eligibility expired. Check eligibility again.");
       return;
     }
+    const { researchConsent } = survey;
+    if (
+      researchConsent &&
+      (decision?.versionId !== researchConsent.id || decision.accepted !== true)
+    )
+      return;
     const answers = readAnswers(
       new FormData(event.currentTarget),
       survey.definition,
@@ -92,7 +104,11 @@ export function Respondent({ token }: { token: string }) {
           "Idempotency-Key": submissionKey.current,
           ...(access ? { "X-Survey-Capability": access.capability } : {}),
         },
-        body: { surveyVersionId: survey.surveyVersionId, answers },
+        body: {
+          surveyVersionId: survey.surveyVersionId,
+          answers,
+          ...(researchConsent ? { consent: decision } : {}),
+        },
       });
       setSubmitted(true);
     } catch (failure) {
@@ -104,6 +120,9 @@ export function Respondent({ token }: { token: string }) {
     }
   }
 
+  const consent = survey?.researchConsent;
+  const decided = !!consent && decision?.versionId === consent.id;
+  const declined = decided && decision?.accepted === false;
   return (
     <main className="shell respondent">
       <header className="brand">HELPInsights</header>
@@ -129,12 +148,44 @@ export function Respondent({ token }: { token: string }) {
             <button disabled={pending}>Check eligibility</button>
           </form>
         )}
+        {consent && !decided && (
+          <section aria-labelledby="synthetic-consent">
+            <h2 id="synthetic-consent">Synthetic study consent</h2>
+            <p>{consent.notice}</p>
+            <p>Notice revision {consent.revision}</p>
+            <div className="actions">
+              <button
+                type="button"
+                onClick={() =>
+                  setDecision({ versionId: consent.id, accepted: true })
+                }
+              >
+                I agree to participate
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() =>
+                  setDecision({ versionId: consent.id, accepted: false })
+                }
+              >
+                Decline
+              </button>
+            </div>
+          </section>
+        )}
+        {declined && (
+          <p className="message" role="status">
+            You declined. No answer was sent.
+          </p>
+        )}
         {submitted ? (
           <p className="message" role="status">
             Response submitted
           </p>
         ) : (
-          survey && (
+          survey &&
+          (!consent || (decided && !declined)) && (
             <form onSubmit={submit}>
               <QuestionFields definition={survey.definition} />
               <button disabled={pending}>Submit response</button>
