@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { createApplication } from "./application.ts";
+import { createLiveQuiz } from "./live-quiz.ts";
 import { sessionRoutes } from "./sessions.ts";
 import { surveyRoutes } from "./surveys.ts";
 import { respondentRoutes } from "./respond.ts";
@@ -30,6 +31,14 @@ const templates = templateRoutes(pool);
 const operations = operationsRoutes(pool, (client) =>
   hasCurrentSchema(client, migrations),
 );
+const liveQuiz =
+  process.env.LIVE_QUIZ_ENABLED === "true"
+    ? createLiveQuiz(
+        pool,
+        process.env.LIVE_QUIZ_PIN_KEY,
+        process.env.LIVE_QUIZ_ORIGIN,
+      )
+    : undefined;
 const [javascript, stylesheet] = await Promise.all([
   readFile(new URL("../../dist/web/main.js", import.meta.url)),
   readFile(new URL("../../dist/web/main.css", import.meta.url)),
@@ -42,14 +51,18 @@ const server = createApplication(
     (await templates(...args)) ||
     (await respondents(...args)) ||
     (await reports(...args)) ||
-    (await operations(...args)),
+    (await operations(...args)) ||
+    (liveQuiz ? await liveQuiz.route(...args) : false),
   { javascript, stylesheet },
+  Boolean(liveQuiz),
 );
+const closeLiveSockets = liveQuiz?.attachSockets(server);
 server.listen(3000, "0.0.0.0", () =>
   console.log("HELPInsights listening on port 3000"),
 );
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
+    closeLiveSockets?.();
     server.close(() => void pool.end());
   });
 }

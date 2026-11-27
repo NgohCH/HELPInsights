@@ -9,6 +9,7 @@
 | ENG-008a curated template | VERIFIED_INTEGRATION | Opened in [draft PR #4](https://github.com/NgohCH/HELPInsights/pull/4). |
 | Combined preview and template development branch | VERIFIED_INTEGRATION | Chromium exercised template preview, copy, saved draft preview and editing together. |
 | ENG-009a operations roles, health and incident history | VERIFIED_INTEGRATION | Exact revision `3bf00776434715cdf34d6c3673ff40ca5363e398` passed PostgreSQL permissions, restart, upgrade, restore and Chromium. See the [verification record](../evidence/ENG-009a/3bf00776434715cdf34d6c3673ff40ca5363e398.md). |
+| ENG-014 Live Poll lobby slice | VERIFIED_INTEGRATION | Host and guest snapshots passed real PostgreSQL and Chromium restart checks at [d1e5adcc4b09](../evidence/ENG-014/d1e5adcc4b09d8ecea6c880a1ee985a2a023b3ed.md). Presenter controls and realtime broadcast acceptance remain open. |
 | Other platform features | NOT_STARTED | Track remaining scope in [the task graph](TASK_GRAPH.md). |
 | Production release | BLOCKED | Branch protection, required evidence and authorised approval remain pending. |
 

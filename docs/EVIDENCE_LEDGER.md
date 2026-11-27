@@ -25,6 +25,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 
 
+
 ## First anonymous survey workflow
 
 - Source `838fa64abe0f4bebb515abe666434145304ad662` passed the exact local PostgreSQL, Chromium and export verification. See [the verification report](../evidence/ENG-007/838fa64abe0f4bebb515abe666434145304ad662.md) for commands, findings and remedies.
@@ -54,3 +55,13 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - The combined survey, preview, template and operations stack passed 18 PostgreSQL integration, two security and five Chromium tests. The run verified the seeded 006 upgrade and restore, separate operations role, public survey roundtrip, and disposal of the uniquely labeled Compose project volume.
 - `corepack.cmd pnpm test:stack` exited 0 in `helpinsights-test-116d5f3f5fc4`. The local transcript is `runtime-evidence/integration-operations.log`.
+
+## ENG-014 Live Poll lobby slice
+
+- Source revision [d1e5adcc4b09](../evidence/ENG-014/d1e5adcc4b09d8ecea6c880a1ee985a2a023b3ed.md) passed 13 real PostgreSQL integration tests, 2 security tests and 3 Chromium journeys. The live journey captured separate presenter and guest WebSocket frames and recovered the same state after PostgreSQL restarted.
+- A disposable run at the source revision verified the 005-to-006 upgrade, an archive restore of the live room and guest records, and the disabled feature response. The release gate remains open.
+
+## Live Poll lobby integration
+
+- Preserved operations migration 006 and assigned lobby migration 007 in the combined development branch. Standalone candidate source and test evidence remain in the original worktree and draft.
+- `corepack.cmd pnpm test:stack` exited 0 in `helpinsights-test-22cf96775bcc`. Twenty PostgreSQL integration, two security and six Chromium tests passed. Real presenter and guest lobby sockets, operations persistence, template copy and the survey/JASP roundtrip all ran in the same disposable stack.

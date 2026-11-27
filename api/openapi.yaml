@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.5-development
-  description: The development runtime supports the anonymous survey roundtrip, draft preview, curated template copy and platform operations health and incident history. Other design endpoints describe planned features.
+  version: 0.2.6-development
+  description: The development runtime supports the anonymous survey roundtrip, draft preview, curated template copy, platform operations and an opt-in local Live Poll lobby. Other design endpoints describe planned features.
 servers:
 - url: https://survey.example.org/api/v1
   description: Example only
@@ -18,7 +18,7 @@ tags:
 - name: Notices
 - name: Administration
 - name: Live Quiz Arena
-  description: Proposed real-time quiz hosting/join/scoring control APIs. Not implemented.
+  description: Development Live Poll lobby and snapshot access. Command, answer and result endpoints describe planned features.
 paths:
   /health/live:
     get:
@@ -631,42 +631,46 @@ paths:
           $ref: '#/components/responses/Forbidden'
   /live-sessions:
     post:
-      tags:
-      - Live Quiz Arena
+      tags: [Live Quiz Arena]
       operationId: createLiveQuizSession
-      summary: Create a live session from a published quiz version
+      summary: Create a Live Poll lobby from a published single-choice version
+      description: >
+        Development-only and disabled by default. The workspace owner or editor
+        who creates the lobby is its presenter. The join PIN is returned once.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-              - quizVersionId
-              - mode
+              required: [quizVersionId, mode]
               properties:
-                quizVersionId:
-                  type: string
-                mode:
-                  type: string
-              additionalProperties: true
+                quizVersionId: { type: string, format: uuid }
+                mode: { const: live_poll }
+              additionalProperties: false
       responses:
         '201':
-          description: Persisted live room with host-controlled settings
+          description: Presenter lobby with a 30-minute join PIN
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                allOf:
+                - $ref: '#/components/schemas/LiveLobbySnapshot'
+                - type: object
+                  required: [quizVersionId, pin, pinExpiresAt]
+                  properties:
+                    quizVersionId: { type: string, format: uuid }
+                    pin: { type: string, pattern: '^[0-9]{8}$' }
+                    pinExpiresAt: { type: string, format: date-time }
         '400': &id001
           description: Request refused by policy, permission or state.
+        '401': *id001
         '403': *id001
   /live-sessions/join:
     post:
-      tags:
-      - Live Quiz Arena
+      tags: [Live Quiz Arena]
       operationId: joinLiveQuizSession
-      summary: Exchange an expiring join PIN for a session-scoped participant capability
+      summary: Exchange an expiring PIN for an eight-hour anonymous capability
       security: []
       requestBody:
         required: true
@@ -674,27 +678,32 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-              - pin
+              required: [pin]
               properties:
-                pin:
-                  type: string
-              additionalProperties: true
+                pin: { type: string, pattern: '^[0-9]{8}$' }
+              additionalProperties: false
       responses:
         '200':
-          description: Scoped participant session and snapshot
+          description: Room-scoped capability and limited participant snapshot
           content:
             application/json:
               schema:
                 type: object
-                additionalProperties: true
+                required: [participantToken, snapshot]
+                properties:
+                  participantToken: { type: string, pattern: '^[A-Za-z0-9_-]{43}$' }
+                  snapshot:
+                    $ref: '#/components/schemas/LiveLobbySnapshot'
+                additionalProperties: false
         '403': *id001
         '429': *id001
   /live-sessions/{sessionId}:
     get:
-      tags:
-      - Live Quiz Arena
+      tags: [Live Quiz Arena]
       operationId: getLiveQuizSession
+      security:
+      - bearerAuth: []
+      - liveParticipantAuth: []
       parameters:
       - &id002
         name: sessionId
@@ -705,14 +714,31 @@ paths:
           format: uuid
       responses:
         '200':
-          description: Authorised current session snapshot
+          description: Authorised lobby snapshot. Only the presenter receives quizVersionId.
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '#/components/schemas/LiveLobbySnapshot'
+        '401': *id001
         '403': *id001
-        '404': *id001
+  /live-sessions/{sessionId}/socket:
+    get:
+      tags: [Live Quiz Arena]
+      operationId: connectLiveQuizSnapshot
+      summary: Retrieve the durable lobby snapshot over a same-origin WebSocket
+      description: >
+        Send one text frame containing a JSON object with its authorization field
+        set to a Bearer or Participant credential. Receive one JSON frame with type
+        snapshot and the same role-filtered snapshot as the HTTP endpoint. The
+        server then closes the connection. The client can reconnect for a fresh
+        snapshot. The server requires an allowed Origin.
+      security: []
+      parameters:
+      - *id002
+      responses:
+        '101':
+          description: WebSocket upgraded. Authorization is checked before sending a snapshot.
+        '403': *id001
   /live-sessions/{sessionId}/commands:
     post:
       tags:
@@ -807,6 +833,11 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    liveParticipantAuth:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: Use the Participant prefix followed by the capability from the join response.
   parameters:
     TemplateId:
       name: templateId
@@ -877,6 +908,15 @@ components:
           schema:
             $ref: '#/components/schemas/ApiError'
   schemas:
+    LiveLobbySnapshot:
+      type: object
+      required: [id, mode, state, revision]
+      properties:
+        id: { type: string, format: uuid }
+        mode: { const: live_poll }
+        state: { const: lobby }
+        revision: { type: integer, minimum: 1 }
+        quizVersionId: { type: string, format: uuid }
     ApiError:
       type: object
       required:
