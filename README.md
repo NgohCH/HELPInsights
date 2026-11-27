@@ -29,6 +29,11 @@ operations role. Operators can record allowlisted incident events through
 the API. Workspace ownership and survey access use separate permissions. See
 [Operations and security](docs/SECURITY_OPERATIONS.md).
 
+The test runtime includes a manually approved synthetic case-handoff queue.
+The browser reviewer uses fixed categories and a version-scoped fixture
+basis. The queue has no external delivery. See
+[Project Listen case handoff](docs/PROJECT_LISTEN.md).
+
 ## Non-negotiable principles
 
 - Intuitive for non-technical staff, accessible, fast on mobile and consistent across workflows.

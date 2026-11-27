@@ -33,6 +33,37 @@ Triage rules:
 
 `survey.action.requested.v1` carries `eventId`, `organisationId`, `surveyId`, `surveyVersionId`, `createdAt`, `category`, `priority`, `sanitisedSummary`, `consentOrLawfulBasisRef`, `originMode` and optional privacy-safe aggregate context. Do not include `respondentId` in anonymous mode. Include an idempotency key; receiver deduplicates. All payload fields must be policy-controlled and reviewed.
 
+## Synthetic outbox development slice
+
+ENG-012a demonstrates explicit approval and queueing in the disposable test
+runtime. A workspace reviewer appointment and an active synthetic lawful
+basis fixture for the exact survey version are required. The reviewer
+selects a category and priority and explicitly confirms approval. PostgreSQL
+generates the standard summary and records the verified reviewer privately.
+The receipt has no answer, respondent reference or reviewer identity.
+The queue has no sender.
+
+Receipt retries require the same active reviewer appointment and basis as
+the first approval. If the basis expires or the appointment is revoked after
+a decision whose receipt was lost, the caller is denied and cannot tell from
+that response whether an event was already queued. A trusted reconciliation
+path is needed before a sender can be enabled.
+
+Add a combined retention fixture before production approval. Queue an
+approved synthetic event, dispose of the eligible survey through the isolated
+retention test path, then verify the core data is erased and the outbox and
+basis retain only opaque references, timestamps, decisions and standard
+summary. The outbox and basis deliberately avoid foreign keys to the
+survey version so core disposal can proceed. Review the separate ledger
+retention and identifier-linkage policy before integration with a provider.
+
+A production handoff needs an approved provider and data owner, authorised
+reviewer provisioning, a real lawful-basis decision and revocation rules,
+and a privacy assessment of whether identifiers and timing could identify
+small cohorts. Governed welfare referrals, a separate delivery simulator,
+delivery audit and reconciliation, and the retention lifecycle remain open.
+The test basis is synthetic and supplies no evidence of participant consent.
+
 ## Stage 1B acceptance gate
 
 - End-to-end feedback cases processed using agreed roles: review, assignment, deadline, evidence and resolution verification.
