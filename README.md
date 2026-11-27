@@ -29,6 +29,11 @@ operations role. Operators can record allowlisted incident events through
 the API. Workspace ownership and survey access use separate permissions. See
 [Operations and security](docs/SECURITY_OPERATIONS.md).
 
+The development survey API exposes workspace-scoped retention status and
+hold approval for appointed workspace members. PostgreSQL protects core
+survey data from deletion before expiry and during active holds. See
+[Retention policy and scope](docs/DATA_RETENTION.md).
+
 ## Non-negotiable principles
 
 - Intuitive for non-technical staff, accessible, fast on mobile and consistent across workflows.

@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.5-development
-  description: The development runtime supports anonymous survey creation, publication, submission, analytics, CSV exports and platform operations health and incident history. The remaining design endpoints describe planned features.
+  version: 0.2.6-development
+  description: The development runtime supports anonymous survey creation, publication, submission, analytics, CSV exports, operations health and incident history, and survey retention status and hold approval. The remaining design endpoints describe planned features.
 servers:
 - url: https://survey.example.org/api/v1
   description: Example only
@@ -231,6 +231,74 @@ paths:
                 $ref: '#/components/schemas/Survey'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /surveys/{surveyId}/retention:
+    parameters:
+    - $ref: '#/components/parameters/SurveyId'
+    get:
+      tags:
+      - Survey
+      operationId: getSurveyRetention
+      description: Returns retention disposition and deadlines to a survey workspace member. Missing and out-of-scope surveys return the same response.
+      responses:
+        '200':
+          description: Redacted survey retention summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyRetention'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /surveys/{surveyId}/retention/holds:
+    parameters:
+    - $ref: '#/components/parameters/SurveyId'
+    post:
+      tags:
+      - Survey
+      operationId: approveSurveyRetentionHold
+      description: Appends an approved hold for this survey. Requires an explicit hold approver appointment in the workspace. The database uses its current time and the verified session actor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetentionHoldInput'
+      responses:
+        '201':
+          description: Hold approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovedRetentionHold'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request body is too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '415':
+          description: Request body must be JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /public/s/{publicToken}:
     parameters:
     - $ref: '#/components/parameters/PublicToken'
@@ -1260,6 +1328,56 @@ components:
         severity:
           $ref: '#/components/schemas/OperationIncidentSeverity'
         recordedAt:
+          type: string
+          format: date-time
+    SurveyRetention:
+      type: object
+      additionalProperties: false
+      required: [disposition, expiryAt, protectedUntil]
+      properties:
+        disposition:
+          type: string
+          enum: [not_closed, scheduled, missing_deadline, held, eligible]
+        expiryAt:
+          type: [string, 'null']
+          format: date-time
+        protectedUntil:
+          type: [string, 'null']
+          format: date-time
+          description: Latest expiry among active holds.
+    RetentionHoldReason:
+      type: string
+      enum: [legal, research]
+    RetentionHoldInput:
+      type: object
+      additionalProperties: false
+      required: [reason, evidenceReference, expiresAt]
+      properties:
+        reason:
+          $ref: '#/components/schemas/RetentionHoldReason'
+        evidenceReference:
+          type: string
+          format: uuid
+          description: Opaque governance record identifier. No evidence content is stored.
+        expiresAt:
+          type: string
+          format: date-time
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$'
+          description: An explicit future UTC deadline.
+    ApprovedRetentionHold:
+      type: object
+      additionalProperties: false
+      required: [id, reason, appliedAt, expiresAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        reason:
+          $ref: '#/components/schemas/RetentionHoldReason'
+        appliedAt:
+          type: string
+          format: date-time
+        expiresAt:
           type: string
           format: date-time
     RetentionStatus:
