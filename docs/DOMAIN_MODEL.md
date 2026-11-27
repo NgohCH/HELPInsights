@@ -4,6 +4,9 @@
 |---|---|
 | Organisation | Top-level tenant. Every read/write has verified tenant scope. |
 | Workspace | Authorised collaboration boundary within an organisation. |
+| Survey audience | The people a published distribution is intended to reach. An open public audience needs no University account. A University-only audience requires institutional eligibility. |
+| Survey creator | A person with explicit workspace authority to create surveys. A respondent or University member may separately hold this authority. |
+| Integration client | An approved application with its own named permissions and resource scope. |
 | SurveyDefinition | Editable design, questions, pages, logic and metadata; draft only. |
 | Question visibility | An optional match against a stable option code of an earlier unconditional single-choice question. Hidden questions accept no answers. |
 | SurveyVersion | Immutable published snapshot with stable question and option IDs. |

@@ -4,6 +4,23 @@
 
 **Status:** Required product deliverable; commands below describe the intended command interface. They are not operational until implemented and tested.
 
+## Local development first run
+
+Run from a versioned HELPInsights checkout with the Node version declared in `package.json`, Corepack, Docker Engine and Compose. Select a local Docker context with a Linux engine. The doctor checks the revision and worktree state, pinned pnpm, lockfile, Docker and Chromium, and reports a nonzero exit code on failure. It does not install dependencies or start containers.
+
+```powershell
+corepack.cmd pnpm doctor:local
+corepack.cmd pnpm install:demo
+```
+
+On macOS or Linux, use `corepack` without the `.cmd` extension. On a fresh checkout the doctor can report that Chromium or the locked dependencies are missing. The install demo checks the host first, installs the pinned packages and Chromium, and then uses the existing disposable Compose verification runner. It seeds a synthetic workspace owner and development session and exercises create, publish, respond, PostgreSQL restart, results, and JASP export in Chromium. It never bootstraps a reusable administrator.
+
+A successful run removes its own named Compose services and volume and prints `LOCAL_INSTALL_RECEIPT` with checkout, toolchain, readiness and verification results. The receipt describes a completed test run, so there is no retained service URL. A failed stage exits nonzero and leaves no success receipt. The runtime log remains under `runtime-evidence/`, and any retained browser traces belong under `test-results/`.
+
+A receipt marked `modified` shows an advisory revision SHA. Run from a clean checkout for exact-revision evidence. On Linux, a Chromium launch failure from missing system libraries may require a separately approved `corepack pnpm exec playwright install --with-deps chromium` run.
+
+Separate deployment work covers signed release setup, approved database provisioning, TLS, time-limited first administrator setup, MFA or SSO, and reviewed upgrade and rollback procedures.
+
 ## Supported initial deployment
 
 - Linux x86_64/arm64 host capable of running a supported Docker Engine and Compose plugin; backed by persistent volumes; non-root application containers.
@@ -23,6 +40,22 @@
 7. Create first administrator via a one-time, time-limited setup token on a protected endpoint or localhost command. Require bootstrap MFA/SSO configuration where policy mandates it, and revoke setup capability immediately.
 8. Run end-to-end acceptance checks with synthetic data: create/publish/submit/export/delete sample survey; verify dashboard, alerts and health; validate restore procedure.
 9. Deliver installation receipt: release digest, schema version, health/backup results, URLs, optional integration status, warnings and next maintenance tasks. **No secrets in receipt.**
+
+## Wizard checklist and readiness evidence
+
+The operator completes the checklist for the selected environment and audience. Show each check as pending, passed, failed, or skipped for a documented optional component. Record evidence and remediation for failed steps. Required checks must pass before the wizard marks the checklist ready for review. Keep the receipt with the exact deployment target, release digest and supporting evidence in the release record.
+
+- [ ] Release and host. Verify the release digest, supported runtime, DNS, HTTPS, network access, capacity, database and storage.
+- [ ] Inputs and secrets. Collect environment, public URL, database and backup settings, operator ownership and protected secret references. Keep secrets out of the checklist and installation receipt.
+- [ ] Entra and access. Confirm the approved tenant and application registration, redirect URLs, eligibility rule, MFA enforcement and first administrator. Verify an authorised creator can publish and a signed-in user without workspace authoring authority is denied.
+- [ ] Survey audiences. Submit to a public survey without University sign-in. Verify a University-only survey accepts an eligible account and denies an ineligible account. Use authorised test accounts and synthetic answers.
+- [ ] Integrations. For each enabled application, record its owner, approved permissions and workspace scope. Verify one permitted API call and one denied out-of-scope call. Record any optional integration left off.
+- [ ] Data and recovery. Review the migration plan, verify database readiness, test backup restoration and smoke-test creation, publication, response and permitted export.
+- [ ] Activation. Review the redacted receipt and record the deployment owner’s approval. For research, the University’s external clearance and consent process governs the study.
+
+Run the terminal checklist with `corepack pnpm deploy:checklist`. Select public, University, or both, then indicate whether approved external API integrations are enabled. Answer each prompt after checking its evidence. The command prints a redacted `DEPLOYMENT_CHECKLIST` receipt with the operator's attestations. `READY_FOR_REVIEW` means all applicable steps were attested. `BLOCKED` and `INCOMPLETE` return a nonzero exit code. Activation and approval follow the University deployment process.
+
+The local installation demo verifies the disposable development journey independently. Production host provisioning, institutional verification, and approved activation remain open.
 
 ## Required operational commands (to be implemented)
 

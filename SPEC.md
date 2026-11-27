@@ -17,6 +17,14 @@ Read `docs/PREFLIGHT_STOP_GATE.md`, `docs/EXECUTION_RUNBOOK.md`, `docs/CONTINUOU
 8. Future ticketing adapter uses redacted, approved events and feedback triage; registry and ticketing both optional and simulated locally, no direct DB joins.
 9. Source in GitHub; real Docker Engine and disposable PostgreSQL checks, browser E2E, backup/restore, installation wizard, first-admin setup, upgrade and rollback documentation.
 
+## University and public access
+
+A published survey can have an open public audience or an audience limited to eligible members of the University community. Open public surveys accept responses without a University account. University-only participation follows the University’s eligibility decision. Survey creation and publication require explicit authority in the survey’s workspace. A University account or respondent eligibility alone grants no authoring rights.
+
+Microsoft Entra ID is the institutional sign-in option. Use OpenID Connect with OAuth 2.0 and require two-factor authentication for interactive University sign-in through University identity policy, including authoring, administration and University-only participation. University research clearance and participant consent remain external.
+
+Deployment uses a guided checklist with readiness evidence before activation. Maintain a versioned, documented API for University and third-party applications, with separately authorised permissions and resource scope for each integration.
+
 ## Unified build, controlled activation
 Build every feature family in one development programme. Project Listen release (A), feedback-to-action operations (B), advanced surveys (C), research (D), and live quiz (LIVE) have **separate production gates**. Gate B precedes HELP production expansion to C/D; do not interpret that as a ban on isolated implementation. All modules remain feature-disabled by default until corresponding policy/tests pass.
 

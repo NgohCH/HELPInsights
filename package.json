@@ -15,10 +15,14 @@
     "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.ts",
     "test:e2e": "playwright test",
     "test:security": "node --test tests/security/*.test.ts",
-    "test:stack": "node scripts/test-stack.ts"
+    "test:stack": "node scripts/test-stack.ts",
+    "doctor:local": "node scripts/local-doctor.ts",
+    "install:demo": "node scripts/local-install.ts",
+    "deploy:checklist": "node scripts/deployment-checklist.ts"
   },
   "dependencies": {
     "fflate": "0.8.3",
+    "jose": "6.2.18",
     "pg": "8.23.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",

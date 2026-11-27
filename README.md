@@ -135,6 +135,8 @@ The disposable test stack also starts a private Person Registry simulator for sy
 
 The disposable test runtime also supports a versioned, fixed synthetic consent notice on opted-in single-choice surveys. Declining leaves no response. Academic studies, governed research retention, and production activation require separate release evidence. [Research acceptance scope](docs/FEATURE_MATRIX.md#synthetic-research-consent-development-slice)
 
+For a first-run development check, run `corepack pnpm doctor:local` to report local prerequisites and `corepack pnpm install:demo` to install locked dependencies and verify the synthetic workspace-owner survey journey on disposable PostgreSQL and Chromium. The demo cleans up its Compose resources and prints a redacted receipt. For a deployment review, run `corepack pnpm deploy:checklist`. [Local first-run instructions](docs/DEPLOYMENT_GUIDE.md#local-development-first-run) · [Deployment checklist](docs/DEPLOYMENT_GUIDE.md#wizard-checklist-and-readiness-evidence)
+
 Follow the [development runbook](docs/progress/ENG-001-002-setup.md) to install the locked dependencies and Chromium. Run the full synthetic demonstration from the survey workflow branch:
 
 ```sh
@@ -142,6 +144,14 @@ corepack pnpm test:stack
 ```
 
 The Playwright journey creates its own development session and workspace, submits answers, restarts PostgreSQL, checks stored answers directly in SQL, and reconciles the browser chart and downloaded ZIP. The test retains the chart screenshot and sample archive under `test-results/`. See [build status](docs/BUILD_STATUS.md) for implementation and release scope.
+
+### Institutional OAuth development scope
+
+The API can verify a delegated institutional access token for `GET /api/v1/me` and `GET /api/v1/workspaces`. Enable the path by setting all four server runtime variables `HELPINSIGHTS_OAUTH_ISSUER`, `HELPINSIGHTS_OAUTH_AUDIENCE`, `HELPINSIGHTS_OAUTH_SCOPE` and `HELPINSIGHTS_OAUTH_JWKS`. Leave them unset to keep this path disabled. Supply the canonical HTTPS issuer and a dedicated single API audience. The JSON public key set accepts up to eight approved RSA signature keys containing only `kty`, `alg`, `use`, `kid`, `n` and `e` (RSA, RS256 and sig). Key updates require replacing the configured set and restarting. The verifier has no external network dependency.
+
+A deployment administrator provisions the explicit issuer and subject binding to an existing local user through controlled database access. The API checks the signed delegated `scp` claim and reads only workspaces in that user's actual PostgreSQL memberships. The bearer and provider subject stay out of API responses. The existing development session and anonymous respondent flows retain their current entry points.
+
+Approval, a live Entra tenant application, interactive OAuth sign-in, MFA assurance and institutional creator access remain separate release work.
 
 ### Local Live Poll lobby
 

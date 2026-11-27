@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Pool, PoolClient } from "pg";
 import { withTransaction } from "../../packages/database/transaction.ts";
 import { sendJson } from "./application.ts";
+import type { InstitutionalVerifier } from "./institutional-oauth.ts";
 
 export type Actor = { id: string; displayName: string };
 export type WorkspaceRole = "owner" | "editor" | "analyst" | "viewer";
@@ -34,11 +35,22 @@ export function withActor<T>(
   hash: Buffer,
   run: (client: PoolClient, actor: Actor) => Promise<T>,
 ): Promise<T> {
+  return withResolvedActor(
+    pool,
+    'SELECT id, display_name AS "displayName" FROM public.resolve_session($1)',
+    [hash],
+    run,
+  );
+}
+
+function withResolvedActor<T>(
+  pool: Pool,
+  query: string,
+  identity: readonly unknown[],
+  run: (client: PoolClient, actor: Actor) => Promise<T>,
+): Promise<T> {
   return withTransaction(pool, async (client) => {
-    const { rows } = await client.query<Actor>(
-      'SELECT id, display_name AS "displayName" FROM public.resolve_session($1)',
-      [hash],
-    );
+    const { rows } = await client.query<Actor>(query, [...identity]);
     const actor = rows[0];
     if (!actor) throw unauthorized();
     await client.query("SELECT set_config('helpinsights.actor_id', $1, true)", [
@@ -48,7 +60,10 @@ export function withActor<T>(
   });
 }
 
-export function sessionRoutes(pool: Pool) {
+export function sessionRoutes(
+  pool: Pool,
+  verifyInstitutional: InstitutionalVerifier | null = null,
+) {
   return async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -67,23 +82,33 @@ export function sessionRoutes(pool: Pool) {
     }
 
     try {
-      const data = await withActor(
-        pool,
-        readSessionProof(request),
-        async (client, actor) => {
-          if (path === "/api/v1/me") return actor;
-          const { rows } = await client.query(
-            `SELECT w.id, w.organisation_id AS "organisationId", w.name, p.id AS "defaultRetentionPolicyId"
+      const read = async (client: PoolClient, actor: Actor) => {
+        if (path === "/api/v1/me") return actor;
+        const { rows } = await client.query(
+          `SELECT w.id, w.organisation_id AS "organisationId", w.name, p.id AS "defaultRetentionPolicyId"
            FROM public.workspaces w LEFT JOIN public.retention_policies p ON p.workspace_id = w.id
            ORDER BY w.name, w.id`,
-          );
-          return rows.map(({ defaultRetentionPolicyId, ...row }) =>
-            defaultRetentionPolicyId
-              ? { ...row, defaultRetentionPolicyId }
-              : row,
-          );
-        },
-      );
+        );
+        return rows.map(({ defaultRetentionPolicyId, ...row }) =>
+          defaultRetentionPolicyId ? { ...row, defaultRetentionPolicyId } : row,
+        );
+      };
+      const token = /^Bearer ([A-Za-z0-9_.-]{1,8192})$/i.exec(
+        request.headers.authorization ?? "",
+      )?.[1];
+      let data;
+      if (verifyInstitutional && token?.includes(".")) {
+        const principal = await verifyInstitutional(token);
+        if (!principal) throw unauthorized();
+        data = await withResolvedActor(
+          pool,
+          'SELECT id, display_name AS "displayName" FROM public.resolve_institutional_principal($1, $2)',
+          [principal.issuer, principal.subject],
+          read,
+        );
+      } else {
+        data = await withActor(pool, readSessionProof(request), read);
+      }
       sendJson(response, 200, data);
     } catch (error) {
       if (!(error instanceof HttpError)) throw error;

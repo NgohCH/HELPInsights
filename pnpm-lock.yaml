@@ -11,6 +11,9 @@ importers:
       fflate:
         specifier: 0.8.3
         version: 0.8.3
+      jose:
+        specifier: 6.2.18
+        version: 6.2.18
       pg:
         specifier: 8.23.1
         version: 8.23.1
@@ -378,6 +381,9 @@ packages:
   fflate@0.8.3:
     resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
 
+  jose@6.2.18:
+    resolution: {integrity: sha512-doV4thUwgkrycJH4yLeqwTGIIZphHl+pk7CPReuMIhYhncmgzdko85MaCG4YQFTxqMFr1/oEH32tZuKKovcDEg==}
+
   json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
 
@@ -704,6 +710,8 @@ snapshots:
   fast-uri@3.1.9: {}
 
   fflate@0.8.3: {}
+
+  jose@6.2.18: {}
 
   json-schema-traverse@1.0.0: {}
 
