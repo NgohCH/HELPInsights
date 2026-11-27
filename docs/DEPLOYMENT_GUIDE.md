@@ -17,6 +17,8 @@ On macOS or Linux, use `corepack` without the `.cmd` extension. On a fresh check
 
 A successful run removes its own named Compose services and volume and prints `LOCAL_INSTALL_RECEIPT` with checkout, toolchain, readiness and verification results. The receipt describes a completed test run, so there is no retained service URL. A failed stage exits nonzero and leaves no success receipt. The runtime log remains under `runtime-evidence/`, and any retained browser traces belong under `test-results/`.
 
+A receipt marked `modified` shows an advisory revision SHA. Run from a clean checkout for exact-revision evidence. On Linux, a Chromium launch failure from missing system libraries may require a separately approved `corepack pnpm exec playwright install --with-deps chromium` run.
+
 Separate deployment work covers signed release setup, approved database provisioning, TLS, time-limited first administrator setup, MFA or SSO, and reviewed upgrade and rollback procedures.
 
 ## Supported initial deployment
