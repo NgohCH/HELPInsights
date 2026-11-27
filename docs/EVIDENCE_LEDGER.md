@@ -152,3 +152,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## Cumulative guided student feedback
 
 - Exact [source evidence](../evidence/ENG-006d/917b489926a779db91a5f43729626fc52092e47f.md) records 53 PostgreSQL integration, two security and 18 Chromium checks, independent review, and cleanup. GitHub docs and runtime passed on [PR #26](https://github.com/NgohCH/HELPInsights/pull/26).
+
+## ENG-018b deployment checklist and ENG-004b delegated institutional OAuth
+
+- Exact source `e55c2f5f7266b1d03d91fb4a92d4df7c871c0add` passed 15 unit, 53 real PostgreSQL integration, two security and 19 Chromium tests. The disposable runner removed its dedicated volume. The report records preflight, commands, test-driven repairs, independent challenges and target release gates. [Verification report](../evidence/ENG-018b/e55c2f5f7266b1d03d91fb4a92d4df7c871c0add.md).

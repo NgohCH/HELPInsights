@@ -20,7 +20,9 @@ For institutional user sign-in, use Entra ID with OpenID Connect and the OAuth 2
 
 Register a separate client for each approved University or third-party application. Use delegated access when acting for a signed-in user. Where unattended access is approved, use an application identity with only the named permissions and workspace bindings. Public response links grant only the distribution capabilities they are issued for. [Microsoft identity platform application types](https://learn.microsoft.com/en-us/entra/identity-platform/v2-app-types)
 
-Release evidence must cover approved calls, wrong tenant or audience, expired tokens, insufficient application permissions, cross-workspace denial, and revocation. User MFA and workload identity permissions have separate verification steps. Production token validation and third-party client onboarding are open. The development build exercises workspace authorisation through development sessions.
+Release evidence must cover approved calls, wrong tenant or audience, expired tokens, insufficient application permissions, cross-workspace denial, and revocation. User MFA and workload identity permissions have separate verification steps. Live tenant verification and third-party client onboarding are open.
+
+The development API verifies signed delegated OAuth access tokens on `GET /api/v1/me` and `GET /api/v1/workspaces`. Configure the approved issuer, an exact API audience, the delegated scope and RSA public keys. The request needs an explicit issuer and subject binding to an existing local user. The workspaces endpoint reads that user's PostgreSQL memberships. The server ignores roles and groups in the token for application permissions. These routes also accept the existing development session. See the [runtime configuration](../README.md#institutional-oauth-development-scope).
 
 ## Principal endpoint groups
 
