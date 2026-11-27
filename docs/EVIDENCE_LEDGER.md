@@ -37,3 +37,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Voting source [95307681e932](../evidence/ENG-014c/164fb832037a2b440918c363e9e2b00a8d37ab25.md) passed 17 PostgreSQL integration, 2 security and 5 Chromium tests. One presenter stream and 50 simultaneous synthetic guests converged to 50 durable ballots with role-filtered snapshots. Closed result checks suppressed small option and nonvoter cells.
 - A fresh targeted run on the conditional-admission guard added explicit 400 denial of versions with conditional questions. A seeded migration upgrade, PostgreSQL restore, app restart with same-key receipt, and revocation while a ballot waited on the room lock were observed. Scoring and the remaining release gates stay open.
+
+## ENG-015a private timed Game Show
+
+- Source [0de928312a2f](../evidence/ENG-015a/0de928312a2fbef0a8fb8dd90ed6cd32cc0dc9c2.md) verified a private version-pinned fixed scoring rule on real PostgreSQL and recovered the same deadline and receipt over Chromium WebSockets. Full Docker passed 21 integration, 2 security and 6 Chromium tests. The scored archive, seeded upgrade and restart replay passed in the same disposable project.
+- The source eligibility guard denied synthetic Registry and Research-consent bindings. Game Show remains opt-in. Results release, rankings, production approval and wider Game Show acceptance remain open.
