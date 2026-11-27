@@ -32,3 +32,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Tested revision `3bf00776434715cdf34d6c3673ff40ca5363e398` on isolated local PostgreSQL 16.16 and Chromium. The stack passed 14 integration, 2 security and 3 browser tests. See the [exact-SHA verification record](../evidence/ENG-009a/3bf00776434715cdf34d6c3673ff40ca5363e398.md).
 - The integration reviewer examined the role boundary and persistence. The findings, fix, and remaining scope are recorded with the test evidence.
+
+## ENG-017a export worker detection and recovery
+
+- Tested revision `b01153004e2de19c015bcb9e5b373cfeb143f205` on isolated PostgreSQL 16.16 and Chromium. The stack passed 15 integration tests, 2 security tests and 4 browser tests. See the [exact-SHA verification record](../evidence/ENG-017a/b01153004e2de19c015bcb9e5b373cfeb143f205.md).
+- A checked-out database interruption led to a committed export and an operator-visible matched incident pair, with no restart. Durable outage buffering, escalation and notice routing remain separate.
