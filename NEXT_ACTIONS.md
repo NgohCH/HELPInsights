@@ -18,3 +18,5 @@ Main branch protection, native JASP import, representative accessibility checks 
 ## University student-facing scope
 
 Microsoft Entra is the external authority for institutional identity and student eligibility. The Research Ethics Board clears research before the study starts. Participant consent follows the university's approved external study process. Keep the synthetic Registry and consent exercises scoped to disposable development and CI. Production wiring needs the approved interface and minimum eligibility claims. Continue local student-facing tests with synthetic data.
+
+The guided student feedback is integrated at 917b489926a779db91a5f43729626fc52092e47f in dev/eng-student-pilot-integration. The real stack passed 53 PostgreSQL integration, two security and 18 Chromium tests. Cumulative synthetic policy boundaries passed the local and GitHub runtime gates in [PR #26](https://github.com/NgohCH/HELPInsights/pull/26).

@@ -28,6 +28,7 @@
 | ENG-017a export worker recovery incident | VERIFIED_INTEGRATION | Standalone verified real backend interruption and the same worker completing the export at [draft PR #19](https://github.com/NgohCH/HELPInsights/pull/19). Durable incident buffering and routing remain open. |
 | ENG-018a local install and doctor | VERIFIED_INTEGRATION | Clean Windows local install/demo passed on [draft PR #21](https://github.com/NgohCH/HELPInsights/pull/21). Persistent administrator provisioning and fresh OS/browser dependencies remain open. |
 | Cumulative synthetic policy boundaries | VERIFIED_INTEGRATION | Exact source 2edb7592e419 passed 53 PostgreSQL integration, two security and 16 Chromium checks. Entra eligibility and research governance are external. [Evidence](../evidence/ENG-016a/2edb7592e419c784835df19edeccda79aa3a8511.md). |
+| Cumulative guided student feedback | VERIFIED_INTEGRATION | Exact source 917b489926a7 passed 53 PostgreSQL integration, two security and 18 Chromium checks. [Evidence](../evidence/ENG-006d/917b489926a779db91a5f43729626fc52092e47f.md). |
 | Remaining platform features | NOT_STARTED | See the uncompleted features and prerequisites in [the task graph](TASK_GRAPH.md). |
 | Production release | BLOCKED | Branch protection, required evidence and authorised approval remain pending. |
 
