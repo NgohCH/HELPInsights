@@ -17,7 +17,8 @@
     "test:security": "node --test tests/security/*.test.ts",
     "test:stack": "node scripts/test-stack.ts",
     "doctor:local": "node scripts/local-doctor.ts",
-    "install:demo": "node scripts/local-install.ts"
+    "install:demo": "node scripts/local-install.ts",
+    "deploy:checklist": "node scripts/deployment-checklist.ts"
   },
   "dependencies": {
     "fflate": "0.8.3",

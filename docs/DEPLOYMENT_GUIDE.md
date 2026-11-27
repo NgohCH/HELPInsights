@@ -43,7 +43,7 @@ Separate deployment work covers signed release setup, approved database provisio
 
 ## Wizard checklist and readiness evidence
 
-The operator completes the checklist for the selected environment and audience. Show each check as pending, passed, failed, or skipped for a documented optional component. Record evidence and remediation for failed steps. Required checks must pass before the wizard offers activation.
+The operator completes the checklist for the selected environment and audience. Show each check as pending, passed, failed, or skipped for a documented optional component. Record evidence and remediation for failed steps. Required checks must pass before the wizard marks the checklist ready for review. Keep the receipt with the exact deployment target, release digest and supporting evidence in the release record.
 
 - [ ] Release and host. Verify the release digest, supported runtime, DNS, HTTPS, network access, capacity, database and storage.
 - [ ] Inputs and secrets. Collect environment, public URL, database and backup settings, operator ownership and protected secret references. Keep secrets out of the checklist and installation receipt.
@@ -53,7 +53,9 @@ The operator completes the checklist for the selected environment and audience. 
 - [ ] Data and recovery. Review the migration plan, verify database readiness, test backup restoration and smoke-test creation, publication, response and permitted export.
 - [ ] Activation. Review the redacted receipt and record the deployment owner’s approval. For research, the University’s external clearance and consent process governs the study.
 
-The [local installer draft](https://github.com/NgohCH/HELPInsights/pull/21) exercises development readiness and a disposable demo. The production wizard and the institutional verification steps remain open.
+Run the terminal checklist with `corepack pnpm deploy:checklist`. Select public, University, or both, then indicate whether approved external API integrations are enabled. Answer each prompt after checking its evidence. The command prints a redacted `DEPLOYMENT_CHECKLIST` receipt with the operator's attestations. `READY_FOR_REVIEW` means all applicable steps were attested. `BLOCKED` and `INCOMPLETE` return a nonzero exit code. Activation and approval follow the University deployment process.
+
+The local installation demo verifies the disposable development journey independently. Production host provisioning, institutional verification, and approved activation remain open.
 
 ## Required operational commands (to be implemented)
 
