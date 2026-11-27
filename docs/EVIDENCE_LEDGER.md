@@ -27,3 +27,8 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 - Source `838fa64abe0f4bebb515abe666434145304ad662` passed the exact local PostgreSQL, Chromium and export verification. See [the verification report](../evidence/ENG-007/838fa64abe0f4bebb515abe666434145304ad662.md) for commands, findings and remedies.
 - Bootstrap GitHub docs-contract and runtime-required checks passed on draft PR #1. The survey draft stacks on that branch.
+
+## Saved draft preview
+
+- Chromium and direct PostgreSQL verification passed at `3f423e7fa94e23b09d3f74d4327c5dc4e49e0d7a`. See [the exact-SHA record](../evidence/ENG-006b/3f423e7fa94e23b09d3f74d4327c5dc4e49e0d7a.md).
+- Draft PR #2 GitHub Actions passed for `58d8fc7fddcb1edb3821afd9fa39fc77b49101e3` across [runtime-required](https://github.com/NgohCH/HELPInsights/actions/runs/46008917842) and [docs-contract](https://github.com/NgohCH/HELPInsights/actions/runs/46008917660).
