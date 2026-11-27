@@ -15,7 +15,9 @@
     "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.ts",
     "test:e2e": "playwright test",
     "test:security": "node --test tests/security/*.test.ts",
-    "test:stack": "node scripts/test-stack.ts"
+    "test:stack": "node scripts/test-stack.ts",
+    "doctor:local": "node scripts/local-doctor.ts",
+    "install:demo": "node scripts/local-install.ts"
   },
   "dependencies": {
     "fflate": "0.8.3",

@@ -5,11 +5,15 @@ export function localDockerContext(preferred?: string) {
     throw new Error("DOCKER_HOST must be unset for stack tests");
   const context =
     preferred ??
-    execFileSync("docker", ["context", "show"], { encoding: "utf8" }).trim();
+    execFileSync("docker", ["context", "show"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 15_000,
+    }).trim();
   const endpoint = execFileSync(
     "docker",
     ["context", "inspect", context, "--format", "{{.Endpoints.docker.Host}}"],
-    { encoding: "utf8" },
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 15_000 },
   ).trim();
   if (!/^(npipe|unix):\/\//.test(endpoint))
     throw new Error("Stack tests require a local Docker socket");
