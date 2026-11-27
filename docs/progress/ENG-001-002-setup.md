@@ -2,7 +2,9 @@
 
 Requires Node 24, Corepack, Docker Engine with Compose and the pinned pnpm workspace. Use the fixture stack only with synthetic records. Its bundled database credential is for the isolated Docker network.
 
-From this checkout on Windows PowerShell or a POSIX shell:
+For a disposable first-run verification after checking out the repository, follow the [local doctor and install demo](../DEPLOYMENT_GUIDE.md#local-development-first-run).
+
+For a development server that stays running, use the commands below from Windows PowerShell or a POSIX shell.
 
 ```sh
 docker compose -p helpinsights-dev up -d --build --wait
@@ -25,4 +27,4 @@ corepack pnpm test:stack
 
 On Windows PowerShell where script execution is restricted, use `corepack.cmd`. On the Linux GitHub runner the browser install uses `--with-deps` to install Chromium's OS dependencies. The test runner creates a unique Compose project, confirms the app binds to loopback, runs SQL, HTTP and Chromium checks, and removes its own containers, network and volume. For a failure, inspect console logs and retained Playwright traces under `test-results/`.
 
-The stack uses a migration-capable PostgreSQL role during bootstrap. Tenant/session work must introduce a separate runtime role before accepting survey records.
+The dedicated migrator applies schema changes. The application connects with the separate runtime role and uses workspace-scoped sessions. The disposable demo provisions only a synthetic workspace owner.
