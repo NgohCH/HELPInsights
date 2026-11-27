@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { LiveSnapshot } from "../api/live-quiz-transport.ts";
 import { api } from "./api.ts";
 import type { LiveAccess } from "./use-live-connection.ts";
@@ -8,6 +8,7 @@ type Props = {
   access: LiveAccess;
   active: boolean;
   isHost: boolean;
+  gameShow: boolean;
   hasVoted?: boolean;
   results: LiveSnapshot["results"];
   turnout: LiveSnapshot["turnout"];
@@ -18,6 +19,7 @@ export function LivePollQuestion({
   access,
   active,
   isHost,
+  gameShow,
   hasVoted,
   results,
   turnout,
@@ -27,10 +29,31 @@ export function LivePollQuestion({
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [expired, setExpired] = useState(false);
+  const deadline = question.closesAt;
+  const mayAnswer = active && !expired;
+  const timing = deadline ? (
+    <p>
+      {expired
+        ? "Answer time ended"
+        : "Answers close at " + new Date(deadline).toLocaleTimeString()}
+    </p>
+  ) : null;
+
+  useEffect(() => {
+    if (!deadline) return;
+    const delay = Date.parse(deadline) - Date.now();
+    if (delay <= 0) {
+      setExpired(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setExpired(true), delay);
+    return () => window.clearTimeout(timer);
+  }, [deadline]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!active || submitting || !choice) return;
+    if (!mayAnswer || submitting || !choice) return;
     const attempt =
       ballot?.answer === choice
         ? ballot
@@ -53,7 +76,9 @@ export function LivePollQuestion({
       });
       setAccepted(true);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Vote unavailable");
+      setError(
+        failure instanceof Error ? failure.message : "Answer unavailable",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -63,7 +88,10 @@ export function LivePollQuestion({
     return (
       <section aria-label="Live poll results">
         <h3>{question.title}</h3>
-        {results ? (
+        {timing}
+        {gameShow ? (
+          <p>Scores are private.</p>
+        ) : results ? (
           <>
             <p>{results.total} votes</p>
             <ul>
@@ -93,13 +121,14 @@ export function LivePollQuestion({
     return (
       <section aria-label="Live poll vote">
         <h3>{question.title}</h3>
-        <p>Vote received</p>
+        <p>{gameShow ? "Answer received" : "Vote received"}</p>
       </section>
     );
 
   return (
     <form onSubmit={submit}>
-      <fieldset disabled={!active || submitting}>
+      {timing}
+      <fieldset disabled={!mayAnswer || submitting}>
         <legend>{question.title}</legend>
         {question.options.map((option) => (
           <label key={option.code}>
@@ -115,7 +144,9 @@ export function LivePollQuestion({
           </label>
         ))}
       </fieldset>
-      <button disabled={!active || submitting || !choice}>Submit vote</button>
+      <button disabled={!mayAnswer || submitting || !choice}>
+        {gameShow ? "Submit answer" : "Submit vote"}
+      </button>
       {error && <p role="alert">{error}</p>}
     </form>
   );

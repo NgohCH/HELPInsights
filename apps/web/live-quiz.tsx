@@ -31,13 +31,20 @@ const connectionLabels = {
   forbidden: "Access to this lobby expired",
 };
 
-export function LiveQuiz({ isHost }: { isHost: boolean }) {
+export function LiveQuiz({
+  isHost,
+  gameShow = false,
+}: {
+  isHost: boolean;
+  gameShow?: boolean;
+}) {
   const [access, setAccess] = useState<LiveAccess>();
   const [refresh, setRefresh] = useState(0);
   const { snapshot, connection } = useLiveConnection(access, refresh);
   const [hostLobby, setHostLobby] = useState<HostLobby>();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const showingGame = gameShow || snapshot?.mode === "game_show";
 
   async function run(operation: () => Promise<void>) {
     setError("");
@@ -62,8 +69,18 @@ export function LiveQuiz({ isHost }: { isHost: boolean }) {
           token,
           method: "POST",
           body: {
-            mode: "live_poll",
+            mode: gameShow ? "game_show" : "live_poll",
             quizVersionId: String(fields.get("version")).trim(),
+            ...(gameShow
+              ? {
+                  scoring: {
+                    correctOptionCode: String(
+                      fields.get("correctOptionCode"),
+                    ).trim(),
+                    durationSeconds: Number(fields.get("durationSeconds")),
+                  },
+                }
+              : {}),
           },
         });
         setHostLobby(data);
@@ -103,10 +120,12 @@ export function LiveQuiz({ isHost }: { isHost: boolean }) {
       <section className="panel compact">
         <h2>
           {snapshot
-            ? "Live Poll " + snapshot.state
+            ? (showingGame ? "Game Show " : "Live Poll ") + snapshot.state
             : isHost
-              ? "Present a Live Poll"
-              : "Join a Live Poll"}
+              ? gameShow
+                ? "Present a Game Show"
+                : "Present a Live Poll"
+              : "Join a live quiz"}
         </h2>
         {access ? (
           <>
@@ -128,7 +147,9 @@ export function LiveQuiz({ isHost }: { isHost: boolean }) {
                     disabled={pending || connection !== "connected"}
                     onClick={() => sendCommand(command)}
                   >
-                    {buttonLabels[command]}
+                    {showingGame
+                      ? buttonLabels[command].replace("live poll", "game")
+                      : buttonLabels[command]}
                   </button>
                 ))}
               </div>
@@ -160,6 +181,7 @@ export function LiveQuiz({ isHost }: { isHost: boolean }) {
                 access={access}
                 active={snapshot.question.open && connection === "connected"}
                 isHost={isHost}
+                gameShow={showingGame}
                 hasVoted={snapshot.hasVoted}
                 results={snapshot.results}
                 turnout={snapshot.turnout}
@@ -186,6 +208,29 @@ export function LiveQuiz({ isHost }: { isHost: boolean }) {
                   Published quiz version ID
                   <input name="version" maxLength={36} required />
                 </label>
+                {gameShow && (
+                  <>
+                    <label>
+                      Correct option code
+                      <input
+                        name="correctOptionCode"
+                        maxLength={64}
+                        autoComplete="off"
+                        required
+                      />
+                    </label>
+                    <label>
+                      Answer time in seconds
+                      <input
+                        name="durationSeconds"
+                        type="number"
+                        min={5}
+                        max={120}
+                        required
+                      />
+                    </label>
+                  </>
+                )}
               </>
             ) : (
               <label>

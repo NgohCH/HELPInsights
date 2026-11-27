@@ -25,12 +25,14 @@ const sessions = sessionRoutes(pool);
 const surveys = surveyRoutes(pool);
 const respondents = respondentRoutes(pool);
 const reports = reportRoutes(pool);
+const gameShowEnabled = process.env.LIVE_GAME_SHOW_ENABLED === "true";
 const liveQuiz =
   process.env.LIVE_QUIZ_ENABLED === "true"
     ? createLiveQuiz(
         pool,
         process.env.LIVE_QUIZ_PIN_KEY,
         process.env.LIVE_QUIZ_ORIGIN,
+        gameShowEnabled,
       )
     : undefined;
 const [javascript, stylesheet] = await Promise.all([
@@ -47,6 +49,7 @@ const server = createApplication(
     (liveQuiz ? await liveQuiz.route(...args) : false),
   { javascript, stylesheet },
   Boolean(liveQuiz),
+  gameShowEnabled,
 );
 const closeLiveSockets = liveQuiz?.attachSockets(server);
 server.listen(3000, "0.0.0.0", () =>
