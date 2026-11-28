@@ -3,6 +3,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Pool, PoolClient } from "pg";
 import { withTransaction } from "../../packages/database/transaction.ts";
 import { sendJson } from "./application.ts";
+import { cookieValue, universitySessionCookie } from "./entra-sign-in.ts";
+import { universityBrowserOrigin } from "./entra-provider.ts";
 import type { InstitutionalVerifier } from "./institutional-oauth.ts";
 
 export type Actor = { id: string; displayName: string };
@@ -22,12 +24,24 @@ export class HttpError extends Error {
 const unauthorized = () =>
   new HttpError(401, "UNAUTHORISED", "A valid session is required");
 
-export function readSessionProof(request: IncomingMessage) {
+export function readSessionProof(
+  request: IncomingMessage,
+  allowUniversityCookie = true,
+) {
   const credential = /^Bearer ([A-Za-z0-9_-]{43})$/i.exec(
     request.headers.authorization ?? "",
   );
-  if (!credential) throw unauthorized();
-  return createHash("sha256").update(credential[1]).digest();
+  if (credential) return createHash("sha256").update(credential[1]).digest();
+  if (!allowUniversityCookie || request.headers.authorization !== undefined)
+    throw unauthorized();
+  const origin = universityBrowserOrigin(process.env, request.headers.host);
+  const cookie = origin
+    ? cookieValue(request, universitySessionCookie)
+    : undefined;
+  if (!cookie) throw unauthorized();
+  if (request.method !== "GET" && request.headers.origin !== origin)
+    throw new HttpError(403, "FORBIDDEN", "Same-origin request required");
+  return createHash("sha256").update(cookie).digest();
 }
 
 export function withActor<T>(

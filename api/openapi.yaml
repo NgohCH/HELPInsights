@@ -8,6 +8,7 @@ servers:
   description: Example only
 security:
 - bearerAuth: []
+- universitySession: []
 tags:
 - name: Health
 - name: Workspace
@@ -915,6 +916,8 @@ paths:
     post:
       tags: [Live Quiz Arena]
       operationId: createLiveQuizSession
+      security:
+      - bearerAuth: []
       summary: Create a Live Poll or Game Show lobby from a published unconditional single-choice version
       description: >
         Development-only and disabled by default. The workspace owner or editor
@@ -1043,6 +1046,8 @@ paths:
     post:
       tags: [Live Quiz Arena]
       operationId: commandLiveQuizSession
+      security:
+      - bearerAuth: []
       summary: Apply a presenter lifecycle command
       description: >
         Commands require the host and the current revision. Start moves a lobby
@@ -1131,6 +1136,8 @@ paths:
       tags:
       - Live Quiz Arena
       operationId: getLiveQuizResults
+      security:
+      - bearerAuth: []
       parameters:
       - *id002
       responses:
@@ -1148,7 +1155,12 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
+      description: Opaque application session, or a configured delegated JWT on the profile and workspace read endpoints.
+    universitySession:
+      type: apiKey
+      name: __Host-helpinsights-session
+      in: cookie
+      description: Optional University browser session. Cookie-authenticated writes require the configured app origin.
     liveParticipantAuth:
       type: apiKey
       name: Authorization

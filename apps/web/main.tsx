@@ -22,4 +22,10 @@ else if (
       gameShow={location.pathname === "/live/game-host"}
     />,
   );
-else root.render(<Creator />);
+else
+  root.render(
+    <Creator
+      universitySignIn={target.dataset.universitySignIn === "true"}
+      developmentSignIn={target.dataset.developmentSignIn !== "false"}
+    />,
+  );

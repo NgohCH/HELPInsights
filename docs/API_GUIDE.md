@@ -16,6 +16,8 @@ See [`../api/openapi.yaml`](../api/openapi.yaml) for the initial machine-readabl
 
 ## University sign-in and integration acceptance
 
+The interactive browser initiates sign-in at `GET /auth/university/start`. Entra returns the authorization code to `GET /auth/university/callback`. After a verified identity resolves to a local binding, the browser receives the HTTP-only `__Host-helpinsights-session` cookie. Cookie-authenticated writes require the exact app origin. `POST /auth/university/logout` revokes that app session. The web sign-in routes sit outside the versioned API.
+
 For institutional user sign-in, use Entra ID with OpenID Connect and the OAuth 2.0 authorisation code flow with PKCE. University IT enforces multifactor authentication for interactive University sign-in through its identity policy. The app still checks workspace authority before any creator write. Verify the approved issuer, tenant and intended audience, and use access tokens for API authorisation. [Microsoft identity platform authorisation code flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow) · [Microsoft Entra Conditional Access grant controls](https://learn.microsoft.com/en-us/entra/identity/conditional-access/concept-conditional-access-grant)
 
 Register a separate client for each approved University or third-party application. Use delegated access when acting for a signed-in user. Where unattended access is approved, use an application identity with only the named permissions and workspace bindings. Public response links grant only the distribution capabilities they are issued for. [Microsoft identity platform application types](https://learn.microsoft.com/en-us/entra/identity-platform/v2-app-types)
