@@ -221,14 +221,18 @@ test("a University creator presents a published survey without pasting a credent
     await other.getByRole("button", { name: "unbound", exact: true }).click();
     expect((await denied).status()).toBe(403);
     expect(
-      (
-        await other.request.post(
-          "/api/v1/live-sessions/" + room + "/commands",
+      await other.evaluate(async (roomId) => {
+        const response = await fetch(
+          "/api/v1/live-sessions/" + roomId + "/commands",
           {
-            data: { command: "resume", expectedRevision: "4" },
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ command: "resume", expectedRevision: "4" }),
           },
-        )
-      ).status(),
+        );
+        return response.status;
+      }, room),
     ).toBe(403);
     await expect(otherResume).toHaveCount(0);
     await expect(
