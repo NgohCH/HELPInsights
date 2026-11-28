@@ -25,6 +25,14 @@ Microsoft Entra ID is the institutional sign-in option. Use OpenID Connect with 
 
 Deployment follows a standard operator procedure with documented prerequisites, a readiness checklist, an isolated rehearsal, production acceptance and recovery steps. Maintain a versioned, documented API for University and third-party applications. Approve each client's operations and workspace or resource scope independently. Configuration can vary by department and environment. The server enforces both client permissions and resource scope.
 
+## Creator tool access and administration
+
+A public creator is an authenticated account outside University sign-in with explicit creator approval and workspace authority. Public creators can use only the general tools enabled for their audience. Research authoring, study administration and research-specific exports require University sign-in, workspace authority and permission under the tool policy set by the system administrator. University sign-in makes the institutional toolset available for assignment. University research clearance and participant consent continue through the external University process.
+
+The system administrator uses the Admin Settings page to decide which tools are enabled for all eligible users, which require University sign-in, and which require approval for a named user or group. A grant applies within its assigned scope. The server enforces the tool policy and workspace permissions on every protected operation. Group membership comes from an approved identity source. Explicit withdrawal of a grant or loss of qualifying group membership removes access on subsequent authorisation checks. Record grants and revocations with the administrator, time and scope. Access to operational health or incidents alone does not confer system administrator authority.
+
+Only system administrators can access integration settings, register or enable a client, change its permissions, renew credentials or revoke access. Each approved client may call only its assigned API operations within its authorised resources. Interactive creator permissions and respondent eligibility grant no integration administration rights.
+
 ## Unified build, controlled activation
 Build every feature family in one development programme. Project Listen release (A), feedback-to-action operations (B), advanced surveys (C), research (D), and live quiz (LIVE) have **separate production gates**. Gate B precedes HELP production expansion to C/D; do not interpret that as a ban on isolated implementation. All modules remain feature-disabled by default until corresponding policy/tests pass.
 

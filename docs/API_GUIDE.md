@@ -9,9 +9,10 @@ See [`../api/openapi.yaml`](../api/openapi.yaml) for the initial machine-readabl
 ## Authentication and tenancy
 
 - Creator/admin routes require OIDC bearer JWT/session that resolves to an internal principal and authorised organisation/workspace context.
-- Public respondent endpoints use only a published `publicToken`, scoped distribution token or participation capability; **never** a broad admin credential.
+- Respondent endpoints use a published `publicToken` or scoped distribution token. Restricted collection also requires the applicable participation capability or eligible University browser session.
 - Server selects tenant based on verified token/session and membership; request-supplied `organisationId` never grants access.
 - Support scopes/permissions such as `survey:create`, `survey:edit`, `survey:publish`, `response:read_aggregate`, `response:export`, `admin:manage`, `ops:read`, `ops:act` with resource-specific checks.
+- Enforce tool audience and workspace authority on protected operations. Check an active administrator-approved user or group grant where the tool policy requires one. Verify group membership through an approved authority. Research tools require University sign-in. Integration management requires a system administrator.
 - Rate limit and use opaque identifiers; return `404` rather than revealing another tenant's protected resources where appropriate.
 
 ## University sign-in and integration acceptance
@@ -20,7 +21,7 @@ The interactive browser initiates sign-in at `GET /auth/university/start`. The o
 
 For institutional user sign-in, use Entra ID with OpenID Connect and the OAuth 2.0 authorisation code flow with PKCE. University IT enforces multifactor authentication for interactive University sign-in through its identity policy. The app still checks workspace authority before any creator write. Verify the approved issuer, tenant and intended audience, and use access tokens for API authorisation. [Microsoft identity platform authorisation code flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow) · [Microsoft Entra Conditional Access grant controls](https://learn.microsoft.com/en-us/entra/identity/conditional-access/concept-conditional-access-grant)
 
-Register a separate client for each approved University or third-party application. Use delegated access when acting for a signed-in user. Where unattended access is approved, use an application identity with only the named permissions and workspace bindings. Public response links grant only the distribution capabilities they are issued for. [Microsoft identity platform application types](https://learn.microsoft.com/en-us/entra/identity-platform/v2-app-types)
+System administrators manage integration settings and client approval. Register a separate client for each approved University or third-party application. Use delegated access when acting for a signed-in user. Where unattended access is approved, use an application identity with only the named permissions and workspace bindings. Public response links grant only the distribution capabilities they are issued for. [Microsoft identity platform application types](https://learn.microsoft.com/en-us/entra/identity-platform/v2-app-types)
 
 For each client, record the owning department, purpose, environment, identity type, API operations, permitted data and resource scope, and owners for credential renewal and revocation. Departments can use the same application with different access. Test each client's effective grant, including approved calls and denial for wrong tenant or audience, expired tokens, insufficient permissions, cross-workspace requests and revoked access. User MFA and workload identity permissions have separate verification steps. Live tenant verification and third-party client onboarding are open.
 

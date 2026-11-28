@@ -5,7 +5,10 @@
 | Organisation | Top-level tenant. Every read/write has verified tenant scope. |
 | Workspace | Authorised collaboration boundary within an organisation. |
 | Survey audience | The people a published distribution is intended to reach. An open public audience needs no University account. A University-only audience requires institutional eligibility. |
-| Survey creator | A person with explicit workspace authority to create surveys. A respondent or University member may separately hold this authority. |
+| Survey creator | An authenticated person with explicit creator approval and authority in a workspace. |
+| Public creator | An approved creator using an account outside University sign-in. Uses the general tools enabled for that audience. |
+| System administrator | A person with explicit platform authority to set tool availability, approve users or groups and manage integrations. |
+| Tool grant | An administrator's scoped approval for a named user or approved identity group to use a tool. The tool's audience and workspace permissions also apply. |
 | Eligibility policy | A versioned University-approved rule with an accountable owner and approved institutional data source. A department selects an approved policy for its restricted distribution. |
 | Integration client | An approved application with its own identity, owner, named operations and explicit organisation, workspace or resource scope. Access can vary by department and environment. |
 | SurveyDefinition | Editable design, questions, pages, logic and metadata; draft only. |
