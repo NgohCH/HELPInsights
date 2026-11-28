@@ -718,7 +718,7 @@ export function Creator({
         )}
         {workspaces && workspaceId && (
           <FeatureCatalogue
-            key={workspaceId}
+            key={"catalogue:" + workspaceId}
             token={token}
             workspaceId={workspaceId}
             onAccessChange={(enabled) => {
@@ -732,7 +732,7 @@ export function Creator({
         )}
         {workspaces !== null && workspaceId && (
           <WorkspaceSurveys
-            key={workspaceId}
+            key={"surveys:" + workspaceId}
             workspaceId={workspaceId}
             token={token}
             refreshKey={(draft?.etag ?? "") + publicLink}

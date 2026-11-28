@@ -161,7 +161,28 @@ test("university sign-in enforces workspace authoring and preserves anonymous co
     data: { quizVersionId: surveyVersionId, mode: "live_poll" },
     headers: { Origin: new URL(page.url()).origin },
   });
-  expect(live.status()).toBe(401);
+  expect(live.status()).toBe(201);
+  const unauthorizedPresenter = await browser.newContext({
+    baseURL: new URL(page.url()).origin,
+  });
+  try {
+    const guestRoom = await unauthorizedPresenter.request.post(
+      "/api/v1/live-sessions",
+      {
+        data: { quizVersionId: surveyVersionId, mode: "live_poll" },
+      },
+    );
+    expect(guestRoom.status()).toBe(401);
+    const viewerPage = await unauthorizedPresenter.newPage();
+    await signIn(viewerPage, "viewer");
+    const viewerRoom = await viewerPage.request.post("/api/v1/live-sessions", {
+      data: { quizVersionId: surveyVersionId, mode: "live_poll" },
+      headers: { Origin: new URL(page.url()).origin },
+    });
+    expect(viewerRoom.status()).toBe(403);
+  } finally {
+    await unauthorizedPresenter.close();
+  }
   const wrongOrigin = await page.request.post("/api/v1/surveys", {
     data: payload,
     headers: { Origin: "https://other.example.test" },
