@@ -13,6 +13,7 @@ import { reportRoutes } from "./reports.ts";
 import { templateRoutes } from "./templates.ts";
 import { operationsRoutes } from "./operations.ts";
 import { toolSettingsRoutes } from "./tool-settings.ts";
+import { integrationSettingsRoutes } from "./integration-settings.ts";
 import { retentionRoutes } from "./retention.ts";
 import { syntheticRegistry } from "./registry.ts";
 import { syntheticConsentEnabled } from "./research-consent.ts";
@@ -49,8 +50,15 @@ const universitySignIn =
     ? entraSignInRoutes(universityProvider, {
         async issue(principal, tokenHash) {
           const { rows } = await identityPool.query<{ issued: boolean }>(
-            "SELECT public.issue_university_session($1, $2, $3) AS issued",
-            [principal.issuer, principal.subject, tokenHash],
+            "SELECT public.issue_university_session($1, $2, $3, $4, $5, $6) AS issued",
+            [
+              principal.issuer,
+              principal.subject,
+              tokenHash,
+              principal.groupIds,
+              principal.issuedAt,
+              principal.expiresAt,
+            ],
           );
           return rows[0]?.issued === true;
         },
@@ -79,7 +87,23 @@ const respondents = respondentRoutes(
   syntheticResearchConsent,
   universityEligibility,
 );
-const toolSettings = toolSettingsRoutes(pool);
+const toolSettings = toolSettingsRoutes(pool, syntheticResearchConsent);
+const configuredIntegrationEnvironment =
+  process.env.HELPINSIGHTS_INTEGRATION_ENV;
+const integrationEnvironment =
+  process.env.NODE_ENV === "test"
+    ? "test"
+    : configuredIntegrationEnvironment === "production" &&
+        process.env.NODE_ENV === "production"
+      ? "production"
+      : configuredIntegrationEnvironment === "development" &&
+          process.env.NODE_ENV !== "production"
+        ? "development"
+        : null;
+const integrationSettings =
+  integrationEnvironment && universitySignIn
+    ? integrationSettingsRoutes(pool, integrationEnvironment)
+    : null;
 const reports = reportRoutes(pool);
 const features = featureRoutes(pool);
 const templates = templateRoutes(pool);
@@ -109,6 +133,9 @@ const server = createApplication(
     const { rows } = await identityPool.query<{ ready: boolean }>(
       "SELECT pg_has_role(current_user, 'helpinsights_identity', 'USAGE') " +
         "AND has_function_privilege(current_user, 'public.issue_university_session(text,text,bytea)', 'EXECUTE') " +
+        "AND has_function_privilege(current_user, 'public.issue_university_session(text,text,bytea,uuid[],bigint,bigint)', 'EXECUTE') " +
+        "AND NOT has_any_column_privilege(current_user, 'public.university_session_group_memberships', 'SELECT, INSERT, UPDATE') " +
+        "AND NOT has_table_privilege(current_user, 'public.university_session_group_memberships', 'DELETE, TRUNCATE, REFERENCES, TRIGGER') " +
         "AND has_function_privilege(current_user, 'public.revoke_university_session(bytea)', 'EXECUTE') " +
         "AND NOT has_any_column_privilege(current_user, 'public.sessions', 'SELECT, INSERT, UPDATE') " +
         "AND NOT has_table_privilege(current_user, 'public.sessions', 'DELETE, TRUNCATE') " +
@@ -127,6 +154,7 @@ const server = createApplication(
     (await reports(...args)) ||
     (await operations(...args)) ||
     (await toolSettings(...args)) ||
+    (integrationSettings ? await integrationSettings(...args) : false) ||
     (await retention(...args)) ||
     (liveQuiz ? await liveQuiz.route(...args) : false),
   { javascript, stylesheet, creatorHelp },

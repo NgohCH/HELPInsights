@@ -32,6 +32,9 @@ test("the callback is bound to one browser and a single PKCE attempt", async (co
         return {
           issuer: "https://login.example.test",
           subject: "owner-subject",
+          groupIds: [],
+          issuedAt: 1700000000,
+          expiresAt: 1700003600,
         };
       },
     },
@@ -41,6 +44,9 @@ test("the callback is bound to one browser and a single PKCE attempt", async (co
         assert.deepEqual(principal, {
           issuer: "https://login.example.test",
           subject: "owner-subject",
+          groupIds: [],
+          issuedAt: 1700000000,
+          expiresAt: 1700003600,
         });
         assert.equal(tokenHash.length, 32);
         return true;

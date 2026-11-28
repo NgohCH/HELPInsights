@@ -387,6 +387,7 @@ paths:
                   default: open
                 researchConsent:
                   const: synthetic
+                  description: Available in the synthetic runtime for an authorized University creator. Requires workspace editor or owner authority and the configured research tool policy.
                 universityPolicyId:
                   type: string
                   format: uuid
@@ -862,6 +863,222 @@ paths:
           $ref: '#/components/responses/Unauthorised'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /admin/tools/research-consent:
+    get:
+      operationId: readResearchConsentToolSettings
+      description: Requires a University browser session and explicit system administrator authority.
+      security:
+      - universitySession: []
+      responses:
+        '200':
+          description: Current research consent mode and workspace approvals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchConsentToolSettings'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: changeResearchConsentToolSettings
+      description: Requires a University system administrator session and the configured same-origin request.
+      security:
+      - universitySession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - type: object
+                additionalProperties: false
+                required: [action, mode]
+                properties:
+                  action: { const: mode }
+                  mode: { enum: [off, university, approved] }
+              - type: object
+                additionalProperties: false
+                required: [action, workspaceId, subjectType, subjectId]
+                properties:
+                  action: { enum: [grant, revoke] }
+                  workspaceId: { type: string, format: uuid }
+                  subjectType: { enum: [user, group] }
+                  subjectId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Updated research consent mode and workspace approvals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchConsentToolSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /workspaces/{workspaceId}/tools/research-consent:
+    parameters:
+    - $ref: '#/components/parameters/WorkspaceId'
+    get:
+      operationId: readResearchConsentAccess
+      description: Checks runtime availability, University sign-in, workspace role and administrator policy.
+      security:
+      - universitySession: []
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Effective research consent access
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [allowed]
+                properties:
+                  allowed: { type: boolean }
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+  /admin/integrations:
+    get:
+      operationId: listIntegrationClients
+      description: Requires a University browser session with a system administrator assignment. Lists clients for this deployment and omits all credentials.
+      security:
+      - universitySession: []
+      responses:
+        '200':
+          description: Client settings for this deployment
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [environment, clients]
+                properties:
+                  environment: { $ref: '#/components/schemas/IntegrationEnvironment' }
+                  clients:
+                    type: array
+                    items: { $ref: '#/components/schemas/IntegrationClient' }
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: administerIntegrationClient
+      description: Requires a University system administrator session and the configured same-origin request. Registration creates an inactive client. Registration and renewal return a credential once.
+      security:
+      - universitySession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - type: object
+                additionalProperties: false
+                required: [action, registrationId, name, department, purpose, environment, credentialOwner, workspaceId, operations]
+                properties:
+                  action: { const: register }
+                  registrationId: { type: string, format: uuid }
+                  name: { type: string, minLength: 1, maxLength: 160 }
+                  department: { type: string, minLength: 1, maxLength: 160 }
+                  purpose: { type: string, minLength: 1, maxLength: 500 }
+                  environment: { $ref: '#/components/schemas/IntegrationEnvironment' }
+                  credentialOwner: { type: string, minLength: 1, maxLength: 160 }
+                  workspaceId: { type: string, format: uuid }
+                  operations: { $ref: '#/components/schemas/IntegrationOperations' }
+              - type: object
+                additionalProperties: false
+                required: [action, clientId, workspaceId, operations]
+                properties:
+                  action: { const: permissions }
+                  clientId: { type: string, format: uuid }
+                  workspaceId: { type: string, format: uuid }
+                  operations: { $ref: '#/components/schemas/IntegrationOperations' }
+              - type: object
+                additionalProperties: false
+                required: [action, clientId, expectedCredentialVersion]
+                properties:
+                  action: { const: renew }
+                  clientId: { type: string, format: uuid }
+                  expectedCredentialVersion: { type: integer, minimum: 1, maximum: 9007199254740991 }
+              - type: object
+                additionalProperties: false
+                required: [action, clientId]
+                properties:
+                  action: { enum: [enable, revoke] }
+                  clientId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Updated integration client and the newly issued credential after renewal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationMutation'
+        '201':
+          description: Pending integration client and the newly issued credential
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/IntegrationMutation'
+                - required: [credential]
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /integrations/workspaces/{workspaceId}:
+    parameters:
+    - $ref: '#/components/parameters/WorkspaceId'
+    get:
+      operationId: readIntegrationWorkspace
+      description: Requires an active workload credential with workspace:read permission for the requested workspace.
+      security:
+      - integrationCredential: []
+      responses:
+        '200':
+          description: Approved workspace identifier and name
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, name]
+                properties:
+                  id: { type: string, format: uuid }
+                  name: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /integrations/workspaces/{workspaceId}/surveys/{surveyId}/status:
+    parameters:
+    - $ref: '#/components/parameters/WorkspaceId'
+    - $ref: '#/components/parameters/SurveyId'
+    get:
+      operationId: readIntegrationSurveyStatus
+      description: Requires an active workload credential with survey:read_status permission for the workspace that owns the survey.
+      security:
+      - integrationCredential: []
+      responses:
+        '200':
+          description: Approved survey identifier and publication state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status]
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { enum: [draft, published, closed] }
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/health:
     get:
       tags:
@@ -1231,6 +1448,10 @@ components:
       type: http
       scheme: bearer
       description: Opaque application session, or a configured delegated JWT on the profile and workspace read endpoints.
+    integrationCredential:
+      type: http
+      scheme: bearer
+      description: An opaque integration workload credential scoped to one deployment and workspace.
     universitySession:
       type: apiKey
       name: __Host-helpinsights-session
@@ -1342,6 +1563,52 @@ components:
               workspaceId: { type: string, format: uuid }
               subjectType: { enum: [user, group] }
               subjectId: { type: string, format: uuid }
+    ResearchConsentToolSettings:
+      type: object
+      additionalProperties: false
+      required: [mode, grants]
+      properties:
+        mode: { enum: [off, university, approved] }
+        grants:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [workspaceId, subjectType, subjectId]
+            properties:
+              workspaceId: { type: string, format: uuid }
+              subjectType: { enum: [user, group] }
+              subjectId: { type: string, format: uuid }
+    IntegrationEnvironment:
+      enum: [development, test, production]
+    IntegrationOperations:
+      type: array
+      minItems: 1
+      maxItems: 2
+      uniqueItems: true
+      items:
+        enum: ['workspace:read', 'survey:read_status']
+    IntegrationClient:
+      type: object
+      required: [id, name, department, purpose, environment, credentialOwner, workspaceId, operations, status, expiresAt, credentialVersion]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        department: { type: string }
+        purpose: { type: string }
+        environment: { $ref: '#/components/schemas/IntegrationEnvironment' }
+        credentialOwner: { type: string }
+        workspaceId: { type: string, format: uuid }
+        operations: { $ref: '#/components/schemas/IntegrationOperations' }
+        status: { enum: [pending, active, revoked] }
+        expiresAt: { type: string, format: date-time }
+        credentialVersion: { type: integer, minimum: 1 }
+    IntegrationMutation:
+      type: object
+      required: [client]
+      properties:
+        client: { $ref: '#/components/schemas/IntegrationClient' }
+        credential: { type: string, pattern: '^hi_client_[A-Za-z0-9_-]{43}$' }
     LiveLobbySnapshot:
       type: object
       required: [id, mode, state, revision]

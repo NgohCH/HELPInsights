@@ -35,6 +35,12 @@ Open a release record for each environment. For every row, enter the owner, due 
 
 If a required acceptance check fails, stop activation and record the failure. If traffic is already open, apply the approved containment plan and escalate to the recovery decision owner. Roll back the application only if the current schema is compatible with the previous release. For committed migrations or external side effects, follow the approved forward fix or restore procedure, then verify access and data integrity before resuming.
 
+### Creator policies and integration recovery
+
+Before a migration rehearsal, seed a synthetic template approval, a published synthetic consent notice and an integration client. Drain and stop earlier application instances before migrating from schema 019. Schema readiness checks require the running image and migration ledger to match. Start the matching candidate after migrations; prove template settings, existing consent and scoped client access and review the recorded audit. The template settings SQL entry points remain compatible through the upgrade. Synthetic consent publication uses the new application's protected database entry point.
+
+Keep integration endpoints disabled while restoring a database. A snapshot may contain credentials or grants that were replaced or revoked after that backup. Reconcile grants and client state against the approved change record. Revoke and re-register affected clients if their current authorization cannot be established. Verify revoked credentials fail, scoped credentials work, and audit records are available before re-enabling access. Use a matching database backup and image if a schema downgrade is required.
+
 ## Local development first run
 
 Run from a versioned HELPInsights checkout with the Node version declared in `package.json`, Corepack, Docker Engine and Compose. Select a local Docker context with a Linux engine. The doctor checks the revision and worktree state, pinned pnpm, lockfile, Docker and Chromium, and reports a nonzero exit code on failure. It does not install dependencies or start containers.

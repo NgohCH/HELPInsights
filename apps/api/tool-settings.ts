@@ -6,20 +6,51 @@ import {
   uuid,
 } from "../../packages/survey-runtime/definition.ts";
 import { sendJson } from "./application.ts";
-import { HttpError, readUniversitySessionProof } from "./sessions.ts";
+import { researchConsentAllowed } from "./research-consent.ts";
+import {
+  HttpError,
+  readSessionProof,
+  readUniversitySessionProof,
+  withActor,
+} from "./sessions.ts";
 import { jsonBody, writeClientError } from "./surveys.ts";
 
 const forbidden = () =>
   new HttpError(403, "FORBIDDEN", "System administrator access is required");
 
-export function toolSettingsRoutes(pool: Pool) {
+export function toolSettingsRoutes(pool: Pool, researchConsentEnabled = false) {
   return async (
     request: IncomingMessage,
     response: ServerResponse,
     path: string,
     requestId: string,
   ) => {
-    if (path !== "/api/v1/admin/tools/template-copy") return false;
+    const workspaceTool =
+      /^\/api\/v1\/workspaces\/([^/]+)\/tools\/research-consent$/.exec(path);
+    if (workspaceTool) {
+      try {
+        if (request.method !== "GET") {
+          response.setHeader("Allow", "GET");
+          throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method not allowed");
+        }
+        const workspace = uuid(workspaceTool[1], "Workspace");
+        const proof = readSessionProof(request);
+        const allowed = await withActor(pool, proof, (client) =>
+          researchConsentEnabled
+            ? researchConsentAllowed(client, proof, workspace)
+            : Promise.resolve(false),
+        );
+        sendJson(response, 200, { allowed });
+      } catch (error) {
+        writeClientError(response, error, requestId);
+      }
+      return true;
+    }
+    const tool =
+      /^\/api\/v1\/admin\/tools\/(template-copy|research-consent)$/.exec(
+        path,
+      )?.[1];
+    if (!tool) return false;
     try {
       if (request.method !== "GET" && request.method !== "POST") {
         response.setHeader("Allow", "GET, POST");
@@ -34,8 +65,8 @@ export function toolSettingsRoutes(pool: Pool) {
         );
       const read = async () => {
         const { rows } = await pool.query<{ settings: object | null }>(
-          "SELECT public.read_template_copy_settings($1) AS settings",
-          [proof],
+          "SELECT public.read_creator_tool_settings($1, $2) AS settings",
+          [proof, tool],
         );
         if (!rows[0]?.settings) throw forbidden();
         return rows[0].settings;
@@ -62,7 +93,7 @@ export function toolSettingsRoutes(pool: Pool) {
         ) &&
         Object.keys(input).length === 2
       ) {
-        parameters = [proof, input.action, input.mode, null, null, null];
+        parameters = [proof, tool, input.action, input.mode, null, null, null];
       } else if (
         (input.action === "grant" || input.action === "revoke") &&
         (input.subjectType === "user" || input.subjectType === "group") &&
@@ -70,6 +101,7 @@ export function toolSettingsRoutes(pool: Pool) {
       ) {
         parameters = [
           proof,
+          tool,
           input.action,
           null,
           uuid(input.workspaceId, "Workspace"),
@@ -79,8 +111,14 @@ export function toolSettingsRoutes(pool: Pool) {
       } else {
         throw new InvalidInput("Choose a valid mode, grant or revocation");
       }
+      if (
+        tool === "research-consent" &&
+        input.action === "mode" &&
+        input.mode === "all"
+      )
+        throw new InvalidInput("Research tools require University sign-in");
       const { rows } = await pool.query<{ outcome: string }>(
-        "SELECT public.change_template_copy_settings($1, $2, $3, $4, $5, $6) AS outcome",
+        "SELECT public.change_creator_tool_settings($1, $2, $3, $4, $5, $6, $7) AS outcome",
         parameters,
       );
       if (rows[0]?.outcome === "forbidden") throw forbidden();

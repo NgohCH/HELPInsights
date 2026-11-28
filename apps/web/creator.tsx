@@ -46,9 +46,17 @@ export function Creator({
     starterQuestion?.type === "single_choice"
       ? starterQuestion.options
       : undefined;
+  const [researchWorkspaceId, setResearchWorkspaceId] = useState("");
+  const [offerResearchConsent, setOfferResearchConsent] = useState(false);
   const [ready, setReady] = useState(false);
   const [savedDefinition, setSavedDefinition] =
     useState<SurveyDefinition | null>(null);
+  const canOfferResearchConsent =
+    institutionalSession &&
+    researchWorkspaceId === workspaceId &&
+    savedDefinition?.pages.every((page) =>
+      page.questions.every((question) => question.type === "single_choice"),
+    );
   const [previewDefinition, setPreviewDefinition] =
     useState<SurveyDefinition | null>(null);
   const previewTrigger = useRef<HTMLButtonElement>(null);
@@ -83,6 +91,25 @@ export function Creator({
     void loadInstitutionalWorkspace();
     return () => controller.abort();
   }, [universitySignIn]);
+
+  useEffect(() => {
+    if (!institutionalSession || !workspaceId) return;
+    const controller = new AbortController();
+    api<{ allowed: boolean }>(
+      "/workspaces/" + workspaceId + "/tools/research-consent",
+      {
+        token: "",
+        signal: controller.signal,
+      },
+    ).then(
+      ({ data }) => {
+        if (!controller.signal.aborted)
+          setResearchWorkspaceId(data.allowed ? workspaceId : "");
+      },
+      () => {},
+    );
+    return () => controller.abort();
+  }, [institutionalSession, workspaceId]);
 
   useEffect(() => {
     if (starter) titleInput.current?.focus();
@@ -237,6 +264,9 @@ export function Creator({
           token,
           method: "POST",
           headers: { "If-Match": draft.etag },
+          ...(offerResearchConsent
+            ? { body: { researchConsent: "synthetic" } }
+            : {}),
         },
       );
       setPublicLink("/respond/" + data.publicToken);
@@ -309,6 +339,8 @@ export function Creator({
                 onChange={(event) => {
                   setQuestionType("single_choice");
                   setFollowUpWhen("");
+                  setResearchWorkspaceId("");
+                  setOfferResearchConsent(false);
                   setWorkspaceId(event.target.value);
                 }}
                 disabled={!!draft || pending}
@@ -502,13 +534,36 @@ export function Creator({
               <button
                 type="button"
                 className="secondary"
-                disabled={!ready || pending}
+                disabled={
+                  !ready ||
+                  pending ||
+                  (offerResearchConsent && !canOfferResearchConsent)
+                }
                 onClick={publish}
               >
                 Publish survey
               </button>
             </div>
           </form>
+          {(canOfferResearchConsent || offerResearchConsent) && (
+            <label>
+              <input
+                type="checkbox"
+                checked={offerResearchConsent}
+                onChange={(event) =>
+                  setOfferResearchConsent(event.target.checked)
+                }
+                disabled={pending}
+              />
+              Include synthetic research consent
+            </label>
+          )}
+          {offerResearchConsent && !canOfferResearchConsent && (
+            <p>
+              Restore a compatible single-choice draft or clear synthetic
+              consent before publishing.
+            </p>
+          )}
           {publicLink && (
             <div className="link-row">
               <a href={publicLink}>Open respondent link</a>

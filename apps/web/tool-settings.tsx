@@ -1,7 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "./api.ts";
+import { IntegrationSettings } from "./integration-settings.tsx";
 
-const endpoint = "/admin/tools/template-copy";
+const tools = {
+  "template-copy": "Template copying",
+  "research-consent": "Research consent",
+} as const;
+type Tool = keyof typeof tools;
 const modes = {
   off: "Disabled",
   all: "All eligible creators",
@@ -22,6 +27,38 @@ export function ToolSettings({
 }: {
   universitySignIn: boolean;
 }) {
+  const [tool, setTool] = useState<Tool>("template-copy");
+  const [adminAuthorized, setAdminAuthorized] = useState(false);
+  return (
+    <main className="shell">
+      <header className="brand">
+        <a href="/admin">HELPInsights</a>
+      </header>
+      <h1>Admin Settings</h1>
+      <ToolPolicy
+        key={tool}
+        universitySignIn={universitySignIn}
+        tool={tool}
+        setTool={setTool}
+        setAdminAuthorized={setAdminAuthorized}
+      />
+      {adminAuthorized && <IntegrationSettings />}
+    </main>
+  );
+}
+
+function ToolPolicy({
+  universitySignIn,
+  tool,
+  setTool,
+  setAdminAuthorized,
+}: {
+  universitySignIn: boolean;
+  tool: Tool;
+  setTool: (tool: Tool) => void;
+  setAdminAuthorized: (authorized: boolean) => void;
+}) {
+  const endpoint = "/admin/tools/" + tool;
   const [settings, setSettings] = useState<Settings | null>(null);
   const [mode, setMode] = useState<Mode>("all");
   const [busy, setBusy] = useState(false);
@@ -34,15 +71,19 @@ export function ToolSettings({
     api<Settings>(endpoint, { token: "", signal: controller.signal }).then(
       ({ data }) => {
         if (controller.signal.aborted) return;
+        setAdminAuthorized(true);
         setSettings(data);
         setMode(data.mode);
       },
       (failure: Error) => {
-        if (!controller.signal.aborted) setError(failure.message);
+        if (!controller.signal.aborted) {
+          setAdminAuthorized(false);
+          setError(failure.message);
+        }
       },
     );
     return () => controller.abort();
-  }, [universitySignIn]);
+  }, [universitySignIn, endpoint, setAdminAuthorized]);
 
   async function save(body: object, message: string) {
     setBusy(true);
@@ -89,11 +130,7 @@ export function ToolSettings({
   }
 
   return (
-    <main className="shell">
-      <header className="brand">
-        <a href="/admin">HELPInsights</a>
-      </header>
-      <h1>Admin Settings</h1>
+    <>
       {!universitySignIn && <p>University sign-in is unavailable.</p>}
       {!settings && universitySignIn && (
         <p>
@@ -110,8 +147,22 @@ export function ToolSettings({
       {status && <p role="status">{status}</p>}
       {settings && (
         <>
-          <section className="panel" aria-labelledby="template-copy-heading">
-            <h2 id="template-copy-heading">Template copying</h2>
+          <section className="panel" aria-labelledby="tool-heading">
+            <label>
+              Creator tool
+              <select
+                disabled={busy}
+                value={tool}
+                onChange={(event) => setTool(event.target.value as Tool)}
+              >
+                {Object.entries(tools).map(([key, name]) => (
+                  <option value={key} key={key}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <h2 id="tool-heading">{tools[tool]}</h2>
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -124,11 +175,15 @@ export function ToolSettings({
                   value={mode}
                   onChange={(event) => setMode(event.target.value as Mode)}
                 >
-                  {Object.entries(modes).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
+                  {Object.entries(modes)
+                    .filter(
+                      ([key]) => tool !== "research-consent" || key !== "all",
+                    )
+                    .map(([key, label]) => (
+                      <option key={key} value={key}>
+                        {label}
+                      </option>
+                    ))}
                 </select>
               </label>
               <button disabled={busy}>Save availability</button>
@@ -198,6 +253,6 @@ export function ToolSettings({
           </section>
         </>
       )}
-    </main>
+    </>
   );
 }
