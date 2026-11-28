@@ -34,11 +34,17 @@ export function readSessionProof(
   if (credential) return createHash("sha256").update(credential[1]).digest();
   if (!allowUniversityCookie || request.headers.authorization !== undefined)
     throw unauthorized();
+  const proof = readUniversitySessionProof(request);
+  if (!proof) throw unauthorized();
+  return proof;
+}
+
+export function readUniversitySessionProof(request: IncomingMessage) {
   const origin = universityBrowserOrigin(process.env, request.headers.host);
   const cookie = origin
     ? cookieValue(request, universitySessionCookie)
     : undefined;
-  if (!cookie) throw unauthorized();
+  if (!cookie) return undefined;
   if (request.method !== "GET" && request.headers.origin !== origin)
     throw new HttpError(403, "FORBIDDEN", "Same-origin request required");
   return createHash("sha256").update(cookie).digest();

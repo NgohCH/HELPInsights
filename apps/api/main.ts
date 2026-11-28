@@ -63,15 +63,20 @@ const universitySignIn =
     : null;
 const registryGate = syntheticRegistry(process.env);
 const syntheticResearchConsent = syntheticConsentEnabled(process.env);
+const universityEligibility =
+  universityProvider !== null &&
+  process.env.HELPINSIGHTS_UNIVERSITY_ELIGIBILITY === "true";
 const surveys = surveyRoutes(
   pool,
   registryGate !== null,
   syntheticResearchConsent,
+  universityEligibility,
 );
 const respondents = respondentRoutes(
   pool,
   registryGate,
   syntheticResearchConsent,
+  universityEligibility,
 );
 const reports = reportRoutes(pool);
 const features = featureRoutes(pool);

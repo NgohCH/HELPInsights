@@ -26,6 +26,14 @@ For each client, record the owning department, purpose, environment, identity ty
 
 The development API verifies signed delegated OAuth access tokens on `GET /api/v1/me` and `GET /api/v1/workspaces`. Configure the approved issuer, an exact API audience, the delegated scope and RSA public keys. The request needs an explicit issuer and subject binding to an existing local user. The workspaces endpoint reads that user's PostgreSQL memberships. The server ignores roles and groups in the token for application permissions. These routes also accept the existing development session. See the [runtime configuration](../README.md#institutional-oauth-development-scope).
 
+## University-only distributions
+
+When University eligibility is enabled, publish with `{"eligibilityMode":"university","universityPolicyId":"<approved policy UUID>"}`. The server accepts a policy only from the survey's workspace and binds its exact version to the distribution. University-only collection and the synthetic research consent option require separate distributions.
+
+Guest GET requests return `{"eligibilityRequired":true,"eligibilityMode":"university"}` without survey content. The browser can sign in and return to the same respondent link. A University browser session needs a current grant for that distribution's exact policy to read or submit. Missing or expired grants, withdrawn policies and revoked sessions deny access. The submission stores anonymous answers without a user or grant identifier. The response version still identifies the distribution, so an unusually small or known cohort can make respondents inferable. Release acceptance includes review of cohort size, export access, and proxy and database logging. Suppress sign-in and restricted respondent paths or redact their tokens. Keep session proofs and submission payloads out of SQL bind logs. A revocation blocks authorisation checks that start after it commits. A submission that already passed its database admission check can finish.
+
+The development test stack enables University eligibility with `HELPINSIGHTS_UNIVERSITY_ELIGIBILITY=true` and provisions synthetic policies and grants. The feature also requires configured browser sign-in. A production rollout needs an approved source and a managed provisioning and revocation process. Browser authoring selection for the policy remains a separate step.
+
 ## Principal endpoint groups
 
 | Group | Stage | Behaviour |

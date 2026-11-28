@@ -372,7 +372,7 @@ paths:
       tags:
       - Survey
       operationId: publishSurvey
-      description: Validate and snapshot an immutable survey version. NPS authoring requires an active workspace approval. Supply the saved draft ETag to require the same revision. Disposable test environments support optional synthetic Registry eligibility and versioned consent.
+      description: Validate and snapshot an immutable survey version. NPS authoring requires an active workspace approval. Supply the saved draft ETag to require the same revision. Disposable test environments support optional synthetic Registry eligibility and versioned consent. University-only publication requires an enabled deployment and an approved policy version from the survey workspace.
       requestBody:
         required: false
         content:
@@ -383,15 +383,28 @@ paths:
               properties:
                 eligibilityMode:
                   type: string
-                  enum: [open, registry-synthetic]
+                  enum: [open, registry-synthetic, university]
                   default: open
                 researchConsent:
                   const: synthetic
+                universityPolicyId:
+                  type: string
+                  format: uuid
+              if:
+                required: [eligibilityMode]
+                properties:
+                  eligibilityMode:
+                    const: university
+              then:
+                required: [universityPolicyId]
+              else:
+                not:
+                  required: [universityPolicyId]
               not:
                 required: [eligibilityMode, researchConsent]
                 properties:
                   eligibilityMode:
-                    const: registry-synthetic
+                    enum: [registry-synthetic, university]
       parameters:
       - name: If-Match
         in: header
@@ -553,12 +566,12 @@ paths:
       - Respondent
       operationId: getPublishedPublicSurvey
       security: []
-      description: Returns a public-safe published definition for open distributions and a verification prompt for synthetic Registry distributions without a valid capability. A consent-required test survey includes its immutable consent notice.
+      description: Returns a definition for public surveys. A restricted distribution returns a verification prompt until Registry verification or University sign-in is required. A signed-in University respondent must have an active grant for that distribution's exact policy. A consent-required test survey includes its immutable notice.
       parameters:
       - $ref: '#/components/parameters/SurveyCapability'
       responses:
         '200':
-          description: Published questionnaire or synthetic Registry prompt
+          description: Published questionnaire or eligibility prompt
           content:
             application/json:
               schema:
@@ -570,6 +583,12 @@ paths:
                   properties:
                     eligibilityRequired:
                       const: true
+                    eligibilityMode:
+                      const: university
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
         '404':
           $ref: '#/components/responses/NotFound'
         '429':
