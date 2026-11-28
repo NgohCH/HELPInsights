@@ -1,8 +1,39 @@
-# Deployment and upgrade guide (implementation contract)> **Mandatory pre-deployment verification:** Follow [GitHub and Docker runtime verification](GITHUB_DOCKER_RUNTIME_VERIFICATION.md). Validate the exact GitHub commit with freshly built images, Docker Engine/Compose, a disposable PostgreSQL database, migration, API/browser end-to-end tests, backup restore and vulnerability checks. Source-code review alone does not qualify a release. Do not use a production database for this proof.
+# HELPInsights deployment and upgrade guide
 
+Use this guide to assign ownership, gather prerequisites and rehearse a release before booking production activation. The local doctor, disposable install demo and readiness checklist are available today. Production provisioning, first-administrator setup and production upgrade and recovery commands still require verified implementations.
 
+Follow [GitHub and Docker runtime verification](GITHUB_DOCKER_RUNTIME_VERIFICATION.md) for exact-revision checks with fresh images, disposable PostgreSQL, migrations, API and browser tests, backup restore and vulnerability checks.
 
-**Status:** Required product deliverable; commands below describe the intended command interface. They are not operational until implemented and tested.
+## Prepare before the deployment window
+
+Open a release record for each environment. For every row, enter the owner, due date, target value or approved reference, and completion evidence. Record who can approve, operate and recover the release. Store references to secrets in the release record and keep the values in the University's approved secret store.
+
+| Area | Prepare | Evidence to attach |
+|---|---|---|
+| Release | Source commit, signed artifact or image digest, compatibility notes, previous known-good artifact | Signature verification, required GitHub checks and vulnerability review |
+| Host and network | Approved Linux host, Docker Engine and Compose, sizing, persistent volumes, DNS, HTTPS, reverse proxy, firewall and required outbound connectivity | Host and capacity checks, DNS, TLS and network tests |
+| Data | Dedicated PostgreSQL, migration and runtime roles, encrypted backups, restore permissions and retention settings | Connectivity and role checks, migration rehearsal and measured isolated restore |
+| Storage and operations | Required object storage, monitoring, alerts, service owner and on-call contacts | Storage access verification and alert delivery test |
+| Identity | Approved Entra tenant and app registrations, exact HTTPS callback, MFA policy, test accounts, first-admin method and protected configuration references | Allowed and denied creator and operator sign-ins, MFA and first-admin evidence |
+| Survey audiences | Departments, intended distributions and eligible and ineligible test scenarios | Approved eligibility policy version and acceptance results for each University-only distribution |
+| Integrations | Enabled and deferred clients, their purpose, identity, operations, resources and owners | Allowed and denied calls, credential expiry and revocation for each enabled client |
+| Release operations | Change window, approver, smoke checks, stop conditions, recovery decision owner and incident contacts | Documented rehearsal, acceptance decision and tested recovery path |
+
+### Department eligibility and integration records
+
+- For each University-only distribution, record the department, policy owner, approved rule identifier and version, institutional authority and minimum eligibility inputs. Record who approves changes and which distributions are affected. One department may approve a teaching cohort while another uses programme membership. Verify an eligible account, an ineligible account and denial when eligibility cannot be confirmed. Keep identity and eligibility evidence separate from anonymous answers. University research clearance and consent follow the existing external process.
+- For each enabled integration, record its department, environment, client identity, delegated or approved unattended access, permitted operations, data and workspace scope, and the owner for credential renewal and revocation. Departments can use the same product with different access. Validate each client's own grant. [API guide](API_GUIDE.md#university-sign-in-and-integration-acceptance)
+
+## Standard deployment sequence
+
+1. **Freeze the release.** Verify the approved target, artifact digest, signature, compatibility and CI evidence. Record the prior release and the applicable migration and recovery procedures.
+2. **Rehearse in isolation.** Run the local checks below using the candidate and synthetic data. Rehearse the target configuration, first-admin procedure and migration. Restore a backup into isolation, measure recovery and close required failures.
+3. **Review readiness.** Run the checklist against the prepared evidence. Review each department policy and enabled client separately. Attach the checklist receipt to the target and digest. The release owner approves the window and the actions allowed. Any pending or failed required check stops activation.
+4. **Prepare the target during the approved window.** Reconfirm target and release identity, apply the reviewed configuration, create a recoverable backup and record its restore point. Apply the approved migrations and start pinned services. Verify internal readiness before opening traffic.
+5. **Run acceptance.** Use approved test accounts and synthetic answers. Verify first-admin access, allowed and denied creator and operator access, anonymous public submission, each enabled University-only policy, each enabled client, results and export. Check alerting, redaction and service health.
+6. **Activate and hand over.** Record the release owner's decision, enable approved traffic or features and monitor agreed thresholds. Hand the service owner the redacted release record with the deployed digest, schema version, smoke results, backup reference and follow-up owners.
+
+If a required acceptance check fails, stop activation and record the failure. If traffic is already open, apply the approved containment plan and escalate to the recovery decision owner. Roll back the application only if the current schema is compatible with the previous release. For committed migrations or external side effects, follow the approved forward fix or restore procedure, then verify access and data integrity before resuming.
 
 ## Local development first run
 
@@ -47,9 +78,9 @@ The operator completes the checklist for the selected environment and audience. 
 
 - [ ] Release and host. Verify the release digest, supported runtime, DNS, HTTPS, network access, capacity, database and storage.
 - [ ] Inputs and secrets. Collect environment, public URL, database and backup settings, operator ownership and protected secret references. Keep secrets out of the checklist and installation receipt.
-- [ ] Entra and access. Confirm the approved tenant and application registration, redirect URLs, eligibility rule, MFA enforcement and first administrator. Verify an authorised creator can publish and a signed-in user without workspace authoring authority is denied.
-- [ ] Survey audiences. Submit to a public survey without University sign-in. Verify a University-only survey accepts an eligible account and denies an ineligible account. Use authorised test accounts and synthetic answers.
-- [ ] Integrations. For each enabled application, record its owner, approved permissions and workspace scope. Verify one permitted API call and one denied out-of-scope call. Record any optional integration left off.
+- [ ] Entra and access. Confirm the approved tenant and application registration, redirect URLs, MFA enforcement and first administrator. Verify an authorised creator can publish and a signed-in user without workspace authoring authority is denied.
+- [ ] Survey audiences. Submit to a public survey without University sign-in. For each enabled University-only distribution, verify its approved policy version, eligible acceptance and ineligible denial. Use authorised test accounts and synthetic answers.
+- [ ] Integrations. For each enabled application, record its owner, approved permissions and workspace scope. Verify one permitted call, one out-of-scope denial and denial after revocation. Record any optional integration left off.
 - [ ] Data and recovery. Review the migration plan, verify database readiness, test backup restoration and smoke-test creation, publication, response and permitted export.
 - [ ] Activation. Review the redacted receipt and record the deployment owner’s approval. For research, the University’s external clearance and consent process governs the study.
 
