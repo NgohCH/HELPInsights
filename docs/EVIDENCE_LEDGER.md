@@ -160,3 +160,5 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-003b University browser sign-in for creators
 
 - Exact source `ffc780958277712216a236f5f148cb96d34b66f1` passed 17 unit, 55 real PostgreSQL integration, two security and 20 Chromium checks. The full runner confirmed disposable cleanup. The report records PostgreSQL readiness and upgrade, synthetic identity journeys, disabled mode, repairs, independent challenge and live acceptance limits. [Verification report](../evidence/ENG-003b/ffc780958277712216a236f5f148cb96d34b66f1.md).
+
+- The hosted browser on the initial draft revision could not connect to the disposable provider at localhost. Exact repaired source `1726cb876eb220e808e655d1c1c2a59485782596` passed the same full local checks and cleanup. [Hosted fixture defect and repair](../evidence/ENG-003b/1726cb876eb220e808e655d1c1c2a59485782596.md).
