@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
 import { api } from "./api.ts";
 import { DraftPreview } from "./draft-preview.tsx";
+import type { LiveLaunchPublication } from "../api/live-quiz.ts";
+import { LivePresentationActions, type ShowPresenter } from "./live-quiz.tsx";
 import { Results } from "./results.tsx";
 import { SavedDraftEditor } from "./saved-draft-editor.tsx";
 import { SavedPublication } from "./saved-publication.tsx";
@@ -33,6 +35,7 @@ export function WorkspaceSurveys({
   saving,
   setSaving,
   onHelp,
+  onPresent,
 }: {
   workspaceId: string;
   token: string;
@@ -41,6 +44,7 @@ export function WorkspaceSurveys({
   saving: boolean;
   setSaving: (value: boolean) => void;
   onHelp: (button: HTMLButtonElement) => void;
+  onPresent?: ShowPresenter;
 }) {
   const [catalogue, setCatalogue] = useState<SurveyList | null>(null);
   const [selectedId, setSelectedId] = useState("");
@@ -162,6 +166,7 @@ export function WorkspaceSurveys({
           saving={saving}
           setSaving={setSaving}
           onHelp={onHelp}
+          onPresent={onPresent}
           onSave={(saved) =>
             setCatalogue(
               (current) =>
@@ -196,6 +201,7 @@ function SavedSurvey({
   saving,
   setSaving,
   onHelp,
+  onPresent,
   onSave,
   onClose,
 }: {
@@ -208,6 +214,7 @@ function SavedSurvey({
   saving: boolean;
   setSaving: (value: boolean) => void;
   onHelp: (button: HTMLButtonElement) => void;
+  onPresent?: ShowPresenter;
   onSave: (survey: SurveySummary) => void;
   onClose: () => void;
 }) {
@@ -216,6 +223,8 @@ function SavedSurvey({
     etag: string | null;
     versions: Version[];
   } | null>(null);
+  const [livePublication, setLivePublication] =
+    useState<LiveLaunchPublication | null>(null);
   const [reload, setReload] = useState(0);
   const [preview, setPreview] = useState(false);
   const [publicationNotice, setPublicationNotice] = useState<{
@@ -228,6 +237,10 @@ function SavedSurvey({
   const endpoint = "/surveys/" + surveyId;
   const draft = record?.survey.draft;
   const etag = record?.etag;
+  const latestLiveVersion =
+    onPresent && record?.survey.canEdit && record.survey.status === "published"
+      ? record.versions[0]?.id
+      : undefined;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -255,6 +268,25 @@ function SavedSurvey({
     );
     return () => controller.abort();
   }, [endpoint, reload, token, workspaceId]);
+
+  useEffect(() => {
+    setLivePublication(null);
+    if (!latestLiveVersion) return;
+    const controller = new AbortController();
+    api<{ publication: LiveLaunchPublication | null }>(
+      endpoint + "/live-launch",
+      {
+        token,
+        signal: controller.signal,
+      },
+    ).then(
+      ({ data }) => {
+        if (!controller.signal.aborted) setLivePublication(data.publication);
+      },
+      () => {},
+    );
+    return () => controller.abort();
+  }, [endpoint, latestLiveVersion, token]);
 
   useEffect(() => {
     heading.current?.focus();
@@ -390,6 +422,22 @@ function SavedSurvey({
           onError={setError}
         />
       )}
+      {!editing &&
+        !preview &&
+        onPresent &&
+        livePublication &&
+        livePublication.id === latestLiveVersion && (
+          <LivePresentationActions
+            version={{
+              id: livePublication.id,
+              title: livePublication.title,
+              options: livePublication.gameShowOptions,
+              surveyId,
+            }}
+            disabled={saving}
+            onPresent={onPresent}
+          />
+        )}
       {publicationNotice && (
         <>
           <p className="message" role="status">

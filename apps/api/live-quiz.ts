@@ -5,6 +5,7 @@ import {
   InvalidInput,
   object,
   parseDefinition,
+  type Option,
   uuid,
 } from "../../packages/survey-runtime/definition.ts";
 import { sendJson } from "./application.ts";
@@ -23,9 +24,87 @@ import { digest, jsonBody, writeClientError } from "./surveys.ts";
 const collection = "/api/v1/live-sessions";
 const roomPath =
   /^\/api\/v1\/live-sessions\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:\/(socket|commands|answers))?$/i;
+const savedLaunchPath = /^\/api\/v1\/surveys\/([^/]+)\/live-launch$/;
 const denied = () => new HttpError(403, "FORBIDDEN", "Live room unavailable");
 const snapshotColumns =
   'id, mode, state, revision, quiz_version_id AS "quizVersionId"';
+
+type PublishedLiveVersion = {
+  id: string;
+  definition: unknown;
+  conditional: boolean;
+};
+export type LiveLaunchPublication = {
+  id: string;
+  title: string;
+  gameShowOptions?: Option[];
+};
+
+async function editableSurveyStatus(
+  client: PoolClient,
+  surveyId: string,
+  lock = false,
+) {
+  const {
+    rows: [survey],
+  } = await client.query<{ status: string }>(
+    `SELECT status FROM public.surveys
+     WHERE id = $1 AND public.workspace_role(workspace_id) IN ('owner', 'editor')${
+       lock ? " FOR SHARE" : ""
+     }`,
+    [surveyId],
+  );
+  if (!survey) throw denied();
+  return survey.status;
+}
+
+async function openPublishedVersion(
+  client: PoolClient,
+  selection: { versionId: string } | { surveyId: string },
+) {
+  const current = "surveyId" in selection;
+  const {
+    rows: [version],
+  } = await client.query<PublishedLiveVersion>(
+    `SELECT v.id, v.definition, v.definition @? '$.pages[*].questions[*].visibleWhen' AS conditional
+     FROM public.survey_versions v
+     JOIN public.surveys s ON s.id = v.survey_id
+     WHERE ${
+       current
+         ? `s.id = $1 AND v.id = (
+       SELECT id FROM public.survey_versions WHERE survey_id = s.id ORDER BY version DESC LIMIT 1
+     )`
+         : "v.id = $1"
+     }
+       AND s.status = 'published' AND public.live_version_is_open(v.id)
+       AND public.workspace_role(s.workspace_id) IN ('owner', 'editor')`,
+    [current ? selection.surveyId : selection.versionId],
+  );
+  return version;
+}
+
+function livePublication(
+  version: PublishedLiveVersion,
+  gameShowEnabled: boolean,
+): LiveLaunchPublication {
+  if (version.conditional)
+    throw new InvalidInput(
+      "Live Poll requires questions without conditional visibility",
+    );
+  const { pages, title } = parseDefinition(version.definition);
+  const questions = pages.flatMap((page) => page.questions);
+  if (
+    !questions.length ||
+    !questions.every((question) => question.type === "single_choice")
+  )
+    throw new InvalidInput("A live room needs published choice questions");
+  return {
+    id: version.id,
+    title,
+    ...(gameShowEnabled &&
+      questions.length === 1 && { gameShowOptions: questions[0].options }),
+  };
+}
 
 function credentials(authorization: unknown) {
   const proof =
@@ -277,15 +356,39 @@ export function createLiveQuiz(
     requestId: string,
   ) {
     const room = roomPath.exec(path);
+    const savedLaunch = savedLaunchPath.exec(path);
     const isJoin = path === collection + "/join";
-    if (path !== collection && !isJoin && (!room || room[2] === "socket"))
+    if (
+      path !== collection &&
+      !isJoin &&
+      !savedLaunch &&
+      (!room || room[2] === "socket")
+    )
       return false;
     try {
       if (request.headers.origin && !originAllowed(request)) throw denied();
-      const expectedMethod = room && !room[2] ? "GET" : "POST";
+      const expectedMethod = savedLaunch || (room && !room[2]) ? "GET" : "POST";
       if (request.method !== expectedMethod) {
         response.setHeader("Allow", expectedMethod);
         throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method not allowed");
+      }
+      if (savedLaunch) {
+        const proof = readSessionProof(request);
+        const surveyId = uuid(savedLaunch[1], "Survey");
+        const publication = await withActor(pool, proof, async (client) => {
+          if ((await editableSurveyStatus(client, surveyId)) !== "published")
+            return null;
+          const version = await openPublishedVersion(client, { surveyId });
+          if (!version) return null;
+          try {
+            return livePublication(version, gameShowEnabled);
+          } catch (error) {
+            if (error instanceof InvalidInput) return null;
+            throw error;
+          }
+        });
+        sendJson(response, 200, { publication });
+        return true;
       }
       if (room) {
         const id = room[1].toLowerCase();
@@ -327,10 +430,13 @@ export function createLiveQuiz(
       const proof = readSessionProof(request);
       const body = object(await jsonBody(request), [
         "quizVersionId",
+        "surveyId",
         "mode",
         "scoring",
       ]);
       const quizVersionId = uuid(body.quizVersionId, "Quiz version");
+      const surveyId =
+        body.surveyId === undefined ? undefined : uuid(body.surveyId, "Survey");
       const mode = body.mode;
       if (mode !== "live_poll" && mode !== "game_show")
         throw new InvalidInput("Choose an available live mode");
@@ -340,32 +446,31 @@ export function createLiveQuiz(
       if (mode === "live_poll" && body.scoring !== undefined)
         throw new InvalidInput("Live Poll accepts ballot choices");
       const created = await withActor(pool, proof, async (client, actor) => {
-        const {
-          rows: [version],
-        } = await client.query<{ definition: unknown; conditional: boolean }>(
-          `SELECT v.definition, v.definition @? '$.pages[*].questions[*].visibleWhen' AS conditional
-           FROM public.survey_versions v
-           JOIN public.surveys s ON s.id = v.survey_id
-           WHERE v.id = $1 AND s.status = 'published' AND public.live_version_is_open(v.id)
-             AND public.workspace_role(s.workspace_id) IN ('owner', 'editor')`,
-          [quizVersionId],
-        );
+        if (surveyId) {
+          // Publishing and ordinary closure both lock the survey row before writing.
+          if (
+            (await editableSurveyStatus(client, surveyId, true)) !== "published"
+          )
+            throw denied();
+          const {
+            rows: [current],
+          } = await client.query<{ id: string }>(
+            "SELECT id FROM public.survey_versions WHERE survey_id = $1 ORDER BY version DESC LIMIT 1",
+            [surveyId],
+          );
+          if (current?.id !== quizVersionId)
+            throw new HttpError(
+              409,
+              "CONFLICT",
+              "The publication changed. Reload the saved survey before presenting.",
+            );
+        }
+        const version = await openPublishedVersion(client, {
+          versionId: quizVersionId,
+        });
         if (!version) throw denied();
-        if (version.conditional)
-          throw new InvalidInput(
-            "Live Poll requires questions without conditional visibility",
-          );
-        const questions = parseDefinition(version.definition).pages.flatMap(
-          (page) => page.questions,
-        );
-        if (
-          !questions.length ||
-          !questions.every((question) => question.type === "single_choice")
-        )
-          throw new InvalidInput(
-            "A live room needs published choice questions",
-          );
-        if (scoring && questions.length !== 1)
+        const publication = livePublication(version, gameShowEnabled);
+        if (scoring && !publication.gameShowOptions)
           throw new InvalidInput(
             "Game Show requires one published choice question",
           );

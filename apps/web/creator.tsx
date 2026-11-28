@@ -8,7 +8,13 @@ import {
 import { api, signOutUniversity, type Workspace } from "./api.ts";
 import { Results } from "./results.tsx";
 import { WorkspaceSurveys } from "./workspace-surveys.tsx";
-import { LiveQuiz } from "./live-quiz.tsx";
+import {
+  LivePresentationActions,
+  LiveQuiz,
+  type LiveMode,
+  type LiveVersion,
+  type ShowPresenter,
+} from "./live-quiz.tsx";
 import type { LiveSnapshot } from "../api/live-quiz-transport.ts";
 import { FeatureCatalogue } from "./features.tsx";
 import { DraftPreview } from "./draft-preview.tsx";
@@ -22,12 +28,6 @@ import type {
 } from "../../packages/survey-runtime/definition.ts";
 
 type Draft = { id: string; etag: string };
-type Mode = "poll" | "game";
-type LiveVersion = {
-  id: string;
-  title: string;
-  options?: { code: string; label: string }[];
-};
 
 const roomStorageKey = "helpinsights.live-presentation";
 
@@ -114,9 +114,9 @@ export function Creator({
   const previewTrigger = useRef<HTMLButtonElement>(null);
   const [publicLink, setPublicLink] = useState("");
   const [liveVersion, setLiveVersion] = useState<LiveVersion>();
-  const [liveMode, setLiveMode] = useState<Mode>();
+  const [liveMode, setLiveMode] = useState<LiveMode>();
   const [presentations, setPresentations] = useState<
-    Partial<Record<Mode, LiveVersion>>
+    Partial<Record<LiveMode, LiveVersion>>
   >({});
 
   const [recoverableRoom, setRecoverableRoom] = useState<string>();
@@ -173,12 +173,11 @@ export function Creator({
     return () => controller.abort();
   }, [institutionalSession, liveQuizEnabled, forgetRoom]);
 
-  function showPresenter(mode: Mode, trigger: HTMLButtonElement) {
-    if (!liveVersion) return;
+  const showPresenter: ShowPresenter = (mode, version, trigger) => {
     liveTrigger.current = trigger;
-    setPresentations((current) => ({ ...current, [mode]: liveVersion }));
+    setPresentations((current) => ({ ...current, [mode]: version }));
     setLiveMode(mode);
-  }
+  };
 
   const liveTrigger = useRef<HTMLButtonElement>(null);
   const workspaceHeading = useRef<HTMLHeadingElement>(null);
@@ -422,9 +421,10 @@ export function Creator({
           ? {
               id: data.id,
               title: savedDefinition.title,
-              ...(onlyQuestion?.type === "single_choice" && {
-                options: onlyQuestion.options,
-              }),
+              ...(gameShowEnabled &&
+                onlyQuestion?.type === "single_choice" && {
+                  options: onlyQuestion.options,
+                }),
             }
           : undefined,
       );
@@ -810,28 +810,11 @@ export function Creator({
                   Open respondent link
                 </a>
                 {liveQuizEnabled && liveVersion && (
-                  <div className="actions">
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={(event) =>
-                        showPresenter("poll", event.currentTarget)
-                      }
-                    >
-                      Present a Live Poll
-                    </button>
-                    {gameShowEnabled && liveVersion.options && (
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={(event) =>
-                          showPresenter("game", event.currentTarget)
-                        }
-                      >
-                        Present a Game Show
-                      </button>
-                    )}
-                  </div>
+                  <LivePresentationActions
+                    version={liveVersion}
+                    disabled={pending || savedSurveyWriting}
+                    onPresent={showPresenter}
+                  />
                 )}
               </div>
             )}
@@ -871,6 +854,7 @@ export function Creator({
             saving={savedSurveyWriting}
             setSaving={setSavedSurveyWriting}
             onHelp={(button) => openGuide(button, "preview")}
+            onPresent={liveQuizEnabled ? showPresenter : undefined}
           />
         )}
         {draft && publicLink && (
@@ -910,6 +894,7 @@ export function Creator({
               prepared={{
                 token,
                 versionId: version.id,
+                surveyId: version.surveyId,
                 title: version.title,
                 options: version.options,
                 returnToSurvey: () => setLiveMode(undefined),

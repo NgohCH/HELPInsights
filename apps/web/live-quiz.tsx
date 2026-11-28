@@ -3,7 +3,54 @@ import { api } from "./api.ts";
 
 import { LivePollQuestion } from "./live-poll-question.tsx";
 import type { LiveSnapshot } from "../api/live-quiz-transport.ts";
+import type { Option } from "../../packages/survey-runtime/definition.ts";
 import { useLiveConnection, type LiveAccess } from "./use-live-connection.ts";
+
+export type LiveMode = "poll" | "game";
+export type LiveVersion = {
+  id: string;
+  title: string;
+  options?: Option[];
+  surveyId?: string;
+};
+export type ShowPresenter = (
+  mode: LiveMode,
+  version: LiveVersion,
+  trigger: HTMLButtonElement,
+) => void;
+
+export function LivePresentationActions({
+  version,
+  disabled,
+  onPresent,
+}: {
+  version: LiveVersion;
+  disabled: boolean;
+  onPresent: ShowPresenter;
+}) {
+  return (
+    <div className="actions">
+      <button
+        type="button"
+        className="secondary"
+        disabled={disabled}
+        onClick={(event) => onPresent("poll", version, event.currentTarget)}
+      >
+        Present a Live Poll
+      </button>
+      {version.options && (
+        <button
+          type="button"
+          className="secondary"
+          disabled={disabled}
+          onClick={(event) => onPresent("game", version, event.currentTarget)}
+        >
+          Present a Game Show
+        </button>
+      )}
+    </div>
+  );
+}
 
 type PreparedPresentation = {
   returnToSurvey(): void;
@@ -12,6 +59,7 @@ type PreparedPresentation = {
   | {
       token: string;
       versionId: string;
+      surveyId?: string;
       title: string;
       options?: { code: string; label: string }[];
       onRoomOpened?(id: string): void;
@@ -111,6 +159,7 @@ export function LiveQuiz({
             mode: gameShow ? "game_show" : "live_poll",
             quizVersionId:
               setup?.versionId ?? String(fields.get("version")).trim(),
+            ...(setup?.surveyId && { surveyId: setup.surveyId }),
             ...(gameShow
               ? {
                   scoring: {

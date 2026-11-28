@@ -188,7 +188,7 @@ The disposable stack enables University-only collection for synthetic tests. Aft
 
 ### Local Live Poll lobby
 
-The disposable test stack enables Live Poll and Game Show. After publishing a compatible public survey, choose **Present a Live Poll** or **Present a Game Show** in the creator workspace. The presenter uses the current sign-in and the published version automatically. Share the eight-digit PIN with a synthetic participant at `/live/join` within 30 minutes. Local development can also open `/live/host` with a development session token and the version ID.
+The disposable test stack enables Live Poll and Game Show. After publishing a compatible public survey, choose **Present a Live Poll** or **Present a Game Show** in the creator workspace. You can also reopen the saved survey under **Workspace surveys** and present its latest publication. The presenter uses the current sign-in and the published version automatically. Live Poll uses the original question wording for titles that append an earlier answer label during ordinary collection. Ending ordinary response collection leaves an active room under the presenter's control. Share the eight-digit PIN with a synthetic participant at `/live/join` within 30 minutes. Local development can also open `/live/host` with a development session token and the version ID.
 
 If you reload the same creator tab, choose **Resume live presentation** to return to your latest active Live Poll or Game Show. The app checks the current University sign-in and opens that room. The plaintext join PIN is available when you first open the lobby. Reloading clears it from the presenter screen. Guests can keep using a shared PIN until it expires.
 

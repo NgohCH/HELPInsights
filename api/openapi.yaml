@@ -498,6 +498,52 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PublishedVersion'
+  /surveys/{surveyId}/live-launch:
+    parameters:
+    - $ref: '#/components/parameters/SurveyId'
+    get:
+      tags: [Live Quiz Arena]
+      operationId: getSavedLiveLaunch
+      summary: Resolve the latest publication for a prepared live presentation
+      description: >
+        Available when Live Quiz is enabled. Requires the current workspace owner or editor.
+        Only the latest immutable publication is considered. Live Poll requires an open,
+        consent-free publication with unconditional single-choice questions. Game Show
+        additionally requires its feature mode to be enabled and exactly one question.
+      security:
+      - bearerAuth: []
+      - universitySession: []
+      responses:
+        '200':
+          description: Eligible publication, or a null publication when no live mode is available
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [publication]
+                properties:
+                  publication:
+                    type: [object, 'null']
+                    required: [id, title]
+                    properties:
+                      id: { type: string, format: uuid }
+                      title: { type: string }
+                      gameShowOptions:
+                        type: array
+                        items:
+                          type: object
+                          required: [code, label]
+                          properties:
+                            code: { type: string }
+                            label: { type: string }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /surveys/{surveyId}/versions/{surveyVersionId}/case-handoffs:
     parameters:
     - $ref: '#/components/parameters/SurveyId'
@@ -1345,6 +1391,10 @@ paths:
               required: [quizVersionId, mode]
               properties:
                 quizVersionId: { type: string, format: uuid }
+                surveyId:
+                  type: string
+                  format: uuid
+                  description: When provided by a saved survey launch, quizVersionId must be the survey's current publication.
                 mode: { enum: [live_poll, game_show] }
                 scoring:
                   type: object
@@ -1381,6 +1431,8 @@ paths:
           description: Request refused by policy, permission or state.
         '401': *id001
         '403': *id001
+        '409':
+          $ref: '#/components/responses/Conflict'
   /live-sessions/join:
     post:
       tags: [Live Quiz Arena]

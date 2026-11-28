@@ -6,6 +6,8 @@
 
 The disposable app launches Live Poll and Game Show from an authorised creator's public publication. Same-origin presenter connections reuse the creator's University browser session. The participant still uses a lobby PIN and room capability. Live tools use unconditional choice questions. Game Show uses one question and selects the private answer by label.
 
+In **Workspace surveys**, the saved survey details offer live presentation for the latest publication when it is eligible. If another editor publishes a newer version while the details are open, reload the saved survey to present the newer publication. The live poll uses the published question title when ordinary collection appends an earlier answer label. Ending ordinary collection removes the saved launch action and leaves an existing room under the presenter's control.
+
 After reloading the same creator tab, the University presenter can choose **Resume live presentation** for the most recently opened active room. The creator tab stores only the room UUID. The host-only snapshot authorises the current browser session before offering the action, and the WebSocket authenticates again when it connects. Connected participants stay in the room. Finished rooms and references rejected by the server are dropped. The PIN is displayed when the lobby is opened, and PostgreSQL keeps its hash. A resumed lobby uses any PIN already shared with guests until it expires.
 
 ## User journeys
