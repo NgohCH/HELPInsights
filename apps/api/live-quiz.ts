@@ -292,7 +292,7 @@ export function createLiveQuiz(
         return true;
       }
 
-      const proof = readSessionProof(request);
+      const proof = readSessionProof(request, false);
       const body = object(await jsonBody(request), [
         "quizVersionId",
         "mode",

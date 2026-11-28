@@ -41,6 +41,8 @@ export function createApplication(
   assets?: { javascript: Buffer; stylesheet: Buffer; creatorHelp: Buffer },
   liveQuiz = false,
   gameShow = false,
+  universitySignIn = false,
+  developmentSignIn = true,
 ) {
   return createServer(
     { requestTimeout: 15000, headersTimeout: 10000 },
@@ -123,7 +125,16 @@ export function createApplication(
       }
       if (path === "/" || path === "/admin" || publicPage) {
         response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-        return response.end(home);
+        return response.end(
+          home.replace(
+            'id="app"',
+            'id="app" data-university-sign-in="' +
+              universitySignIn +
+              '" data-development-sign-in="' +
+              developmentSignIn +
+              '"',
+          ),
+        );
       }
       if (path === "/api/v1/health/live")
         return sendJson(response, 200, { status: "ok" });

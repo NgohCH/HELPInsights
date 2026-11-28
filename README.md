@@ -151,7 +151,15 @@ The API can verify a delegated institutional access token for `GET /api/v1/me` a
 
 A deployment administrator provisions the explicit issuer and subject binding to an existing local user through controlled database access. The API checks the signed delegated `scp` claim and reads only workspaces in that user's actual PostgreSQL memberships. The bearer and provider subject stay out of API responses. The existing development session and anonymous respondent flows retain their current entry points.
 
-Approval, a live Entra tenant application, interactive OAuth sign-in, MFA assurance and institutional creator access remain separate release work.
+The delegated endpoints need separate approval and acceptance in the live Entra tenant.
+
+### University browser sign-in
+
+Set `HELPINSIGHTS_ENTRA_TENANT`, `HELPINSIGHTS_ENTRA_CLIENT_ID`, `HELPINSIGHTS_ENTRA_CLIENT_SECRET`, `HELPINSIGHTS_ENTRA_ORIGIN` and `HELPINSIGHTS_ENTRA_DATABASE_URL` on the server to enable interactive sign-in. Use a single-tenant confidential web app registration in Microsoft Entra public cloud and register `<HTTPS app origin>/auth/university/callback` as its exact web redirect URL. Supply the client secret and identity database URL through the approved secret store. An administrator grants the dedicated login membership in `helpinsights_identity` only. The normal runtime database role cannot issue University sessions.
+
+University IT applies the approved Entra Conditional Access MFA policy. For each approved user, the local identity administrator associates the verified issuer and the subject from this specific browser client with an existing local account. Review workspace roles separately. Sign-in creates a 30-minute application session. Sign-out revokes that application session, and removing a binding deletes its existing sessions. Sign-in grants access according to existing workspace roles.
+
+The sign-in attempt is held on the instance that starts it for five minutes. Use a single app instance or ensure the callback reaches the same instance. An instance restart during sign-in requires the user to start again. Established sessions are backed by PostgreSQL. Keep callback query strings out of proxy access logs and apply upstream rate limits to the sign-in start endpoint. The application limits pending sign-in attempts per instance. Readiness checks the dedicated database role and session grants. To disable browser sign-in, remove all five Entra variables on every instance. Keep migration 017 applied and follow the reviewed rollback procedure for any database restore. The prior migration does not support University browser sessions. Live acceptance needs approved test accounts and the actual Entra MFA policy. See the [authorization code flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow).
 
 ### Local Live Poll lobby
 

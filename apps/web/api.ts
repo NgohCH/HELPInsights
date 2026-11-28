@@ -21,7 +21,7 @@ export async function api<T>(
       ...(options.body ? { "Content-Type": "application/json" } : {}),
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
-    credentials: "omit",
+    credentials: options.token === "" ? "same-origin" : "omit",
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.message ?? "Request failed");

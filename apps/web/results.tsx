@@ -79,8 +79,8 @@ export function Results({
         throw new Error("The export is unavailable. Try again shortly.");
       }
       const response = await fetch(expected, {
-        credentials: "omit",
-        headers: { Authorization: "Bearer " + token },
+        credentials: token ? "omit" : "same-origin",
+        headers: token ? { Authorization: "Bearer " + token } : undefined,
       });
       if (!response.ok) throw new Error("The export download is unavailable");
       const objectUrl = URL.createObjectURL(await response.blob());

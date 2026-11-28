@@ -17,13 +17,20 @@ process.env.HELPINSIGHTS_TEST_OAUTH_PUBLIC_JWKS = JSON.stringify({
   ],
 });
 const context = localDockerContext();
-const { compose, docker, baseUrl } = testDocker(context, project);
+let { compose, docker, baseUrl } = testDocker(context, project);
 const pnpm = process.env.npm_execpath;
 if (!pnpm) throw new Error("Run this script with pnpm test:stack");
 
 mkdirSync("runtime-evidence", { recursive: true });
 console.log("Disposable Compose project:", project);
 try {
+  console.log(compose("up", "-d", "--build", "--wait", "oidc-simulator"));
+  const oidcPort = compose("port", "oidc-simulator", "3002").trim();
+  if (!/^127\.0\.0\.1:\d+$/.test(oidcPort))
+    throw new Error("Synthetic identity provider must bind to loopback");
+  process.env.HELPINSIGHTS_TEST_OIDC_BROWSER_ORIGIN =
+    "http://" + oidcPort.replace("127.0.0.1", "localhost");
+  ({ compose, docker, baseUrl } = testDocker(context, project));
   console.log(
     compose("up", "-d", "--build", "--wait", "--wait-timeout", "120"),
   );

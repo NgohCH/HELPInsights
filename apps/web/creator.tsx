@@ -13,7 +13,14 @@ import type {
 
 type Draft = { id: string; etag: string };
 
-export function Creator() {
+export function Creator({
+  universitySignIn,
+  developmentSignIn,
+}: {
+  universitySignIn: boolean;
+  developmentSignIn: boolean;
+}) {
+  const [institutionalSession, setInstitutionalSession] = useState(false);
   const [token, setToken] = useState("");
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [workspaceId, setWorkspaceId] = useState("");
@@ -49,6 +56,33 @@ export function Creator() {
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!universitySignIn) return;
+    const controller = new AbortController();
+    async function loadInstitutionalWorkspace() {
+      try {
+        const response = await fetch("/api/v1/workspaces", {
+          signal: controller.signal,
+        });
+        if (!response.ok || controller.signal.aborted) return;
+        const entries = (await response.json()) as Workspace[];
+        if (controller.signal.aborted) return;
+        setInstitutionalSession(true);
+        setWorkspaces(entries);
+        setWorkspaceId(
+          (
+            entries.find((workspace) => workspace.defaultRetentionPolicyId) ??
+            entries[0]
+          )?.id ?? "",
+        );
+      } catch {
+        // The sign-in entry point remains available after a failed session check.
+      }
+    }
+    void loadInstitutionalWorkspace();
+    return () => controller.abort();
+  }, [universitySignIn]);
 
   useEffect(() => {
     if (starter) titleInput.current?.focus();
@@ -237,17 +271,44 @@ export function Creator() {
       {workspaces === null ? (
         <section className="panel compact" aria-labelledby="workspace-heading">
           <h2 id="workspace-heading">Open your workspace</h2>
-          <form onSubmit={signIn}>
-            <label>
-              Development session token
-              <input autoComplete="off" type="password" name="token" required />
-            </label>
-            <button disabled={pending}>Open workspace</button>
-          </form>
+          {universitySignIn && (
+            <a href="/auth/university/start">Sign in with University account</a>
+          )}
+          {developmentSignIn && (
+            <form onSubmit={signIn}>
+              <label>
+                Development session token
+                <input
+                  autoComplete="off"
+                  type="password"
+                  name="token"
+                  required
+                />
+              </label>
+              <button disabled={pending}>Open workspace</button>
+            </form>
+          )}
         </section>
       ) : (
         <section className="panel" aria-labelledby="create-heading">
           <h2 id="create-heading">Create survey</h2>
+          {institutionalSession && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() =>
+                void run(async () => {
+                  const response = await fetch("/auth/university/logout", {
+                    method: "POST",
+                  });
+                  if (!response.ok) throw new Error("Sign-out failed");
+                  window.location.assign("/");
+                })
+              }
+            >
+              Sign out
+            </button>
+          )}
           <form onSubmit={save} onChange={() => setReady(false)}>
             <label>
               Workspace

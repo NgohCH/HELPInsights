@@ -4,6 +4,7 @@ import { loadMigrations, migrate } from "./migrate.ts";
 const connectionString = process.env.DATABASE_URL;
 const localPassword = process.env.LOCAL_RUNTIME_DB_PASSWORD;
 const workerPassword = process.env.LOCAL_WORKER_DB_PASSWORD;
+const identityPassword = process.env.LOCAL_IDENTITY_DB_PASSWORD;
 if (!connectionString || !localPassword || !workerPassword) {
   throw new Error(
     "Local migration connection and runtime password are required",
@@ -63,6 +64,8 @@ try {
     await guard.query("SELECT pg_advisory_xact_lock(7249102)");
     await validateRole(guard, "helpinsights_app", false);
     await validateRole(guard, "helpinsights_exporter", false);
+    if (identityPassword)
+      await validateRole(guard, "helpinsights_identity", false);
     const roles = [
       {
         name: "helpinsights_runtime",
@@ -75,6 +78,12 @@ try {
         password: workerPassword,
       },
     ];
+    if (identityPassword)
+      roles.push({
+        name: "helpinsights_identity_login",
+        group: "helpinsights_identity",
+        password: identityPassword,
+      });
     const existing = await Promise.all(
       roles.map(({ name, group }) => validateRole(guard, name, true, group)),
     );

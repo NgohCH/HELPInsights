@@ -2,6 +2,22 @@ services:
   postgres:
     labels:
       org.helpinsights.test-run: ${HELPINSIGHTS_TEST_PROJECT:?Run pnpm test:stack}
+  migrate:
+    environment:
+      LOCAL_IDENTITY_DB_PASSWORD: helpinsights_identity_fixture
+  oidc-simulator:
+    build: .
+    init: true
+    command: ["node", "apps/worker/oidc-simulator.ts"]
+    environment:
+      NODE_ENV: test
+    ports:
+      - "127.0.0.1::3002"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002/keys').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
   app:
     labels:
       org.helpinsights.test-run: ${HELPINSIGHTS_TEST_PROJECT:?Run pnpm test:stack}
@@ -11,6 +27,12 @@ services:
       HELPINSIGHTS_OAUTH_ISSUER: https://issuer.synthetic.test/oauth/v2.0
       HELPINSIGHTS_OAUTH_AUDIENCE: helpinsights.test.api
       HELPINSIGHTS_OAUTH_SCOPE: workspace.read
+      HELPINSIGHTS_ENTRA_TENANT: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+      HELPINSIGHTS_ENTRA_CLIENT_ID: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+      HELPINSIGHTS_ENTRA_CLIENT_SECRET: helpinsights_oidc_disposable_fixture
+      HELPINSIGHTS_ENTRA_ORIGIN: loopback-test
+      HELPINSIGHTS_ENTRA_DATABASE_URL: postgresql://helpinsights_identity_login:helpinsights_identity_fixture@postgres:5432/helpinsights
+      HELPINSIGHTS_TEST_OIDC_BROWSER_ORIGIN: ${HELPINSIGHTS_TEST_OIDC_BROWSER_ORIGIN:-}
       HELPINSIGHTS_OAUTH_JWKS: ${HELPINSIGHTS_TEST_OAUTH_PUBLIC_JWKS:?Run pnpm test:stack}
       LIVE_QUIZ_ENABLED: "true"
       LIVE_GAME_SHOW_ENABLED: "true"
@@ -18,6 +40,8 @@ services:
       HELPINSIGHTS_DEV_REGISTRY_MODE: synthetic
       HELPINSIGHTS_TEST_REGISTRY_KEY: ${HELPINSIGHTS_TEST_REGISTRY_KEY:?Run pnpm test:stack}
     depends_on:
+      oidc-simulator:
+        condition: service_healthy
       registry-simulator:
         condition: service_healthy
   registry-simulator:
