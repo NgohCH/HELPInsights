@@ -736,6 +736,7 @@ export function Creator({
             workspaceId={workspaceId}
             token={token}
             refreshKey={(draft?.etag ?? "") + publicLink}
+            canAuthorNps={canAuthorNps}
             onHelp={(button) => openGuide(button, "preview")}
           />
         )}

@@ -125,6 +125,8 @@ The local development workflow creates and publishes a single-choice survey, col
 
 For a guided draft, select a workspace with a retention policy and choose **After-class feedback** under **Guided creation**. Edit the five prompts and choice labels, then save and open **Preview draft**. Only **Publish survey** creates an anonymous respondent link. If the saved draft changes elsewhere between preview and publication, publication returns a revision conflict and leaves the existing draft and versions intact.
 
+To restructure a saved draft, open it in **Workspace surveys** and choose **Edit saved draft**. Add and name pages, add supported questions, and move pages or questions with the keyboard-accessible controls. Move feedback announces the new position. The editor blocks changes that would break an existing conditional question. **Save changes** uses the loaded draft revision and leaves published versions intact.
+
 In the creator, choose a workspace and select **Browse templates** to preview **Event feedback**. A workspace owner or editor can select **Use this template** to start an independent anonymous draft under the workspace’s retention policy. The preview does not open a respondent link.
 
 The development **Feature catalogue** lets workspace owners and editors request NPS authoring for anonymous surveys. A delegated workspace reviewer can approve time-limited access or deny the request. Approval unlocks 0–10 NPS questions for authoring and publishing.
@@ -202,7 +204,7 @@ Work is complete only when code, tests, threat/permission review, migration/roll
 
 The single full-scope build also specifies accessible drag-and-drop multipage surveys, NPS/matrix/ranking/file/image questions, safe branching/piping, in-app OIDC survey launches, email/SMS/QR/embed/reminders, kiosk/offline collection and privacy-governed sentiment analysis. Self-healing operations must record administrator-readable incidents and recovery outcomes. These are **requirements, not implemented capabilities**. Read [Interaction, Channels and Intelligence](docs/INTERACTION_CHANNELS_INTELLIGENCE.md) and the test gates in `HANDOFF.md`.
 
-## Guided creation and self-service adoption
+## Guided creation and self-service requirements
 
 Users begin with **Create → Survey / Quick Poll / Pop Quiz / Feedback / Evaluation / Research**. A guided wizard recommends a curated template, helps configure audience/privacy, supports multipage drag-and-drop questions, previews a draft, checks publication readiness and publishes an immutable version. Users can switch to Expert Mode without losing advanced settings. A searchable contextual user guide explains each step. Specialised features can be discovered in a categorised Feature Catalogue and requested for approval; API enforcement is mandatory.
 

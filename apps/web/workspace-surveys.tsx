@@ -1,14 +1,9 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
 import { api } from "./api.ts";
 import { DraftPreview } from "./draft-preview.tsx";
 import { Results } from "./results.tsx";
+import { SavedDraftEditor } from "./saved-draft-editor.tsx";
 
 type SurveySummary = {
   id: string;
@@ -33,11 +28,13 @@ export function WorkspaceSurveys({
   workspaceId,
   token,
   refreshKey,
+  canAuthorNps,
   onHelp,
 }: {
   workspaceId: string;
   token: string;
   refreshKey?: string;
+  canAuthorNps: boolean;
   onHelp: (button: HTMLButtonElement) => void;
 }) {
   const [catalogue, setCatalogue] = useState<SurveyList | null>(null);
@@ -156,6 +153,7 @@ export function WorkspaceSurveys({
           token={token}
           editing={editing}
           setEditing={setEditing}
+          canAuthorNps={canAuthorNps}
           onHelp={onHelp}
           onSave={(saved) =>
             setCatalogue(
@@ -187,6 +185,7 @@ function SavedSurvey({
   token,
   editing,
   setEditing,
+  canAuthorNps,
   onHelp,
   onSave,
   onClose,
@@ -196,6 +195,7 @@ function SavedSurvey({
   token: string;
   editing: boolean;
   setEditing: (editing: boolean) => void;
+  canAuthorNps: boolean;
   onHelp: (button: HTMLButtonElement) => void;
   onSave: (survey: SurveySummary) => void;
   onClose: () => void;
@@ -246,30 +246,9 @@ function SavedSurvey({
     heading.current?.focus();
   }, [record?.survey.id]);
 
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!record || !draft || !etag || saving || !record.survey.canEdit) return;
-    const form = new FormData(event.currentTarget);
-    const field = (name: string) => String(form.get(name) ?? "").trim();
-    const updated: SurveyDefinition = {
-      ...draft,
-      title: field("title"),
-      pages: draft.pages.map((page) => ({
-        ...page,
-        questions: page.questions.map((question) => ({
-          ...question,
-          title: field("question-" + question.id),
-          ...(question.type === "single_choice"
-            ? {
-                options: question.options.map((option, index) => ({
-                  ...option,
-                  label: field("option-" + question.id + "-" + index),
-                })),
-              }
-            : {}),
-        })),
-      })),
-    };
+  async function save(updated: SurveyDefinition) {
+    if (!record?.survey.draft || !etag || saving || !record.survey.canEdit)
+      return;
     setSaving(true);
     setError("");
     try {
@@ -352,65 +331,17 @@ function SavedSurvey({
         </p>
       )}
       {editing && draft && (
-        <form onSubmit={save}>
-          <label>
-            Saved survey title
-            <input
-              name="title"
-              maxLength={200}
-              defaultValue={draft.title}
-              required
-            />
-          </label>
-          {draft.pages.map((page, pageIndex) => (
-            <fieldset key={page.id}>
-              <legend>{page.title ?? "Page " + (pageIndex + 1)}</legend>
-              {page.questions.map((question, questionIndex) => (
-                <fieldset key={question.id}>
-                  <legend>Question {questionIndex + 1}</legend>
-                  <label>
-                    Question wording
-                    <input
-                      name={"question-" + question.id}
-                      maxLength={300}
-                      defaultValue={question.title}
-                      required
-                    />
-                  </label>
-                  {question.type === "single_choice" &&
-                    question.options.map((option, index) => (
-                      <label key={option.code}>
-                        Option {index + 1} wording
-                        <input
-                          name={"option-" + question.id + "-" + index}
-                          maxLength={160}
-                          defaultValue={option.label}
-                          required
-                        />
-                      </label>
-                    ))}
-                </fieldset>
-              ))}
-            </fieldset>
-          ))}
-          <div className="actions">
-            <button disabled={saving}>
-              {saving ? "Saving edits…" : "Save edits"}
-            </button>
-            <button
-              className="secondary"
-              type="button"
-              disabled={saving}
-              onClick={() => {
-                setError("");
-                setEditing(false);
-                heading.current?.focus();
-              }}
-            >
-              Cancel edits
-            </button>
-          </div>
-        </form>
+        <SavedDraftEditor
+          initial={draft}
+          canAuthorNps={canAuthorNps}
+          saving={saving}
+          onSave={save}
+          onCancel={() => {
+            setError("");
+            setEditing(false);
+            heading.current?.focus();
+          }}
+        />
       )}
       {preview && draft && (
         <DraftPreview
