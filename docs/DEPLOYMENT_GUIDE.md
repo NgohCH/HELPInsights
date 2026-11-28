@@ -14,9 +14,9 @@ Open a release record for each environment. For every row, enter the owner, due 
 | Host and network | Approved Linux host, Docker Engine and Compose, sizing, persistent volumes, DNS, HTTPS, reverse proxy, firewall and required outbound connectivity | Host and capacity checks, DNS, TLS and network tests |
 | Data | Dedicated PostgreSQL, migration and runtime roles, encrypted backups, restore permissions and retention settings | Connectivity and role checks, migration rehearsal and measured isolated restore |
 | Storage and operations | Required object storage, monitoring, alerts, service owner and on-call contacts | Storage access verification and alert delivery test |
-| Identity | Approved Entra tenant and app registrations, exact HTTPS callback, MFA policy, test accounts, first-admin method and protected configuration references | Allowed and denied creator and operator sign-ins, MFA and first-admin evidence |
+| Identity | Approved Entra tenant and app registrations, exact HTTPS callback, MFA policy, test accounts, first-admin method and protected configuration references | Allowed and denied creator and operator sign-ins, research-tool denial for public creators, user and group grant and revocation checks, MFA and first-admin evidence |
 | Survey audiences | Departments, intended distributions and eligible and ineligible test scenarios | Approved eligibility policy version and acceptance results for each University-only distribution |
-| Integrations | Enabled and deferred clients, their purpose, identity, operations, resources and owners | Allowed and denied calls, credential expiry and revocation for each enabled client |
+| Integrations | Enabled and deferred clients, their purpose, identity, operations, resources and owners | Administrator-only settings access, allowed and denied calls, credential expiry and revocation for each enabled client |
 | Release operations | Change window, approver, smoke checks, stop conditions, recovery decision owner and incident contacts | Documented rehearsal, acceptance decision and tested recovery path |
 
 ### Department eligibility and integration records
