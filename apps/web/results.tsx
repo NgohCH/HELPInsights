@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "./api.ts";
 
 type Report = {
@@ -18,38 +18,63 @@ type ExportJob = { id: string; status: string; downloadUrl?: string | null };
 export function Results({
   surveyId,
   token,
+  versions,
 }: {
   surveyId: string;
   token: string;
+  versions?: ReadonlyArray<{ id: string; version: number }>;
 }) {
-  const [report, setReport] = useState<Report | null>(null);
+  const [selection, setSelection] = useState("");
+  const selectedVersion =
+    versions?.find(({ id }) => id === selection) ?? versions?.[0];
+  const [loadedReport, setReport] = useState<Report | null>(null);
+  const report =
+    selectedVersion && loadedReport?.surveyVersionId !== selectedVersion.id
+      ? null
+      : loadedReport;
   const [busy, setBusy] = useState<"report" | "export" | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const operation = useRef<AbortController | null>(null);
+
+  useEffect(() => () => operation.current?.abort(), []);
 
   async function showResults() {
+    const request = new AbortController();
+    operation.current = request;
+    if (selectedVersion) setSelection(selectedVersion.id);
     setBusy("report");
     setError("");
     setMessage("");
     try {
       const { data } = await api<Report>(
-        "/surveys/" + surveyId + "/analytics",
-        { token },
+        "/surveys/" +
+          surveyId +
+          "/analytics" +
+          (selectedVersion
+            ? "?surveyVersionId=" + encodeURIComponent(selectedVersion.id)
+            : ""),
+        { token, signal: request.signal },
       );
       setReport(data);
     } catch (failure) {
+      if (request.signal.aborted) return;
       setError(
         failure instanceof Error
           ? failure.message
           : "Results could not be loaded",
       );
     } finally {
-      setBusy(null);
+      operation.current = null;
+      if (!request.signal.aborted) setBusy(null);
     }
   }
 
   async function exportData() {
     if (!report) return;
+    const request = new AbortController();
+    operation.current = request;
+    if (selectedVersion) setSelection(report.surveyVersionId);
     setBusy("export");
     setError("");
     setMessage("");
@@ -59,6 +84,7 @@ export function Results({
         {
           token,
           method: "POST",
+          signal: request.signal,
           body: {
             format: "jasp_csv_bundle",
             surveyVersionId: report.surveyVersionId,
@@ -72,18 +98,26 @@ export function Results({
         attempt++
       ) {
         await new Promise((resolve) => setTimeout(resolve, 200));
-        job = (await api<ExportJob>("/exports/" + queued.id, { token })).data;
+        job = (
+          await api<ExportJob>("/exports/" + queued.id, {
+            token,
+            signal: request.signal,
+          })
+        ).data;
       }
       const expected = "/api/v1/exports/" + queued.id + "/download";
       if (job.status !== "completed" || job.downloadUrl !== expected) {
         throw new Error("The export is unavailable. Try again shortly.");
       }
       const response = await fetch(expected, {
+        signal: request.signal,
         credentials: token ? "omit" : "same-origin",
         headers: token ? { Authorization: "Bearer " + token } : undefined,
       });
       if (!response.ok) throw new Error("The export download is unavailable");
-      const objectUrl = URL.createObjectURL(await response.blob());
+      const archive = await response.blob();
+      if (request.signal.aborted) return;
+      const objectUrl = URL.createObjectURL(archive);
       try {
         const link = document.createElement("a");
         link.href = objectUrl;
@@ -96,18 +130,45 @@ export function Results({
       }
       setMessage("Export ready");
     } catch (failure) {
+      if (request.signal.aborted) return;
       setError(
         failure instanceof Error
           ? failure.message
           : "The export could not be saved",
       );
     } finally {
-      setBusy(null);
+      operation.current = null;
+      if (!request.signal.aborted) setBusy(null);
     }
   }
 
   return (
-    <section className="panel results" aria-label="Response reporting">
+    <section
+      className="panel results"
+      aria-label="Response reporting"
+      aria-busy={!!busy}
+    >
+      {!!versions && versions.length > 1 && (
+        <label>
+          Reporting publication
+          <select
+            value={selectedVersion?.id ?? ""}
+            disabled={!!busy}
+            onChange={(event) => {
+              setSelection(event.target.value);
+              setReport(null);
+              setError("");
+              setMessage("");
+            }}
+          >
+            {versions.map(({ id, version }) => (
+              <option key={id} value={id}>
+                Version {version}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <div className="actions">
         <button className="secondary" disabled={!!busy} onClick={showResults}>
           {busy === "report"

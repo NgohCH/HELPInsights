@@ -447,7 +447,11 @@ function SavedSurvey({
             <p>No published versions yet.</p>
           )}
           {record.versions.length > 0 && record.survey.canViewResults && (
-            <Results surveyId={surveyId} token={token} />
+            <Results
+              surveyId={surveyId}
+              token={token}
+              versions={record.versions}
+            />
           )}
         </>
       )}
