@@ -10,7 +10,9 @@ type PublishedSurvey = {
   researchConsent?: ResearchConsent;
 };
 
-type SurveyView = PublishedSurvey | { eligibilityRequired: true };
+type SurveyView =
+  | PublishedSurvey
+  | { eligibilityRequired: true; eligibilityMode?: "university" };
 type VerifiedAccess = { capability: string; expiresAt: string };
 
 export function Respondent({ token }: { token: string }) {
@@ -20,6 +22,7 @@ export function Respondent({ token }: { token: string }) {
     accepted: boolean;
   } | null>(null);
   const [eligibilityRequired, setEligibilityRequired] = useState(false);
+  const [university, setUniversity] = useState(false);
   const [access, setAccess] = useState<VerifiedAccess | null>(null);
   const [pending, setPending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -28,16 +31,29 @@ export function Respondent({ token }: { token: string }) {
 
   useEffect(() => {
     let active = true;
-    api<SurveyView>("/public/s/" + token).then(
-      ({ data }) => {
+    const path = "/public/s/" + token;
+    async function load() {
+      try {
+        const { data } = await api<SurveyView>(path);
         if (!active) return;
-        if ("eligibilityRequired" in data) setEligibilityRequired(true);
+        if (
+          "eligibilityRequired" in data &&
+          data.eligibilityMode === "university"
+        ) {
+          setUniversity(true);
+          const { data: signedIn } = await api<SurveyView>(path, { token: "" });
+          if (active && !("eligibilityRequired" in signedIn))
+            setSurvey(signedIn);
+        } else if ("eligibilityRequired" in data) setEligibilityRequired(true);
         else setSurvey(data);
-      },
-      (failure: Error) => {
-        if (active) setError(failure.message);
-      },
-    );
+      } catch (failure) {
+        if (active)
+          setError(
+            failure instanceof Error ? failure.message : "Survey unavailable",
+          );
+      }
+    }
+    void load();
     return () => {
       active = false;
     };
@@ -100,6 +116,7 @@ export function Respondent({ token }: { token: string }) {
     try {
       await api("/public/s/" + token + "/responses", {
         method: "POST",
+        token: university ? "" : undefined,
         headers: {
           "Idempotency-Key": submissionKey.current,
           ...(access ? { "X-Survey-Capability": access.capability } : {}),
@@ -131,7 +148,21 @@ export function Respondent({ token }: { token: string }) {
         {survey?.definition.description && (
           <p>{survey.definition.description}</p>
         )}
-        {!survey && !error && !eligibilityRequired && <p>Loading survey…</p>}
+        {!survey && !error && !eligibilityRequired && !university && (
+          <p>Loading survey…</p>
+        )}
+        {university && !survey && (
+          <p>
+            <a
+              href={
+                "/auth/university/start?returnTo=" +
+                encodeURIComponent("/respond/" + token)
+              }
+            >
+              Sign in with University account
+            </a>
+          </p>
+        )}
         {eligibilityRequired && (
           <form onSubmit={checkEligibility}>
             <p>Use a synthetic Registry credential for this test survey.</p>

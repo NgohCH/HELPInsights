@@ -168,3 +168,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-003c University sign-in for administration
 
 - Exact source `074b44f908e32bff884877562204e8ea4e28a67b` passed 17 unit, 55 PostgreSQL integration, two security and 21 Chromium tests. Disposable cleanup was confirmed. The evidence records the red callback test, role and response-shape checks, restored console before logout and independent review. [Verification report](../evidence/ENG-003c/074b44f908e32bff884877562204e8ea4e28a67b.md).
+
+## ENG-011b University-only admission
+
+- Exact source `ed265d09f18e958fba35c7c7bd70793d78e0d98e` passed 19 unit, 55 real PostgreSQL integration, two security and 22 Chromium tests. Disposable cleanup was confirmed. The report records the red HTTP checks, the repaired Registry error contract, independent review and the limits of synthetic eligibility evidence. [Verification report](../evidence/ENG-011b/ed265d09f18e958fba35c7c7bd70793d78e0d98e.md).

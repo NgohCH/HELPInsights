@@ -154,6 +154,7 @@ export function surveyRoutes(
   pool: Pool,
   syntheticRegistryEnabled = false,
   syntheticResearchConsent = false,
+  universityEligibility = false,
 ) {
   return async (
     request: IncomingMessage,
@@ -301,22 +302,55 @@ export function surveyRoutes(
           const publishOptions =
             submitted === undefined
               ? {}
-              : object(submitted, ["eligibilityMode", "researchConsent"]);
+              : object(submitted, [
+                  "eligibilityMode",
+                  "researchConsent",
+                  "universityPolicyId",
+                ]);
           const eligibilityMode =
             publishOptions.eligibilityMode === undefined
               ? "open"
               : publishOptions.eligibilityMode;
           if (
             eligibilityMode !== "open" &&
-            eligibilityMode !== "registry-synthetic"
+            eligibilityMode !== "registry-synthetic" &&
+            eligibilityMode !== "university"
           )
             throw new InvalidInput("Choose a supported eligibility mode");
+          let policyId: string | null = null;
+          if (eligibilityMode === "university") {
+            if (!universityEligibility)
+              throw new HttpError(
+                503,
+                "UNAVAILABLE",
+                "University eligibility is unavailable",
+              );
+            policyId = uuid(
+              publishOptions.universityPolicyId,
+              "University eligibility policy",
+            );
+            const policy = await client.query(
+              "SELECT id FROM public.university_eligibility_policies WHERE id = $1 AND workspace_id = $2 AND approved_at <= statement_timestamp() AND withdrawn_at IS NULL",
+              [policyId, survey.workspaceId],
+            );
+            if (!policy.rowCount)
+              throw new HttpError(
+                403,
+                "FORBIDDEN",
+                "Choose an approved eligibility policy for this workspace",
+              );
+          } else if (publishOptions.universityPolicyId !== undefined) {
+            throw new InvalidInput(
+              "A University policy requires a University-only survey",
+            );
+          }
           const researchConsent = publishOptions.researchConsent;
-          if (
-            researchConsent !== undefined &&
-            eligibilityMode === "registry-synthetic"
-          )
-            throw new InvalidInput("Choose one synthetic survey restriction");
+          if (researchConsent !== undefined && eligibilityMode !== "open")
+            throw new InvalidInput(
+              eligibilityMode === "registry-synthetic"
+                ? "Choose one synthetic survey restriction"
+                : "Choose one survey restriction",
+            );
           if (
             eligibilityMode === "registry-synthetic" &&
             !syntheticRegistryEnabled
@@ -353,8 +387,8 @@ export function surveyRoutes(
           );
           const publicToken = randomBytes(32).toString("base64url");
           await client.query(
-            "INSERT INTO public.distributions (token_hash, survey_version_id, eligibility_mode) VALUES ($1, $2, $3)",
-            [digest(publicToken), version.id, eligibilityMode],
+            "INSERT INTO public.distributions (token_hash, survey_version_id, eligibility_mode, university_policy_id) VALUES ($1, $2, $3, $4)",
+            [digest(publicToken), version.id, eligibilityMode, policyId],
           );
           if (researchConsent === "synthetic") {
             await client.query(

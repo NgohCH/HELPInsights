@@ -17,7 +17,7 @@ type Attempt = {
   nonce: string;
   verifier: string;
   expiresAt: number;
-  returnPath: "/" | "/admin";
+  returnPath: string;
 };
 type UniversityProvider = {
   appOrigin: string | ((host?: string) => string | null);
@@ -108,9 +108,14 @@ export function entraSignInRoutes(
       const requested = new URLSearchParams(
         (request.url ?? "").slice(startPath.length),
       ).getAll("returnTo");
+      const destination = requested.length === 1 ? requested[0] : "";
       const attempt: Attempt = {
         returnPath:
-          requested.length === 1 && requested[0] === "admin" ? "/admin" : "/",
+          destination === "admin"
+            ? "/admin"
+            : /^\/respond\/[A-Za-z0-9_-]{43}$/.test(destination)
+              ? destination
+              : "/",
         state: randomValue(),
         nonce: randomValue(),
         verifier: randomValue(),
