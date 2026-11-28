@@ -13,6 +13,8 @@ type Incident = {
   state: string;
   severity: string;
   recordedAt: string;
+  source?: "export_worker";
+  observedAt?: string;
 };
 
 async function readOperations(token: string, signal?: AbortSignal) {
@@ -187,7 +189,8 @@ export function Operations({
                   <th scope="col">Component</th>
                   <th scope="col">State</th>
                   <th scope="col">Severity</th>
-                  <th scope="col">Recorded</th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Time</th>
                 </tr>
               </thead>
               <tbody>
@@ -197,8 +200,17 @@ export function Operations({
                     <td>{incident.state}</td>
                     <td>{incident.severity.replaceAll("_", " ")}</td>
                     <td>
-                      <time dateTime={incident.recordedAt}>
-                        {new Date(incident.recordedAt).toLocaleString()}
+                      {incident.source === "export_worker"
+                        ? "Export worker"
+                        : "Operator"}
+                    </td>
+                    <td>
+                      <time
+                        dateTime={incident.observedAt ?? incident.recordedAt}
+                      >
+                        {new Date(
+                          incident.observedAt ?? incident.recordedAt,
+                        ).toLocaleString()}
                       </time>
                     </td>
                   </tr>
