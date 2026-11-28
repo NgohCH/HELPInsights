@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.13-development
+  version: 0.2.14-development
   description: Development coverage includes anonymous surveys, CSV export, curated templates, operations, opt-in live rooms, NPS approval, retention, synthetic Registry eligibility and synthetic research consent.
 servers:
 - url: https://survey.example.org/api/v1
@@ -498,6 +498,66 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PublishedVersion'
+  /surveys/{surveyId}/versions/{surveyVersionId}/case-handoffs:
+    parameters:
+    - $ref: '#/components/parameters/SurveyId'
+    - name: surveyVersionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      tags:
+      - Survey
+      operationId: approveSyntheticCaseHandoff
+      description: Available only in the disposable synthetic test runtime. Requires an appointed reviewer and an active synthetic basis for the exact published anonymous survey version. The outbox stores a redacted receipt without external delivery.
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyntheticCaseApproval'
+      responses:
+        '202':
+          description: Same approved outbox receipt for the original request and matching retries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyntheticCaseHandoff'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request body is too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '415':
+          description: Request body must be JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /surveys/{surveyId}/close:
     parameters:
     - $ref: '#/components/parameters/SurveyId'
@@ -1757,6 +1817,65 @@ components:
           format: uuid
         displayName:
           type: string
+    CaseHandoffCategory:
+      type: string
+      enum: [course_materials, campus_facilities, service_process]
+    CaseHandoffPriority:
+      type: string
+      enum: [normal, high]
+    SyntheticCaseApproval:
+      type: object
+      additionalProperties: false
+      required: [reviewDecision, category, priority, consentOrLawfulBasisRef]
+      properties:
+        reviewDecision:
+          const: approved
+        category:
+          $ref: '#/components/schemas/CaseHandoffCategory'
+        priority:
+          $ref: '#/components/schemas/CaseHandoffPriority'
+        consentOrLawfulBasisRef:
+          type: string
+          format: uuid
+    SyntheticCaseHandoff:
+      type: object
+      additionalProperties: false
+      required: [eventId, eventType, organisationId, surveyId, surveyVersionId, createdAt, category, priority, sanitisedSummary, consentOrLawfulBasisRef, originMode, idempotencyKey, status]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        eventType:
+          const: survey.action.requested.v1
+        organisationId:
+          type: string
+          format: uuid
+        surveyId:
+          type: string
+          format: uuid
+        surveyVersionId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        category:
+          $ref: '#/components/schemas/CaseHandoffCategory'
+        priority:
+          $ref: '#/components/schemas/CaseHandoffPriority'
+        sanitisedSummary:
+          type: string
+          description: Standard summary generated from the allowed category.
+        consentOrLawfulBasisRef:
+          type: string
+          format: uuid
+        originMode:
+          const: anonymous_aggregate
+        idempotencyKey:
+          type: string
+          format: uuid
+        status:
+          const: queued
     Workspace:
       type: object
       required:

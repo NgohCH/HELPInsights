@@ -18,6 +18,10 @@ import { retentionRoutes } from "./retention.ts";
 import { syntheticRegistry } from "./registry.ts";
 import { syntheticConsentEnabled } from "./research-consent.ts";
 import {
+  caseHandoffRoutes,
+  syntheticCaseHandoffEnabled,
+} from "./case-handoff.ts";
+import {
   hasCurrentSchema,
   loadMigrations,
 } from "../../packages/database/migrate.ts";
@@ -105,6 +109,9 @@ const integrationSettings =
     ? integrationSettingsRoutes(pool, integrationEnvironment)
     : null;
 const reports = reportRoutes(pool);
+const caseHandoffs = syntheticCaseHandoffEnabled(process.env)
+  ? caseHandoffRoutes(pool)
+  : null;
 const features = featureRoutes(pool);
 const templates = templateRoutes(pool);
 const retention = retentionRoutes(pool);
@@ -150,6 +157,7 @@ const server = createApplication(
     (await sessions(...args)) ||
     (await features(...args)) ||
     (await surveys(...args)) ||
+    (caseHandoffs ? await caseHandoffs(...args) : false) ||
     (await templates(...args)) ||
     (await respondents(...args)) ||
     (await reports(...args)) ||
@@ -163,6 +171,7 @@ const server = createApplication(
   gameShowEnabled,
   Boolean(universitySignIn),
   !universitySignIn || process.env.NODE_ENV === "test",
+  caseHandoffs !== null,
 );
 const closeLiveSockets = liveQuiz?.attachSockets(server);
 server.listen(3000, "0.0.0.0", () =>

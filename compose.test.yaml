@@ -24,6 +24,7 @@ services:
     environment:
       NODE_ENV: test
       HELPINSIGHTS_DEV_RESEARCH_CONSENT: synthetic
+      HELPINSIGHTS_DEV_CASE_HANDOFF: synthetic
       HELPINSIGHTS_UNIVERSITY_ELIGIBILITY: "true"
       HELPINSIGHTS_OAUTH_ISSUER: https://issuer.synthetic.test/oauth/v2.0
       HELPINSIGHTS_OAUTH_AUDIENCE: helpinsights.test.api
