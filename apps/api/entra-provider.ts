@@ -46,7 +46,7 @@ export function entraProvider(env: NodeJS.ProcessEnv) {
     !identityDatabase ||
     (synthetic
       ? !syntheticBrowser ||
-        !/^http:\/\/localhost:\d{1,5}$/.test(syntheticBrowser)
+        !/^http:\/\/oidc\.helpinsights\.test:\d{1,5}$/.test(syntheticBrowser)
       : !universityBrowserOrigin(env))
   )
     throw new Error("Incomplete University sign-in configuration");

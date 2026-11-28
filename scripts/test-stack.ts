@@ -29,7 +29,7 @@ try {
   if (!/^127\.0\.0\.1:\d+$/.test(oidcPort))
     throw new Error("Synthetic identity provider must bind to loopback");
   process.env.HELPINSIGHTS_TEST_OIDC_BROWSER_ORIGIN =
-    "http://" + oidcPort.replace("127.0.0.1", "localhost");
+    "http://" + oidcPort.replace("127.0.0.1", "oidc.helpinsights.test");
   ({ compose, docker, baseUrl } = testDocker(context, project));
   console.log(
     compose("up", "-d", "--build", "--wait", "--wait-timeout", "120"),

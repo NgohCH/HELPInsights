@@ -6,5 +6,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.APP_BASE_URL ?? "http://127.0.0.1:4317",
     trace: "retain-on-failure",
+    launchOptions: {
+      args: ["--host-resolver-rules=MAP oidc.helpinsights.test 127.0.0.1"],
+    },
   },
 });

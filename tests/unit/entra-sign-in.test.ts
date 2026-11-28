@@ -156,7 +156,8 @@ test("University sign-in is opt-in and refuses partial or fixture configuration 
         HELPINSIGHTS_ENTRA_CLIENT_SECRET: "disposable",
         HELPINSIGHTS_ENTRA_ORIGIN: "loopback-test",
         HELPINSIGHTS_ENTRA_DATABASE_URL: "synthetic",
-        HELPINSIGHTS_TEST_OIDC_BROWSER_ORIGIN: "http://localhost:1234",
+        HELPINSIGHTS_TEST_OIDC_BROWSER_ORIGIN:
+          "http://oidc.helpinsights.test:1234",
       }),
     /Incomplete University sign-in configuration/,
   );

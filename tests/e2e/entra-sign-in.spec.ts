@@ -36,6 +36,8 @@ test("university sign-in enforces workspace authoring and preserves anonymous co
     await target
       .getByRole("link", { name: "Sign in with University account" })
       .click();
+    await expect(target).toHaveTitle("Synthetic University");
+    expect(new URL(target.url()).hostname).toBe("oidc.helpinsights.test");
     await target.getByRole("button", { name: subject, exact: true }).click();
     await expect(
       target.getByRole("button", { name: "Sign out" }),
