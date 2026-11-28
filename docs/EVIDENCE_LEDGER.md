@@ -156,3 +156,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-018b deployment checklist and ENG-004b delegated institutional OAuth
 
 - Exact source `e55c2f5f7266b1d03d91fb4a92d4df7c871c0add` passed 15 unit, 53 real PostgreSQL integration, two security and 19 Chromium tests. The disposable runner removed its dedicated volume. The report records preflight, commands, test-driven repairs, independent challenges and target release gates. [Verification report](../evidence/ENG-018b/e55c2f5f7266b1d03d91fb4a92d4df7c871c0add.md).
+
+## ENG-003b University browser sign-in for creators
+
+- Exact source `ffc780958277712216a236f5f148cb96d34b66f1` passed 17 unit, 55 real PostgreSQL integration, two security and 20 Chromium checks. The full runner confirmed disposable cleanup. The report records PostgreSQL readiness and upgrade, synthetic identity journeys, disabled mode, repairs, independent challenge and live acceptance limits. [Verification report](../evidence/ENG-003b/ffc780958277712216a236f5f148cb96d34b66f1.md).
