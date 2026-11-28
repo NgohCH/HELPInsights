@@ -1,10 +1,21 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type WebSocket } from "@playwright/test";
 import { liveQuizFixture } from "../fixtures/live-quiz.ts";
 
 function nextSocket(page: Page) {
   return page.waitForEvent("websocket", {
     predicate: (connection) =>
       /\/live-sessions\/[\da-f-]+\/socket$/.test(connection.url()),
+  });
+}
+
+function questionOpened(socket: WebSocket) {
+  return socket.waitForEvent("framereceived", {
+    predicate: ({ payload }) => {
+      const { snapshot } = JSON.parse(String(payload));
+      return (
+        snapshot?.question?.id === "rating" && snapshot.question.open === true
+      );
+    },
   });
 }
 
@@ -42,11 +53,12 @@ test("Game Show presenter and mobile guest see a deadline and private receipt on
     await expect(
       guest.getByRole("heading", { name: "Game Show running" }),
     ).toBeVisible();
-    const hostQuestion = host.waitForEvent("framereceived");
-    const guestQuestion = socket.waitForEvent("framereceived");
+    const hostQuestion = questionOpened(host);
+    const guestQuestion = questionOpened(socket);
     await page.getByRole("button", { name: "Open first question" }).click();
     const presenter = JSON.parse(String((await hostQuestion).payload)).snapshot;
     const opened = JSON.parse(String((await guestQuestion).payload)).snapshot;
+    expect(opened.question.closesAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(opened.question.closesAt).toBe(presenter.question.closesAt);
     expect(opened.question.correctOptionCode).toBeUndefined();
     expect(presenter.scoring).toBeUndefined();
