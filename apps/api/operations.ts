@@ -97,10 +97,15 @@ export function operationsRoutes(
         }
 
         const { rows } = await client.query(
-          `SELECT ${incidentColumns} FROM public.operation_incidents
+          `SELECT ${incidentColumns}, source, episode_id AS "episodeId",
+            observed_at AS "observedAt" FROM public.operation_incidents
             ORDER BY recorded_at DESC, id DESC LIMIT 100`,
         );
-        return rows;
+        return rows.map(({ source, episodeId, observedAt, ...incident }) =>
+          source === "export_worker"
+            ? { ...incident, source, episodeId, observedAt }
+            : incident,
+        );
       });
       sendJson(response, writing ? 201 : 200, result);
     } catch (error) {

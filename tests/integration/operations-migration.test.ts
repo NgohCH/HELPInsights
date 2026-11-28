@@ -36,17 +36,39 @@ test("the operations migration upgrades a seeded database and its attributed rec
           const original = await pool.query(
             "INSERT INTO public.organisations (name) VALUES ('Operations upgrade fixture') RETURNING id"
           );
+          const recoveryIndex = migrations.findIndex(
+            migration => migration.name === '024-worker-recovery-incidents.sql'
+          );
+          assert.ok(recoveryIndex > index, 'worker recovery migration must follow operations');
+          assert.match(migrations[recoveryIndex - 1].name, /^023-/);
+          await migrate(pool, migrations.slice(0, recoveryIndex));
+          const { rows: [operator] } = await pool.query(
+            "INSERT INTO public.users (display_name) VALUES ('Legacy operator fixture') RETURNING id"
+          );
+          const { rows: [legacy] } = await pool.query(
+            "INSERT INTO public.operation_incidents (component, state, severity, actor_id) " +
+              "VALUES ('api', 'detected', 'advisory', $1) RETURNING id, recorded_at",
+            [operator.id]
+          );
           await migrate(pool, migrations);
+          const { rows: [manual] } = await pool.query(
+            "SELECT source, actor_id, recorded_at, episode_id, observed_at FROM public.operation_incidents WHERE id = $1",
+            [legacy.id]
+          );
+          assert.deepEqual(manual, {
+            source: 'operator', actor_id: operator.id, recorded_at: legacy.recorded_at,
+            episode_id: null, observed_at: null,
+          });
           assert.equal(await hasCurrentSchema(pool, migrations), true);
           const preserved = await pool.query("SELECT id FROM public.organisations");
           assert.deepEqual(preserved.rows, original.rows);
-          console.log('seeded upgrade preserved organisation');
+          console.log('seeded upgrade preserved organisation and legacy operator incident');
         } finally {
           await pool.end();
         }
       `,
       ),
-      /seeded upgrade preserved organisation/,
+      /seeded upgrade preserved organisation and legacy operator incident/,
     );
 
     const sql = (database: string, statement: string) =>
@@ -77,6 +99,16 @@ test("the operations migration upgrades a seeded database and its attributed rec
       COMMIT;
     `,
     );
+    const episode = "346bdce0-4d64-4f29-a5d5-941880ea83ba";
+    sql(
+      upgraded,
+      `
+        BEGIN;
+        SET LOCAL ROLE helpinsights_exporter;
+        SELECT public.record_export_worker_recovery('${episode}', clock_timestamp() - interval '1 second');
+        COMMIT;
+      `,
+    );
     postgres(
       "sh",
       "-ec",
@@ -88,10 +120,20 @@ test("the operations migration upgrades a seeded database and its attributed rec
     `,
     );
     const incident =
-      "SELECT id || ':' || component || ':' || state || ':' || severity || ':' || actor_id || ':' || recorded_at FROM public.operation_incidents";
+      "SELECT id || ':' || component || ':' || state || ':' || severity || ':' " +
+      "|| coalesce(actor_id::text, '') || ':' || recorded_at || ':' || source || ':' " +
+      "|| coalesce(episode_id::text, '') || ':' || coalesce(observed_at::text, '') " +
+      "FROM public.operation_incidents ORDER BY id";
     const persisted = sql(upgraded, incident);
     assert.ok(
       persisted.includes(":schema:recovered:information:" + actor + ":"),
+    );
+    assert.equal(
+      persisted
+        .split("\n")
+        .filter((row) => row.includes(":export_worker:" + episode + ":"))
+        .length,
+      2,
     );
     assert.equal(sql(restored, incident), persisted);
   } finally {

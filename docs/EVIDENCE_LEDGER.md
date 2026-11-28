@@ -196,3 +196,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-012a case handoff in the cumulative workspace
 
 - Final verification revision `bf7e55c03766c98f7e8fa31b7f8ab4423d85e368` passed the full hosted runtime. Focused local evidence records the seeded upgrade, reviewer and basis checks, duplicate approval, redacted receipt and held-response UI repair. [Verification report](../evidence/ENG-012a/9534446e740e6858958cdff0b59a5559ff03397d.md).
+
+## ENG-017a export worker recovery in cumulative operations
+
+- Exact hosted verification revision `13f1bd467e086a228623a16d26d1c8aade64e13c` passed the full runtime. Focused local proof includes two faults before a claim and two inside `export_source` after a claim, the same worker's successful archive, one redacted episode per test, zero charged attempts and seeded upgrade with logical restore. [Verification report](../evidence/ENG-017a/7e455f94fe8baad7c3a5f5851e87cd29a869c068.md).
