@@ -176,3 +176,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-008c Admin Settings and template-copy approvals
 
 - Exact source `d65b4c534e0c2e6cd055c062336e991d46a1db36` passed the full PostgreSQL and Chromium stack and disposable cleanup. The report records the Registry socket failure and rerun, administrator and group checks, audit assertions and review. [Verification report](../evidence/ENG-008c/d65b4c534e0c2e6cd055c062336e991d46a1db36.md).
+
+## ENG-008d research consent policy, Entra group claims and integration management
+
+- Exact source `9fae05a0e4ecea35e4e01b0ff266b02a44c94c52` passed 22 unit, 60 real PostgreSQL integration, two security and 26 Chromium tests. The local and hosted disposable stacks confirmed volume cleanup. The report records the earlier interrupted runs, authorization defects and repairs, seeded upgrade and archive evidence, independent review and live acceptance boundaries. [Verification report](../evidence/ENG-008d/9fae05a0e4ecea35e4e01b0ff266b02a44c94c52.md).
