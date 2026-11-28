@@ -204,3 +204,9 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-012a case handoff in the cumulative workspace
 
 - Final verification revision `bf7e55c03766c98f7e8fa31b7f8ab4423d85e368` passed the full hosted runtime. Focused local evidence records the seeded upgrade, reviewer and basis checks, duplicate approval, redacted receipt and held-response UI repair. [Verification report](../evidence/ENG-012a/9534446e740e6858958cdff0b59a5559ff03397d.md).
+
+## Cumulative synthetic workspace
+
+- Exact application source `b6ac3e48c721c8aefb481177f25a686f86e896a5` passed ten focused Chromium workflows in one real PostgreSQL and WebSocket stack. [Cumulative verification report](../evidence/ENG-INTEGRATION/b6ac3e48c721c8aefb481177f25a686f86e896a5.md)
+- [Versioned reporting](../evidence/ENG-007c/b4df81598781914738f88aa7d4589de2df9ca2a2.md) passed its complete local and hosted runs after the earlier local socket resets.
+- [Worker recovery](../evidence/ENG-017a/7e455f94fe8baad7c3a5f5851e87cd29a869c068.md) passed focused local database, restore and Chromium, and a full independent hosted run.
