@@ -108,9 +108,13 @@ test("saved survey launches its immutable public version while ordinary collecti
   await page.getByRole("button", { name: "Return to survey" }).click();
   await expect(game).toBeFocused();
   await poll.click();
-  await openRoom(firstVersion);
+  const firstRoom = await openRoom(firstVersion);
   await expect(
     page.getByRole("heading", { name: "Live Poll lobby" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Start live poll" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Live Poll running" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Return to survey" }).click();
   await expect(poll).toBeFocused();
@@ -175,12 +179,44 @@ test("saved survey launches its immutable public version while ordinary collecti
     await details.getByRole("button", { name: "Reload saved survey" }).click();
     await expect(poll).toBeEnabled();
     await expect(game).toHaveCount(0);
+    const checkedFirstRoom = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/live-sessions/" + firstRoom) &&
+        response.request().method() === "GET",
+    );
     await poll.click();
     await expect(
       page.getByRole("heading", { name: "Live Quiz Arena" }),
     ).toBeFocused();
     await expect(page.getByLabel("Published quiz version ID")).toHaveCount(0);
     await expect(page.getByLabel("Development session token")).toHaveCount(0);
+    await expect(openLobby).toBeVisible();
+    await page.getByRole("button", { name: "Return to survey" }).click();
+    const resume = page.getByRole("button", {
+      name: "Resume live presentation",
+    });
+    await expect(resume).toBeVisible();
+    const validatedFirstRoom = await checkedFirstRoom;
+    expect(validatedFirstRoom.status()).toBe(200);
+    expect(await validatedFirstRoom.json()).toMatchObject({
+      id: firstRoom,
+      quizVersionId: firstVersion,
+      state: "running",
+    });
+    const reopenFirst = liveSocket(page, firstRoom);
+    await resume.click();
+    await reopenFirst;
+    await page.getByRole("button", { name: "Pause live poll" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Live Poll paused" }),
+    ).toBeVisible();
+    expect(
+      sql(`SELECT count(*) FROM public.live_sessions l JOIN public.survey_versions v
+           ON v.id = l.quiz_version_id WHERE v.survey_id = '${survey}'`),
+    ).toBe("1");
+    await page.getByRole("button", { name: "Return to survey" }).click();
+    await expect(resume).toBeFocused();
+    await poll.click();
     const room = await openRoom(version);
     const refused = await guest.request.post("/api/v1/live-sessions", {
       headers: { Authorization: "Bearer " + outsiderToken },
@@ -217,6 +253,10 @@ test("saved survey launches its immutable public version while ordinary collecti
 
     await page.getByRole("button", { name: "Return to survey" }).click();
     await expect(poll).toBeFocused();
+    await expect(resume).toHaveCount(0);
+    expect(await page.evaluate(() => Object.values(sessionStorage))).toEqual([
+      room,
+    ]);
     await details
       .getByRole("button", { name: "End response collection" })
       .click();
@@ -235,9 +275,6 @@ test("saved survey launches its immutable public version while ordinary collecti
     ).toHaveCount(0);
 
     await page.reload();
-    const resume = page.getByRole("button", {
-      name: "Resume live presentation",
-    });
     await expect(resume).toBeVisible();
     const recovering = liveSocket(page, room);
     await resume.click();

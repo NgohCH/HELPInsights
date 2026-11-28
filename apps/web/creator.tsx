@@ -118,6 +118,13 @@ export function Creator({
   const [presentations, setPresentations] = useState<
     Partial<Record<LiveMode, LiveVersion>>
   >({});
+  const [roomPresentation, setRoomPresentation] = useState<{
+    mode: LiveMode;
+    versionId: string;
+  }>();
+  const mountedVersion = roomPresentation
+    ? presentations[roomPresentation.mode]?.id
+    : undefined;
 
   const [recoverableRoom, setRecoverableRoom] = useState<string>();
   const [resumedRoom, setResumedRoom] = useState<string>();
@@ -128,13 +135,19 @@ export function Creator({
     setRecoverableRoom((current) => (current === id ? undefined : current));
   }, []);
 
-  function onRoomOpened(id: string) {
+  function onRoomOpened(id: string, mode: LiveMode, versionId: string) {
     rememberRoom(id);
+    setRoomPresentation({ mode, versionId });
     setRecoverableRoom(undefined);
   }
 
   useEffect(() => {
-    if (!institutionalSession || !liveQuizEnabled) return;
+    if (
+      !institutionalSession ||
+      !liveQuizEnabled ||
+      (roomPresentation && mountedVersion === roomPresentation.versionId)
+    )
+      return;
     const id = rememberedRoom();
     if (!id) return;
     if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id)) {
@@ -166,12 +179,18 @@ export function Creator({
           forgetRoom(id);
         }
       } catch {
-        // Keep the reference for the next reload after a temporary failure.
+        // Keep the reference for the next recovery check after a temporary failure.
       }
     }
     void verifyRoom(id);
     return () => controller.abort();
-  }, [institutionalSession, liveQuizEnabled, forgetRoom]);
+  }, [
+    institutionalSession,
+    liveQuizEnabled,
+    roomPresentation,
+    mountedVersion,
+    forgetRoom,
+  ]);
 
   const showPresenter: ShowPresenter = (mode, version, trigger) => {
     liveTrigger.current = trigger;
@@ -900,7 +919,8 @@ export function Creator({
                 returnToSurvey: () => setLiveMode(undefined),
                 ...(institutionalSession &&
                   !token && {
-                    onRoomOpened,
+                    onRoomOpened: (id: string) =>
+                      onRoomOpened(id, mode, version.id),
                     onRoomUnavailable: forgetRoom,
                   }),
               }}
