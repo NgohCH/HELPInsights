@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { api } from "./api.ts";
+import { useEffect, useState, type FormEvent } from "react";
+import { api, signOutUniversity } from "./api.ts";
 
 type Health = {
   status: string;
@@ -14,14 +14,55 @@ type Incident = {
   recordedAt: string;
 };
 
-export function Operations() {
+async function readOperations(token: string, signal?: AbortSignal) {
+  const [health, incidents] = await Promise.all([
+    api<Health>("/admin/health", { token, signal }),
+    api<Incident[]>("/admin/incidents", { token, signal }),
+  ]);
+  return { health: health.data, incidents: incidents.data };
+}
+
+export function Operations({
+  universitySignIn,
+  developmentSignIn,
+}: {
+  universitySignIn: boolean;
+  developmentSignIn: boolean;
+}) {
   const [token, setToken] = useState("");
-  const [view, setView] = useState<{
-    health: Health;
-    incidents: Incident[];
-  } | null>(null);
+  const [institutionalSession, setInstitutionalSession] = useState(false);
+  const [view, setView] = useState<Awaited<
+    ReturnType<typeof readOperations>
+  > | null>(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(universitySignIn);
+
+  useEffect(() => {
+    if (!universitySignIn) return;
+    const controller = new AbortController();
+    const { signal } = controller;
+    async function loadUniversitySession() {
+      try {
+        const response = await fetch("/api/v1/me", { signal });
+        if (signal.aborted || response.status === 401) return;
+        if (!response.ok) throw new Error("University session unavailable");
+        setInstitutionalSession(true);
+        const operations = await readOperations("", signal);
+        if (!signal.aborted) setView(operations);
+      } catch (failure) {
+        if (!signal.aborted)
+          setError(
+            failure instanceof Error
+              ? failure.message
+              : "Operations unavailable",
+          );
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
+    }
+    void loadUniversitySession();
+    return () => controller.abort();
+  }, [universitySignIn]);
 
   async function open(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,11 +70,7 @@ export function Operations() {
     setView(null);
     setError("");
     try {
-      const [health, incidents] = await Promise.all([
-        api<Health>("/admin/health", { token }),
-        api<Incident[]>("/admin/incidents", { token }),
-      ]);
-      setView({ health: health.data, incidents: incidents.data });
+      setView(await readOperations(token));
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : "Operations unavailable",
@@ -44,24 +81,50 @@ export function Operations() {
     }
   }
 
+  async function signOut() {
+    setLoading(true);
+    setError("");
+    try {
+      await signOutUniversity("/admin");
+      setView(null);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Sign-out failed");
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="shell">
       <h1>Operations</h1>
-      <form className="panel" onSubmit={open}>
-        <label>
-          Development session token
-          <input
-            type="password"
-            autoComplete="off"
-            required
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-          />
-        </label>
-        <button disabled={loading} type="submit">
-          Open operations
+      {institutionalSession && (
+        <button type="button" disabled={loading} onClick={() => void signOut()}>
+          Sign out
         </button>
-      </form>
+      )}
+      {universitySignIn && !institutionalSession && !loading && (
+        <p>
+          <a href="/auth/university/start?returnTo=admin">
+            Sign in with University account
+          </a>
+        </p>
+      )}
+      {developmentSignIn && !institutionalSession && (
+        <form className="panel" onSubmit={open}>
+          <label>
+            Development session token
+            <input
+              type="password"
+              autoComplete="off"
+              required
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+            />
+          </label>
+          <button disabled={loading} type="submit">
+            Open operations
+          </button>
+        </form>
+      )}
       {loading && <p role="status">Loading operations</p>}
       {error && (
         <p className="error" role="alert">

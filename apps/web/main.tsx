@@ -9,8 +9,13 @@ if (!target) throw new Error("Application root missing");
 
 const token = /^\/respond\/([A-Za-z0-9_-]{43})$/.exec(location.pathname)?.[1];
 const root = createRoot(target);
+const signInOptions = {
+  universitySignIn: target.dataset.universitySignIn === "true",
+  developmentSignIn: target.dataset.developmentSignIn !== "false",
+};
 if (token) root.render(<Respondent token={token} />);
-else if (location.pathname === "/admin") root.render(<Operations />);
+else if (location.pathname === "/admin")
+  root.render(<Operations {...signInOptions} />);
 else if (
   location.pathname === "/live/host" ||
   location.pathname === "/live/game-host" ||
@@ -22,10 +27,4 @@ else if (
       gameShow={location.pathname === "/live/game-host"}
     />,
   );
-else
-  root.render(
-    <Creator
-      universitySignIn={target.dataset.universitySignIn === "true"}
-      developmentSignIn={target.dataset.developmentSignIn !== "false"}
-    />,
-  );
+else root.render(<Creator {...signInOptions} />);

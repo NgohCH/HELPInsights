@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { api, type Workspace } from "./api.ts";
+import { api, signOutUniversity, type Workspace } from "./api.ts";
 import { Results } from "./results.tsx";
 import { FeatureCatalogue } from "./features.tsx";
 import { DraftPreview } from "./draft-preview.tsx";
@@ -296,15 +296,7 @@ export function Creator({
             <button
               type="button"
               disabled={pending}
-              onClick={() =>
-                void run(async () => {
-                  const response = await fetch("/auth/university/logout", {
-                    method: "POST",
-                  });
-                  if (!response.ok) throw new Error("Sign-out failed");
-                  window.location.assign("/");
-                })
-              }
+              onClick={() => void run(() => signOutUniversity("/"))}
             >
               Sign out
             </button>

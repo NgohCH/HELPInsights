@@ -54,7 +54,7 @@ test("the callback is bound to one browser and a single PKCE attempt", async (co
   const address = server.address();
   assert.ok(address && typeof address === "object");
   const base = "http://127.0.0.1:" + address.port;
-  const start = await fetch(base + "/auth/university/start", {
+  const start = await fetch(base + "/auth/university/start?returnTo=admin", {
     redirect: "manual",
   });
   assert.equal(start.status, 303);
@@ -83,9 +83,12 @@ test("the callback is bound to one browser and a single PKCE attempt", async (co
   wrongState.searchParams.set("state", "wrong");
   assert.equal((await fetch(wrongState, withCookie)).status, 401);
   assert.equal(exchanges, 0);
-  const signedIn = await fetch(callback, withCookie);
+  const signedIn = await fetch(
+    callback + "&returnTo=https://external.example",
+    withCookie,
+  );
   assert.equal(signedIn.status, 303);
-  assert.equal(signedIn.headers.get("location"), "/");
+  assert.equal(signedIn.headers.get("location"), "/admin");
   assert.match(
     signedIn.headers.getSetCookie().join(" "),
     /__Host-helpinsights-session=[A-Za-z0-9_-]{43};/,
@@ -136,6 +139,23 @@ test("the callback is bound to one browser and a single PKCE attempt", async (co
     time.mock.restore();
   }
   assert.equal(exchanges, 1);
+  const externalStart = await fetch(
+    base + "/auth/university/start?returnTo=https://external.example",
+    { redirect: "manual" },
+  );
+  const externalCallback = new URL(callback);
+  externalCallback.searchParams.set(
+    "state",
+    new URL(externalStart.headers.get("location")!).searchParams.get("state")!,
+  );
+  const fallback = await fetch(externalCallback, {
+    redirect: "manual",
+    headers: {
+      Cookie: externalStart.headers.getSetCookie()[0].split(";")[0],
+    },
+  });
+  assert.equal(fallback.status, 303);
+  assert.equal(fallback.headers.get("location"), "/");
 });
 
 test("University sign-in is opt-in and refuses partial or fixture configuration outside test", () => {

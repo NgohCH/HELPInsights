@@ -11,10 +11,12 @@ export async function api<T>(
     method?: string;
     body?: object;
     headers?: Record<string, string>;
+    signal?: AbortSignal;
   } = {},
 ) {
   const response = await fetch("/api/v1" + path, {
     method: options.method,
+    signal: options.signal,
     headers: {
       ...options.headers,
       ...(options.token ? { Authorization: "Bearer " + options.token } : {}),
@@ -26,4 +28,10 @@ export async function api<T>(
   const data = await response.json();
   if (!response.ok) throw new Error(data.message ?? "Request failed");
   return { data: data as T, etag: response.headers.get("etag") };
+}
+
+export async function signOutUniversity(returnPath: "/" | "/admin") {
+  const response = await fetch("/auth/university/logout", { method: "POST" });
+  if (!response.ok) throw new Error("Sign-out failed");
+  window.location.assign(returnPath);
 }

@@ -164,3 +164,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 - The hosted browser on the initial draft revision could not connect to the disposable provider at localhost. Exact repaired source `1726cb876eb220e808e655d1c1c2a59485782596` passed the same full local checks and cleanup. [Hosted fixture defect and repair](../evidence/ENG-003b/1726cb876eb220e808e655d1c1c2a59485782596.md).
 
 - Hosted Compose logs showed the underlying fixture error: the provider was recreated after port discovery. Exact source `c4a91f719040f946a0552145eddfc7aeec530b3e` now builds before startup and verifies a stable port before every suite. The full local rerun passed with confirmed cleanup. [Root cause and verification](../evidence/ENG-003b/c4a91f719040f946a0552145eddfc7aeec530b3e.md).
+
+## ENG-003c University sign-in for administration
+
+- Exact source `074b44f908e32bff884877562204e8ea4e28a67b` passed 17 unit, 55 PostgreSQL integration, two security and 21 Chromium tests. Disposable cleanup was confirmed. The evidence records the red callback test, role and response-shape checks, restored console before logout and independent review. [Verification report](../evidence/ENG-003c/074b44f908e32bff884877562204e8ea4e28a67b.md).
