@@ -179,6 +179,8 @@ The disposable stack enables University-only collection for synthetic tests. Aft
 
 The disposable test stack enables Live Poll and Game Show. After publishing a compatible public survey, choose **Present a Live Poll** or **Present a Game Show** in the creator workspace. The presenter uses the current sign-in and the published version automatically. Share the eight-digit PIN with a synthetic participant at `/live/join` within 30 minutes. Local development can also open `/live/host` with a development session token and the version ID.
 
+If you reload the same creator tab, choose **Resume live presentation** to return to your latest active Live Poll or Game Show. The app checks the current University sign-in and opens that room. The plaintext join PIN is available when you first open the lobby. Reloading clears it from the presenter screen. Guests can keep using a shared PIN until it expires.
+
 The presenter can start, pause, resume, end and archive the poll. The presenter and guest see committed state changes over a same-origin WebSocket. A disconnected tab reconnects to the current PostgreSQL state. Refresh lobby also reopens the connection. Guest credentials stay in the current page and expire after eight hours. Once running, the presenter opens and advances questions in published order. Each guest can cast one vote per question and see their own receipt. The presenter sees turnout in groups of five and may close the question to reveal exact counts when the category and nonvoter groups meet the privacy threshold. See the [voting test criteria](docs/LIVE_POLL_VOTING_TEST_CRITERIA.md) and [remaining Live Quiz Arena release gates](docs/LIVE_QUIZ_ARENA.md).
 
 ### Local timed Game Show

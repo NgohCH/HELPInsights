@@ -6,12 +6,18 @@ import type { LiveSnapshot } from "../api/live-quiz-transport.ts";
 import { useLiveConnection, type LiveAccess } from "./use-live-connection.ts";
 
 type PreparedPresentation = {
-  token: string;
-  versionId: string;
-  title: string;
-  options?: { code: string; label: string }[];
   returnToSurvey(): void;
-};
+  onRoomUnavailable?(id: string): void;
+} & (
+  | {
+      token: string;
+      versionId: string;
+      title: string;
+      options?: { code: string; label: string }[];
+      onRoomOpened?(id: string): void;
+    }
+  | { roomId: string }
+);
 
 type HostLobby = LiveSnapshot & { pin: string; pinExpiresAt: string };
 type GuestLobby = { snapshot: LiveSnapshot; participantToken: string };
@@ -55,13 +61,29 @@ export function LiveQuiz({
   useEffect(() => {
     if (isPrepared && !hidden) title.current?.focus();
   }, [isPrepared, hidden]);
-  const [access, setAccess] = useState<LiveAccess>();
+  const setup = prepared && "versionId" in prepared ? prepared : undefined;
+  const roomId = prepared && "roomId" in prepared ? prepared.roomId : undefined;
+  const [access, setAccess] = useState<LiveAccess | undefined>(() =>
+    roomId ? { id: roomId, authorization: null } : undefined,
+  );
   const [refresh, setRefresh] = useState(0);
   const { snapshot, connection } = useLiveConnection(access, refresh);
   const [hostLobby, setHostLobby] = useState<HostLobby>();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const showingGame = gameShow || snapshot?.mode === "game_show";
+  const onRoomUnavailable = prepared?.onRoomUnavailable;
+
+  useEffect(() => {
+    if (
+      access &&
+      (connection === "forbidden" ||
+        snapshot?.state === "ended" ||
+        snapshot?.state === "archived")
+    ) {
+      onRoomUnavailable?.(access.id);
+    }
+  }, [access, connection, snapshot?.state, onRoomUnavailable]);
 
   async function run(operation: () => Promise<void>) {
     setError("");
@@ -81,14 +103,14 @@ export function LiveQuiz({
     void run(async () => {
       let newAccess: LiveAccess;
       if (isHost) {
-        const token = prepared?.token ?? String(fields.get("token")).trim();
+        const token = setup?.token ?? String(fields.get("token")).trim();
         const { data } = await api<HostLobby>("/live-sessions", {
           token,
           method: "POST",
           body: {
             mode: gameShow ? "game_show" : "live_poll",
             quizVersionId:
-              prepared?.versionId ?? String(fields.get("version")).trim(),
+              setup?.versionId ?? String(fields.get("version")).trim(),
             ...(gameShow
               ? {
                   scoring: {
@@ -102,6 +124,7 @@ export function LiveQuiz({
           },
         });
         setHostLobby(data);
+        setup?.onRoomOpened?.(data.id);
         newAccess = {
           id: data.id,
           authorization: token ? "Bearer " + token : null,
@@ -155,21 +178,30 @@ export function LiveQuiz({
         <h2>
           {snapshot
             ? (showingGame ? "Game Show " : "Live Poll ") + snapshot.state
-            : isHost
-              ? gameShow
-                ? "Present a Game Show"
-                : "Present a Live Poll"
-              : "Join a live quiz"}
+            : roomId
+              ? "Resume live presentation"
+              : isHost
+                ? gameShow
+                  ? "Present a Game Show"
+                  : "Present a Live Poll"
+                : "Join a live quiz"}
         </h2>
-        {prepared && <p>{prepared.title}</p>}
+        {setup && <p>{setup.title}</p>}
         {access ? (
           <>
             <p role="status">{connectionLabels[connection]}</p>
-            {hostLobby && snapshot?.state === "lobby" && (
+            {isHost && snapshot?.state === "lobby" && (
               <p>
-                Join PIN <output aria-label="Join PIN">{hostLobby.pin}</output>
-                {" · "}Expires at{" "}
-                {new Date(hostLobby.pinExpiresAt).toLocaleTimeString()}
+                {hostLobby ? (
+                  <>
+                    Join PIN{" "}
+                    <output aria-label="Join PIN">{hostLobby.pin}</output>
+                    {" · "}Expires at{" "}
+                    {new Date(hostLobby.pinExpiresAt).toLocaleTimeString()}
+                  </>
+                ) : (
+                  "Guests can use the PIN you shared until it expires"
+                )}
                 {" · "}
                 <a href="/live/join">Open guest join page</a>
               </p>
@@ -249,12 +281,12 @@ export function LiveQuiz({
                 )}
                 {gameShow && (
                   <>
-                    {prepared?.options ? (
+                    {setup?.options ? (
                       <label>
                         Correct answer
                         <select name="correctOptionCode" required>
                           <option value="">Choose an answer</option>
-                          {prepared.options.map(({ code, label }) => (
+                          {setup.options.map(({ code, label }) => (
                             <option key={code} value={code}>
                               {label}
                             </option>
