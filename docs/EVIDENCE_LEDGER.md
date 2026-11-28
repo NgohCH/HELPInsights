@@ -188,3 +188,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-006f saved draft multipage editing
 
 - Application source `b06b1ba61e02143b02a05565b4ee11bd990d1dd3` passed 27 unit, 60 real PostgreSQL integration, two security and 34 Chromium tests. The report records the failing baseline, corrected live-region announcements, exact-source CI and disposable cleanup. [Verification report](../evidence/ENG-006f/b06b1ba61e02143b02a05565b4ee11bd990d1dd3.md).
+
+## ENG-006g publication from saved surveys
+
+- Application source `2adf2c09d2ec74710b96b66276f284e3a4e69b2f` passed 27 unit, 60 real PostgreSQL integration, two security and 36 Chromium tests. The report records the delayed-response regression, keyboard focus, stale University-only draft refusal and disposable cleanup. [Verification report](../evidence/ENG-006g/2adf2c09d2ec74710b96b66276f284e3a4e69b2f.md).

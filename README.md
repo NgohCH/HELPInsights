@@ -131,6 +131,8 @@ In the creator, choose a workspace and select **Browse templates** to preview **
 
 The development **Feature catalogue** lets workspace owners and editors request NPS authoring for anonymous surveys. A delegated workspace reviewer can approve time-limited access or deny the request. Approval unlocks 0–10 NPS questions for authoring and publishing.
 
+To publish a reopened draft, choose **Publish saved draft** and select who can respond. A University-only publication requires an approved workspace policy. Each publication has its own respondent link. **End response collection** closes the survey's ordinary respondent links after confirmation. The previously collected responses and published versions are retained.
+
 During authoring, **Show a follow-up when** lets you attach a required text question to one choice. The saved preview uses the same rule as the published form. Exported blanks can mean a question was hidden or was visible and unanswered. The analytics response count covers the entire published version.
 
 The disposable test stack also starts a private Person Registry simulator for synthetic eligibility checks. Tests publish a restricted test distribution, verify a synthetic credential, and collect an anonymous response. The default local stack uses open survey links. The temporary capability grants access to a restricted test link, and the separate `Idempotency-Key` handles retries of one submission. Simulator outages suspend new verification until recovery. Existing capabilities remain valid until expiry. [Project Listen development scope](docs/PROJECT_LISTEN.md#synthetic-registry-development-slice)

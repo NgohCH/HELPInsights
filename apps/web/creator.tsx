@@ -37,6 +37,7 @@ export function Creator({
   const [token, setToken] = useState("");
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [workspaceId, setWorkspaceId] = useState("");
+  const [savedSurveyWriting, setSavedSurveyWriting] = useState(false);
   const [followUpWhen, setFollowUpWhen] = useState("");
   const [npsWorkspaceId, setNpsWorkspaceId] = useState<string | null>(null);
   const [questionType, setQuestionType] = useState<"single_choice" | "nps">(
@@ -370,17 +371,31 @@ export function Creator({
                 <a href="#create-heading">Create survey</a>
                 <a href="#workspace-surveys">Workspace surveys</a>
                 <a
+                  role="link"
+                  aria-disabled={savedSurveyWriting}
                   href={
-                    "/admin?view=retention" +
-                    (draft ? "&survey=" + encodeURIComponent(draft.id) : "") +
-                    "#survey-retention"
+                    savedSurveyWriting
+                      ? undefined
+                      : "/admin?view=retention" +
+                        (draft
+                          ? "&survey=" + encodeURIComponent(draft.id)
+                          : "") +
+                        "#survey-retention"
                   }
                 >
                   Survey retention
                 </a>
               </>
             )}
-            {liveQuizEnabled && <a href="/live/join">Join a live session</a>}
+            {liveQuizEnabled && (
+              <a
+                role="link"
+                aria-disabled={savedSurveyWriting}
+                href={savedSurveyWriting ? undefined : "/live/join"}
+              >
+                Join a live session
+              </a>
+            )}
           </nav>
         )}
         {guideTopic !== null && (
@@ -422,7 +437,7 @@ export function Creator({
             {institutionalSession && (
               <button
                 type="button"
-                disabled={pending}
+                disabled={pending || savedSurveyWriting}
                 onClick={() => void run(() => signOutUniversity("/"))}
               >
                 Sign out
@@ -440,7 +455,7 @@ export function Creator({
                     setOfferResearchConsent(false);
                     setWorkspaceId(event.target.value);
                   }}
-                  disabled={!!draft || pending}
+                  disabled={!!draft || pending || savedSurveyWriting}
                   required
                 >
                   {!workspaces.length && (
@@ -677,7 +692,13 @@ export function Creator({
             </div>
             {publicLink && (
               <div className="link-row">
-                <a href={publicLink}>Open respondent link</a>
+                <a
+                  role="link"
+                  aria-disabled={savedSurveyWriting}
+                  href={savedSurveyWriting ? undefined : publicLink}
+                >
+                  Open respondent link
+                </a>
                 {liveQuizEnabled && liveVersion && (
                   <div className="actions">
                     <button
@@ -737,6 +758,8 @@ export function Creator({
             token={token}
             refreshKey={(draft?.etag ?? "") + publicLink}
             canAuthorNps={canAuthorNps}
+            saving={savedSurveyWriting}
+            setSaving={setSavedSurveyWriting}
             onHelp={(button) => openGuide(button, "preview")}
           />
         )}
