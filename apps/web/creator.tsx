@@ -1,8 +1,15 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { api, signOutUniversity, type Workspace } from "./api.ts";
 import { Results } from "./results.tsx";
 import { WorkspaceSurveys } from "./workspace-surveys.tsx";
 import { LiveQuiz } from "./live-quiz.tsx";
+import type { LiveSnapshot } from "../api/live-quiz-transport.ts";
 import { FeatureCatalogue } from "./features.tsx";
 import { DraftPreview } from "./draft-preview.tsx";
 import { PublishAudience, usePublishAudience } from "./publish-audience.tsx";
@@ -21,6 +28,25 @@ type LiveVersion = {
   title: string;
   options?: { code: string; label: string }[];
 };
+
+const roomStorageKey = "helpinsights.live-presentation";
+
+function rememberedRoom() {
+  try {
+    return window.sessionStorage.getItem(roomStorageKey);
+  } catch {
+    return null;
+  }
+}
+
+function rememberRoom(id: string | null) {
+  try {
+    if (id) window.sessionStorage.setItem(roomStorageKey, id);
+    else window.sessionStorage.removeItem(roomStorageKey);
+  } catch {
+    // Presenting still works when browser storage is unavailable.
+  }
+}
 
 export function Creator({
   universitySignIn,
@@ -91,6 +117,60 @@ export function Creator({
     Partial<Record<Mode, LiveVersion>>
   >({});
 
+  const [recoverableRoom, setRecoverableRoom] = useState<string>();
+  const [resumedRoom, setResumedRoom] = useState<string>();
+  const presenting = Boolean(liveMode || resumedRoom);
+
+  const forgetRoom = useCallback((id: string) => {
+    if (rememberedRoom() === id) rememberRoom(null);
+    setRecoverableRoom((current) => (current === id ? undefined : current));
+  }, []);
+
+  function onRoomOpened(id: string) {
+    rememberRoom(id);
+    setRecoverableRoom(undefined);
+  }
+
+  useEffect(() => {
+    if (!institutionalSession || !liveQuizEnabled) return;
+    const id = rememberedRoom();
+    if (!id) return;
+    if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(id)) {
+      forgetRoom(id);
+      return;
+    }
+    const controller = new AbortController();
+    async function verifyRoom(id: string) {
+      try {
+        const response = await fetch("/api/v1/live-sessions/" + id, {
+          credentials: "same-origin",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted || rememberedRoom() !== id) return;
+        if ([401, 403, 404].includes(response.status)) forgetRoom(id);
+        if (!response.ok) return;
+        const room = (await response.json()) as LiveSnapshot;
+        if (controller.signal.aborted || rememberedRoom() !== id) return;
+        if (
+          room.id === id &&
+          room.quizVersionId &&
+          (room.state === "lobby" ||
+            room.state === "running" ||
+            room.state === "paused")
+        ) {
+          setRecoverableRoom(id);
+        } else {
+          forgetRoom(id);
+        }
+      } catch {
+        // Keep the reference for the next reload after a temporary failure.
+      }
+    }
+    void verifyRoom(id);
+    return () => controller.abort();
+  }, [institutionalSession, liveQuizEnabled, forgetRoom]);
+
   function showPresenter(mode: Mode, trigger: HTMLButtonElement) {
     if (!liveVersion) return;
     liveTrigger.current = trigger;
@@ -99,10 +179,14 @@ export function Creator({
   }
 
   const liveTrigger = useRef<HTMLButtonElement>(null);
+  const workspaceHeading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    if (!liveMode) liveTrigger.current?.focus();
-  }, [liveMode]);
+    const trigger = liveTrigger.current;
+    if (!presenting && trigger) {
+      (trigger.isConnected ? trigger : workspaceHeading.current)?.focus();
+    }
+  }, [presenting]);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -350,9 +434,11 @@ export function Creator({
 
   return (
     <>
-      <main className="shell" hidden={Boolean(liveMode)}>
+      <main className="shell" hidden={presenting}>
         <header className="brand">
-          <h1>HELPInsights</h1>
+          <h1 ref={workspaceHeading} tabIndex={-1}>
+            HELPInsights
+          </h1>
           <button
             type="button"
             className="secondary"
@@ -395,6 +481,19 @@ export function Creator({
               >
                 Join a live session
               </a>
+            )}
+            {liveQuizEnabled && recoverableRoom && (
+              <button
+                type="button"
+                className="secondary"
+                disabled={savedSurveyWriting}
+                onClick={(event) => {
+                  liveTrigger.current = event.currentTarget;
+                  setResumedRoom(recoverableRoom);
+                }}
+              >
+                Resume live presentation
+              </button>
             )}
           </nav>
         )}
@@ -777,6 +876,17 @@ export function Creator({
           </p>
         )}
       </main>
+      {resumedRoom && (
+        <LiveQuiz
+          key={resumedRoom}
+          isHost
+          prepared={{
+            roomId: resumedRoom,
+            returnToSurvey: () => setResumedRoom(undefined),
+            onRoomUnavailable: forgetRoom,
+          }}
+        />
+      )}
       {(["poll", "game"] as const).map((mode) => {
         const version = presentations[mode];
         return (
@@ -792,6 +902,11 @@ export function Creator({
                 title: version.title,
                 options: version.options,
                 returnToSurvey: () => setLiveMode(undefined),
+                ...(institutionalSession &&
+                  !token && {
+                    onRoomOpened,
+                    onRoomUnavailable: forgetRoom,
+                  }),
               }}
             />
           )

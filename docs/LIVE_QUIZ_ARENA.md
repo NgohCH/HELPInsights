@@ -6,6 +6,8 @@
 
 The disposable app launches Live Poll and Game Show from an authorised creator's public publication. Same-origin presenter connections reuse the creator's University browser session. The participant still uses a lobby PIN and room capability. Live tools use unconditional choice questions. Game Show uses one question and selects the private answer by label.
 
+After reloading the same creator tab, the University presenter can choose **Resume live presentation** for the most recently opened active room. The creator tab stores only the room UUID. The host-only snapshot authorises the current browser session before offering the action, and the WebSocket authenticates again when it connects. Connected participants stay in the room. Finished rooms and references rejected by the server are dropped. The PIN is displayed when the lobby is opened, and PostgreSQL keeps its hash. A resumed lobby uses any PIN already shared with guests until it expires.
+
 ## User journeys
 
 **Lecturer/host:** Smart Wizard → Pop Quiz → author/clone questions → choose Live delivery → Game Show / Classroom Learning / Live Poll / Formal Assessment → set timing, audience, access, score, leaderboard and results release → readiness check → publish immutable quiz → start live session → share PIN/QR or sanctioned in-app link → admit/join participants → start/pause/advance/reveal/end → review results and export. A host may abandon and restart a *session* without altering the published quiz definition.
