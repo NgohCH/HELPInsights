@@ -200,3 +200,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-015b live presenter recovery
 
 - Source `06d4b3ef680357f3c5c94b35d43c9ac4ae140c3b` passed the full hosted runtime. The recorded local browser tests used the original room, PostgreSQL and the existing guest WebSocket, with independent review of authority and focus. [Verification report](../evidence/ENG-015b/06d4b3ef680357f3c5c94b35d43c9ac4ae140c3b.md).
+
+## ENG-012a case handoff in the cumulative workspace
+
+- Final verification revision `bf7e55c03766c98f7e8fa31b7f8ab4423d85e368` passed the full hosted runtime. Focused local evidence records the seeded upgrade, reviewer and basis checks, duplicate approval, redacted receipt and held-response UI repair. [Verification report](../evidence/ENG-012a/9534446e740e6858958cdff0b59a5559ff03397d.md).
