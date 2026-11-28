@@ -192,3 +192,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-006g publication from saved surveys
 
 - Application source `2adf2c09d2ec74710b96b66276f284e3a4e69b2f` passed 27 unit, 60 real PostgreSQL integration, two security and 36 Chromium tests. The report records the delayed-response regression, keyboard focus, stale University-only draft refusal and disposable cleanup. [Verification report](../evidence/ENG-006g/2adf2c09d2ec74710b96b66276f284e3a4e69b2f.md).
+
+## ENG-015b live presenter recovery
+
+- Source `06d4b3ef680357f3c5c94b35d43c9ac4ae140c3b` passed the full hosted runtime. The recorded local browser tests used the original room, PostgreSQL and the existing guest WebSocket, with independent review of authority and focus. [Verification report](../evidence/ENG-015b/06d4b3ef680357f3c5c94b35d43c9ac4ae140c3b.md).
