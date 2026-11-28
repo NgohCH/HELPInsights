@@ -51,11 +51,13 @@ function rememberRoom(id: string | null) {
 export function Creator({
   universitySignIn,
   developmentSignIn,
+  syntheticCaseHandoff,
   liveQuizEnabled,
   gameShowEnabled,
 }: {
   universitySignIn: boolean;
   developmentSignIn: boolean;
+  syntheticCaseHandoff: boolean;
   liveQuizEnabled: boolean;
   gameShowEnabled: boolean;
 }) {
@@ -450,7 +452,7 @@ export function Creator({
             Open user guide
           </button>
         </header>
-        {(workspaces !== null || liveQuizEnabled) && (
+        {(workspaces !== null || liveQuizEnabled || syntheticCaseHandoff) && (
           <nav className="actions" aria-label="Workspace navigation">
             {workspaces !== null && (
               <>
@@ -494,6 +496,15 @@ export function Creator({
               >
                 Resume live presentation
               </button>
+            )}
+            {syntheticCaseHandoff && (
+              <a
+                role="link"
+                aria-disabled={savedSurveyWriting}
+                href={savedSurveyWriting ? undefined : "/case-handoff"}
+              >
+                Synthetic case handoff
+              </a>
             )}
           </nav>
         )}

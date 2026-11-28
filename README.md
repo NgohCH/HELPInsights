@@ -153,6 +153,11 @@ corepack pnpm test:stack
 
 The Playwright journey creates its own development session and workspace, submits answers, restarts PostgreSQL, checks stored answers directly in SQL, and reconciles the browser chart and downloaded ZIP. The test retains the chart screenshot and sample archive under `test-results/`. See [build status](docs/BUILD_STATUS.md) for implementation and release scope.
 
+In the disposable test stack, open **Synthetic case handoff** from the
+workspace home and use the appointed reviewer token, published version and
+synthetic basis provided by the fixture. Approval queues a redacted event
+in PostgreSQL. [Project Listen case handoff](docs/PROJECT_LISTEN.md#synthetic-case-handoff-development-slice)
+
 ### Institutional OAuth development scope
 
 The API can verify a delegated institutional access token for `GET /api/v1/me` and `GET /api/v1/workspaces`. Enable the path by setting all four server runtime variables `HELPINSIGHTS_OAUTH_ISSUER`, `HELPINSIGHTS_OAUTH_AUDIENCE`, `HELPINSIGHTS_OAUTH_SCOPE` and `HELPINSIGHTS_OAUTH_JWKS`. Leave them unset to keep this path disabled. Supply the canonical HTTPS issuer and a dedicated single API audience. The JSON public key set accepts up to eight approved RSA signature keys containing only `kty`, `alg`, `use`, `kid`, `n` and `e` (RSA, RS256 and sig). Key updates require replacing the configured set and restarting. The verifier has no external network dependency.

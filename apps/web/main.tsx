@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { Creator } from "./creator.tsx";
+import { CaseHandoff } from "./case-handoff.tsx";
 import { Operations } from "./operations.tsx";
 import { ToolSettings } from "./tool-settings.tsx";
 import { LiveQuiz } from "./live-quiz.tsx";
@@ -14,7 +15,10 @@ const signInOptions = {
   universitySignIn: target.dataset.universitySignIn === "true",
   developmentSignIn: target.dataset.developmentSignIn !== "false",
 };
+const syntheticCaseHandoff = target.dataset.syntheticCaseHandoff === "true";
 if (token) root.render(<Respondent token={token} />);
+else if (syntheticCaseHandoff && location.pathname === "/case-handoff")
+  root.render(<CaseHandoff />);
 else if (location.pathname === "/admin/settings")
   root.render(
     <ToolSettings universitySignIn={signInOptions.universitySignIn} />,
@@ -36,6 +40,7 @@ else
   root.render(
     <Creator
       {...signInOptions}
+      syntheticCaseHandoff={syntheticCaseHandoff}
       liveQuizEnabled={target.dataset.liveQuiz === "true"}
       gameShowEnabled={target.dataset.gameShow === "true"}
     />,
