@@ -161,6 +161,10 @@ University IT applies the approved Entra Conditional Access MFA policy. For each
 
 The sign-in attempt is held on the instance that starts it for five minutes. Use a single app instance or ensure the callback reaches the same instance. An instance restart during sign-in requires the user to start again. Established sessions are backed by PostgreSQL. Keep callback query strings out of proxy access logs and apply upstream rate limits to the sign-in start endpoint. The application limits pending sign-in attempts per instance. Readiness checks the dedicated database role and session grants. To disable browser sign-in, remove all five Entra variables on every instance. Keep migration 017 applied and follow the reviewed rollback procedure for any database restore. The prior migration does not support University browser sessions. Live acceptance needs approved test accounts and the actual Entra MFA policy. See the [authorization code flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow).
 
+### University-only survey development
+
+The disposable stack enables the University-only respondent workflow for synthetic tests. The publish API selects an approved policy version in the survey workspace. Respondents sign in and need a current grant for that exact policy. See the [publication and privacy contract](docs/API_GUIDE.md#university-only-distributions).
+
 ### Local Live Poll lobby
 
 The disposable test stack enables the Live Poll lobby. The normal stack leaves it disabled. Open `/live/host` on the loopback app with a development session token and the ID from an authorised survey's publish response. Use a published version with unconditional single-choice questions. Share the eight-digit PIN with a synthetic guest at `/live/join` within 30 minutes.

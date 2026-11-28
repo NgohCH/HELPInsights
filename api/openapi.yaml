@@ -566,7 +566,7 @@ paths:
       - Respondent
       operationId: getPublishedPublicSurvey
       security: []
-      description: Returns a definition for public surveys. A restricted distribution returns a verification prompt until Registry verification or University sign-in is required. A signed-in University respondent must have an active grant for that distribution's exact policy. A consent-required test survey includes its immutable notice.
+      description: Returns a definition for public surveys. A restricted distribution returns an eligibility prompt until the caller supplies a Registry capability or an eligible University browser session. A signed-in University respondent must have an active grant for that distribution's exact policy. A consent-required test survey includes its immutable notice.
       parameters:
       - $ref: '#/components/parameters/SurveyCapability'
       responses:
@@ -644,13 +644,14 @@ paths:
       tags:
       - Respondent
       operationId: submitResponse
+      description: Public submissions need no session. Synthetic Registry distributions require the X-Survey-Capability header. University-only distributions require an eligible University session cookie and the configured same-origin request.
       security: []
       parameters:
       - $ref: '#/components/parameters/SurveyCapability'
       - name: Idempotency-Key
         in: header
         required: true
-        description: Retry key for a single answer submission. Eligibility uses the separate X-Survey-Capability header.
+        description: Retry key for a single answer submission.
         schema:
           type: string
           minLength: 16
