@@ -184,3 +184,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-006e connected creator workspace
 
 - Application source `fd78d6e1ea1e39d9eded15b2ff9a2f96d4f8e176` passed 23 unit, 60 real PostgreSQL integration, two security and 33 Chromium tests. The corrected Game Show frame test also passed. The record includes baseline defects, review repairs, earlier interruptions and disposable cleanup. [Verification report](../evidence/ENG-006e/fd78d6e1ea1e39d9eded15b2ff9a2f96d4f8e176.md).
+
+## ENG-006f saved draft multipage editing
+
+- Application source `b06b1ba61e02143b02a05565b4ee11bd990d1dd3` passed 27 unit, 60 real PostgreSQL integration, two security and 34 Chromium tests. The report records the failing baseline, corrected live-region announcements, exact-source CI and disposable cleanup. [Verification report](../evidence/ENG-006f/b06b1ba61e02143b02a05565b4ee11bd990d1dd3.md).
