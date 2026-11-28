@@ -24,7 +24,18 @@ if (!pnpm) throw new Error("Run this script with pnpm test:stack");
 mkdirSync("runtime-evidence", { recursive: true });
 console.log("Disposable Compose project:", project);
 try {
-  console.log(compose("up", "-d", "--build", "--wait", "oidc-simulator"));
+  console.log(compose("build"));
+  console.log(
+    compose(
+      "up",
+      "-d",
+      "--no-build",
+      "--wait",
+      "--wait-timeout",
+      "120",
+      "oidc-simulator",
+    ),
+  );
   const oidcPort = compose("port", "oidc-simulator", "3002").trim();
   if (!/^127\.0\.0\.1:\d+$/.test(oidcPort))
     throw new Error("Synthetic identity provider must bind to loopback");
@@ -32,9 +43,19 @@ try {
     "http://" + oidcPort.replace("127.0.0.1", "oidc.helpinsights.test");
   ({ compose, docker, baseUrl } = testDocker(context, project));
   console.log(
-    compose("up", "-d", "--build", "--wait", "--wait-timeout", "120"),
+    compose(
+      "up",
+      "-d",
+      "--no-build",
+      "--no-recreate",
+      "--wait",
+      "--wait-timeout",
+      "120",
+    ),
   );
   for (const suite of ["test:integration", "test:security", "test:e2e"]) {
+    if (compose("port", "oidc-simulator", "3002").trim() !== oidcPort)
+      throw new Error("Synthetic identity provider port changed after startup");
     execFileSync(process.execPath, [pnpm, suite], {
       env: {
         ...process.env,
