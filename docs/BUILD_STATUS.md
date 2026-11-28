@@ -39,6 +39,7 @@
 | ENG-006f saved draft multipage editing | VERIFIED_INTEGRATION | Source b06b1ba61e02 passed 27 unit, 60 real PostgreSQL integration, two security and 34 Chromium tests. Keyboard editing preserves draft rules and published versions. [Evidence](../evidence/ENG-006f/b06b1ba61e02143b02a05565b4ee11bd990d1dd3.md). |
 | ENG-006g publication from saved survey details | VERIFIED_INTEGRATION | Source 2adf2c09d2ec passed 27 unit, 60 real PostgreSQL integration, two security and 36 Chromium tests. Explicit audience, immutable versions and ordinary collection closure. [Evidence](../evidence/ENG-006g/2adf2c09d2ec74710b96b66276f284e3a4e69b2f.md). |
 | ENG-013b answer-label piping | VERIFIED_LOCAL | Source 2e504170e385 passed focused local PostgreSQL and Chromium. Its full hosted run passed 32 unit, 61 PostgreSQL integration, two security and 38 Chromium tests. The local cumulative gate remains open. [Evidence](../evidence/ENG-013b/focused-runtime.md). |
+| ENG-015b live presenter recovery | VERIFIED_LOCAL | Focused Chromium, real WebSockets and PostgreSQL passed. Exact source 06d4b3ef6803 passed 27 unit, 60 PostgreSQL integration, two security and 36 Chromium tests on GitHub. The full local cumulative gate remains open. [Evidence](../evidence/ENG-015b/06d4b3ef680357f3c5c94b35d43c9ac4ae140c3b.md). |
 | Remaining platform features | NOT_STARTED | See the uncompleted features and prerequisites in [the task graph](TASK_GRAPH.md). |
 | Production release | BLOCKED | Branch protection, required evidence and authorised approval remain pending. |
 
