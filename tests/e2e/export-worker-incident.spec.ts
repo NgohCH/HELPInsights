@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { unzipSync } from "fflate";
 import { operationsFixture } from "../fixtures/operations.ts";
 import { definition, surveyFixture } from "../fixtures/survey.ts";
@@ -11,9 +11,18 @@ type Event = {
   observedAt?: string;
 };
 
-test("repeated PostgreSQL worker disconnects produce one redacted recovery episode", async ({
+test("repeated PostgreSQL worker disconnects produce one redacted recovery episode", ({
   page,
-}) => {
+}) => verifyWorkerRecovery(page, "poll"));
+
+test("PostgreSQL disconnects after an export is claimed preserve its retry budget", ({
+  page,
+}) => verifyWorkerRecovery(page, "claimed-job"));
+
+async function verifyWorkerRecovery(
+  page: Page,
+  faultPoint: "poll" | "claimed-job",
+) {
   test.setTimeout(60_000);
   const fixture = surveyFixture();
   const { stack, sql, workspace, retentionPolicy } = fixture;
@@ -76,28 +85,40 @@ test("repeated PostgreSQL worker disconnects produce one redacted recovery episo
     import assert from 'node:assert/strict';
     import { setTimeout as delay } from 'node:timers/promises';
     import pg from 'pg';
-    const [fixture, version, job] = process.argv.slice(1);
+    const [fixture, version, job, faultPoint] = process.argv.slice(1);
     assert.match(fixture, /^helpinsights-test-[a-f0-9]{12}$/);
+    assert.ok(faultPoint === 'poll' || faultPoint === 'claimed-job');
+    const afterClaim = faultPoint === 'claimed-job';
     const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
     const lock = await pool.connect();
     try {
       await lock.query('BEGIN');
       await lock.query("SET LOCAL lock_timeout = '5s'");
-      await lock.query('LOCK TABLE public.export_jobs IN ACCESS EXCLUSIVE MODE');
-      await lock.query(
+      await lock.query(afterClaim
+        ? 'LOCK TABLE public.responses IN ACCESS EXCLUSIVE MODE'
+        : 'LOCK TABLE public.export_jobs IN ACCESS EXCLUSIVE MODE'
+      );
+      const { rows: [blocker] } = await lock.query('SELECT pg_backend_pid() AS pid');
+      // Commit the job through a separate session so the worker can see and claim it
+      // while the source remains locked.
+      const queue = afterClaim ? pool : lock;
+      const inserted = await queue.query(
         "INSERT INTO public.export_jobs (id, survey_version_id, requested_by, format) " +
           "SELECT $1, v.id, m.user_id, 'jasp_csv_bundle' FROM public.survey_versions v " +
           "JOIN public.surveys s ON s.id = v.survey_id " +
           "JOIN public.workspace_memberships m ON m.workspace_id = s.workspace_id AND m.role = 'owner' WHERE v.id = $2",
         [job, version]
       );
+      assert.equal(inserted.rowCount, 1);
+      const waitingQuery = afterClaim ? '%public.export_source%' : '%public.export_jobs%';
       const terminatedPids = new Set();
       for (let fault = 0; fault < 2; fault++) {
         let pid;
         for (let attempt = 0; attempt < 100; attempt++) {
           const { rows } = await pool.query(
             "SELECT pid FROM pg_stat_activity WHERE datname = current_database() AND usename = 'helpinsights_worker' " +
-            "AND wait_event_type = 'Lock' AND query LIKE '%public.export_jobs%'"
+            "AND wait_event_type = 'Lock' AND query LIKE $1 AND $2 = ANY(pg_blocking_pids(pid))",
+            [waitingQuery, blocker.pid]
           );
           assert.ok(rows.length <= 1, 'fixture must have one export worker');
           if (rows[0] && !terminatedPids.has(rows[0].pid)) {
@@ -106,7 +127,18 @@ test("repeated PostgreSQL worker disconnects produce one redacted recovery episo
           }
           await delay(50);
         }
-        assert.ok(Number.isInteger(pid), 'worker must reconnect and block on the same export table lock');
+        assert.ok(Number.isInteger(pid), 'worker must reconnect and wait for the fixture lock');
+        if (afterClaim) {
+          const { rows } = await pool.query(
+            "SELECT status, attempts FROM public.export_jobs WHERE id = $1", [job]
+          );
+          assert.deepEqual(rows, [{ status: 'queued', attempts: 0 }]);
+          const available = await pool.query(
+            "SELECT id FROM public.export_jobs WHERE id = $1 FOR UPDATE SKIP LOCKED", [job]
+          );
+          assert.equal(available.rowCount, 0, 'worker must hold the visible job row');
+          console.log('verified visible job claim blocked in export_source for fault ' + (fault + 1));
+        }
         const { rows: [terminated] } = await pool.query(
           'SELECT pg_terminate_backend($1, 5000) AS terminated', [pid]
         );
@@ -127,7 +159,16 @@ test("repeated PostgreSQL worker disconnects produce one redacted recovery episo
     process.env.HELPINSIGHTS_TEST_PROJECT!,
     version,
     job,
+    faultPoint,
   );
+  if (faultPoint === "claimed-job") {
+    expect(result).toContain(
+      "verified visible job claim blocked in export_source for fault 1",
+    );
+    expect(result).toContain(
+      "verified visible job claim blocked in export_source for fault 2",
+    );
+  }
   const faults =
     /terminated two worker sessions before releasing the export lock at ([0-9.]+)/.exec(
       result,
@@ -305,4 +346,4 @@ test("repeated PostgreSQL worker disconnects produce one redacted recovery episo
     path: test.info().outputPath("export-worker-recovery.png"),
     fullPage: true,
   });
-});
+}
