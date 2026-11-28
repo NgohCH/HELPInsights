@@ -26,6 +26,8 @@ const surveyColumns =
   'id, workspace_id AS "workspaceId", title, privacy_mode AS "privacyMode", status, expiry_at AS "expiryAt"';
 const versionColumns =
   'id, survey_id AS "surveyId", version, hash, published_at AS "publishedAt"';
+const approvedUniversityPolicy =
+  "approved_at <= statement_timestamp() AND withdrawn_at IS NULL";
 
 type SurveyRow = {
   id: string;
@@ -167,12 +169,36 @@ export function surveyRoutes(
       /^\/api\/v1\/surveys(?:\/([^/]+)(?:\/(draft|publish|versions|close))?)?$/.exec(
         path,
       );
-    if (!route) return false;
+    const universityPolicies =
+      /^\/api\/v1\/workspaces\/([^/]+)\/university-eligibility-policies$/.exec(
+        path,
+      );
+    if (!route && !universityPolicies) return false;
 
     try {
-      const [, surveyId, action] = route;
       const { method } = request;
       const proof = readSessionProof(request);
+      if (universityPolicies) {
+        if (method !== "GET") {
+          response.setHeader("Allow", "GET");
+          throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method not allowed");
+        }
+        const workspaceId = uuid(universityPolicies[1], "Workspace");
+        const items = await withActor(pool, proof, async (client) => {
+          await requireEditor(client, workspaceId);
+          if (!universityEligibility) return [];
+          const { rows } = await client.query(
+            `SELECT id, code, version FROM public.university_eligibility_policies
+             WHERE workspace_id = $1 AND ${approvedUniversityPolicy}
+             ORDER BY code, version DESC`,
+            [workspaceId],
+          );
+          return rows;
+        });
+        sendJson(response, 200, { enabled: universityEligibility, items });
+        return true;
+      }
+      const [, surveyId, action] = route!;
       const readsBody =
         (!surveyId && method === "POST") ||
         (action === "draft" && method === "PUT") ||
@@ -259,7 +285,23 @@ export function surveyRoutes(
         if (!survey) throw missing();
         if (!action && method === "GET") {
           const { draft_revision, ...details } = survey;
-          return { status: 200, body: details, revision: draft_revision };
+          const {
+            rows: [{ role }],
+          } = await client.query<{ role: string | null }>(
+            "SELECT public.workspace_role($1) AS role",
+            [survey.workspaceId],
+          );
+          return {
+            status: 200,
+            body: {
+              ...details,
+              canEdit:
+                survey.status !== "closed" &&
+                (role === "owner" || role === "editor"),
+              canViewResults: role === "owner" || role === "analyst",
+            },
+            revision: draft_revision,
+          };
         }
         if (action === "versions" && method === "GET") {
           const { rows } = await client.query(
@@ -331,7 +373,8 @@ export function surveyRoutes(
               "University eligibility policy",
             );
             const policy = await client.query(
-              "SELECT id FROM public.university_eligibility_policies WHERE id = $1 AND workspace_id = $2 AND approved_at <= statement_timestamp() AND withdrawn_at IS NULL",
+              `SELECT id FROM public.university_eligibility_policies
+               WHERE id = $1 AND workspace_id = $2 AND ${approvedUniversityPolicy}`,
               [policyId, survey.workspaceId],
             );
             if (!policy.rowCount)

@@ -53,7 +53,7 @@ export function LivePollQuestion({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!mayAnswer || submitting || !choice) return;
+    if (!mayAnswer || submitting || !choice || !access.authorization) return;
     const attempt =
       ballot?.answer === choice
         ? ballot

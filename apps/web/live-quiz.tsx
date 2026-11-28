@@ -1,9 +1,17 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "./api.ts";
 
 import { LivePollQuestion } from "./live-poll-question.tsx";
 import type { LiveSnapshot } from "../api/live-quiz-transport.ts";
 import { useLiveConnection, type LiveAccess } from "./use-live-connection.ts";
+
+type PreparedPresentation = {
+  token: string;
+  versionId: string;
+  title: string;
+  options?: { code: string; label: string }[];
+  returnToSurvey(): void;
+};
 
 type HostLobby = LiveSnapshot & { pin: string; pinExpiresAt: string };
 type GuestLobby = { snapshot: LiveSnapshot; participantToken: string };
@@ -34,10 +42,19 @@ const connectionLabels = {
 export function LiveQuiz({
   isHost,
   gameShow = false,
+  prepared,
+  hidden = false,
 }: {
   isHost: boolean;
   gameShow?: boolean;
+  prepared?: PreparedPresentation;
+  hidden?: boolean;
 }) {
+  const title = useRef<HTMLHeadingElement>(null);
+  const isPrepared = prepared !== undefined;
+  useEffect(() => {
+    if (isPrepared && !hidden) title.current?.focus();
+  }, [isPrepared, hidden]);
   const [access, setAccess] = useState<LiveAccess>();
   const [refresh, setRefresh] = useState(0);
   const { snapshot, connection } = useLiveConnection(access, refresh);
@@ -64,13 +81,14 @@ export function LiveQuiz({
     void run(async () => {
       let newAccess: LiveAccess;
       if (isHost) {
-        const token = String(fields.get("token")).trim();
+        const token = prepared?.token ?? String(fields.get("token")).trim();
         const { data } = await api<HostLobby>("/live-sessions", {
           token,
           method: "POST",
           body: {
             mode: gameShow ? "game_show" : "live_poll",
-            quizVersionId: String(fields.get("version")).trim(),
+            quizVersionId:
+              prepared?.versionId ?? String(fields.get("version")).trim(),
             ...(gameShow
               ? {
                   scoring: {
@@ -84,7 +102,10 @@ export function LiveQuiz({
           },
         });
         setHostLobby(data);
-        newAccess = { id: data.id, authorization: "Bearer " + token };
+        newAccess = {
+          id: data.id,
+          authorization: token ? "Bearer " + token : null,
+        };
       } else {
         const { data } = await api<GuestLobby>("/live-sessions/join", {
           method: "POST",
@@ -105,7 +126,9 @@ export function LiveQuiz({
     if (!access || !snapshot || connection !== "connected") return;
     void run(async () => {
       await api<LiveSnapshot>("/live-sessions/" + access.id + "/commands", {
-        headers: { Authorization: access.authorization },
+        ...(access.authorization
+          ? { headers: { Authorization: access.authorization } }
+          : { token: "" }),
         method: "POST",
         body: { command, expectedRevision: String(snapshot.revision) },
       });
@@ -113,9 +136,20 @@ export function LiveQuiz({
   }
 
   return (
-    <main className="shell">
+    <main className="shell" hidden={hidden}>
       <header className="brand">
-        <h1>Live Quiz Arena</h1>
+        <h1 ref={title} tabIndex={-1}>
+          Live Quiz Arena
+        </h1>
+        {prepared && (
+          <button
+            className="secondary"
+            type="button"
+            onClick={prepared.returnToSurvey}
+          >
+            Return to survey
+          </button>
+        )}
       </header>
       <section className="panel compact">
         <h2>
@@ -127,15 +161,16 @@ export function LiveQuiz({
                 : "Present a Live Poll"
               : "Join a live quiz"}
         </h2>
+        {prepared && <p>{prepared.title}</p>}
         {access ? (
           <>
             <p role="status">{connectionLabels[connection]}</p>
             {hostLobby && snapshot?.state === "lobby" && (
               <p>
                 Join PIN <output aria-label="Join PIN">{hostLobby.pin}</output>
-                {" Â· "}Expires at{" "}
+                {" · "}Expires at{" "}
                 {new Date(hostLobby.pinExpiresAt).toLocaleTimeString()}
-                {" Â· "}
+                {" · "}
                 <a href="/live/join">Open guest join page</a>
               </p>
             )}
@@ -195,30 +230,48 @@ export function LiveQuiz({
           <form onSubmit={open}>
             {isHost ? (
               <>
-                <label>
-                  Development session token
-                  <input
-                    autoComplete="off"
-                    name="token"
-                    type="password"
-                    required
-                  />
-                </label>
-                <label>
-                  Published quiz version ID
-                  <input name="version" maxLength={36} required />
-                </label>
-                {gameShow && (
+                {!prepared && (
                   <>
                     <label>
-                      Correct option code
+                      Development session token
                       <input
-                        name="correctOptionCode"
-                        maxLength={64}
                         autoComplete="off"
+                        name="token"
+                        type="password"
                         required
                       />
                     </label>
+                    <label>
+                      Published quiz version ID
+                      <input name="version" maxLength={36} required />
+                    </label>
+                  </>
+                )}
+                {gameShow && (
+                  <>
+                    {prepared?.options ? (
+                      <label>
+                        Correct answer
+                        <select name="correctOptionCode" required>
+                          <option value="">Choose an answer</option>
+                          {prepared.options.map(({ code, label }) => (
+                            <option key={code} value={code}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : (
+                      <label>
+                        Correct option code
+                        <input
+                          name="correctOptionCode"
+                          maxLength={64}
+                          autoComplete="off"
+                          required
+                        />
+                      </label>
+                    )}
                     <label>
                       Answer time in seconds
                       <input

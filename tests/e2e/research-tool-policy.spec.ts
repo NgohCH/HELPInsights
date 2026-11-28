@@ -12,12 +12,15 @@ test("only University creators with the scoped research approval can publish wit
     `SELECT user_id FROM public.workspace_memberships WHERE workspace_id = '${workspace}' AND role = 'owner'`,
   );
   const admin = randomUUID();
+  const policy = randomUUID();
   sql(`
     INSERT INTO public.users (id, display_name) VALUES ('${admin}', 'Synthetic research settings administrator');
     INSERT INTO public.system_administrators VALUES ('${admin}');
     INSERT INTO public.institutional_principal_bindings (issuer, subject, user_id) VALUES
       ('http://oidc-simulator:3002', 'research-admin', '${admin}'),
       ('http://oidc-simulator:3002', 'research-creator', '${author}');
+    INSERT INTO public.university_eligibility_policies (id, workspace_id, code, version, approved_at)
+      VALUES ('${policy}', '${workspace}', 'research-audience', 1, now());
   `);
   const draft = await prepare();
   const endpoint = "/api/v1/admin/tools/research-consent";
@@ -84,6 +87,24 @@ test("only University creators with the scoped research approval can publish wit
       name: "Include synthetic research consent",
     });
     await checkbox.check();
+    const audience = creator.getByRole("combobox", {
+      name: "Audience",
+      exact: true,
+    });
+    await expect(audience).toBeVisible();
+    await audience.selectOption("university");
+    await creator
+      .getByRole("combobox", { name: "University eligibility policy" })
+      .selectOption(policy);
+    await expect(checkbox).toBeChecked();
+    await expect(
+      creator.getByRole("button", { name: "Publish survey" }),
+    ).toBeDisabled();
+    await audience.selectOption("open");
+    await expect(checkbox).toBeChecked();
+    await expect(
+      creator.getByRole("button", { name: "Publish survey" }),
+    ).toBeEnabled();
     await creator.getByLabel("Show a follow-up when").selectOption("option_1");
     await creator.getByLabel("Follow-up question").fill("What worked well?");
     await creator.getByRole("button", { name: "Save draft" }).click();

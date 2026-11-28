@@ -180,3 +180,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-008d research consent policy, Entra group claims and integration management
 
 - Exact source `9fae05a0e4ecea35e4e01b0ff266b02a44c94c52` passed 22 unit, 60 real PostgreSQL integration, two security and 26 Chromium tests. The local and hosted disposable stacks confirmed volume cleanup. The report records the earlier interrupted runs, authorization defects and repairs, seeded upgrade and archive evidence, independent review and live acceptance boundaries. [Verification report](../evidence/ENG-008d/9fae05a0e4ecea35e4e01b0ff266b02a44c94c52.md).
+
+## ENG-006e connected creator workspace
+
+- Application source `fd78d6e1ea1e39d9eded15b2ff9a2f96d4f8e176` passed 23 unit, 60 real PostgreSQL integration, two security and 33 Chromium tests. The corrected Game Show frame test also passed. The record includes baseline defects, review repairs, earlier interruptions and disposable cleanup. [Verification report](../evidence/ENG-006e/fd78d6e1ea1e39d9eded15b2ff9a2f96d4f8e176.md).

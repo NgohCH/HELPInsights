@@ -47,6 +47,8 @@ The disposable stack enables the test environment automatically. A development d
 
 ## University-only distributions
 
+`GET /workspaces/{workspaceId}/university-eligibility-policies` lists approved policy versions for workspace owners and editors. Each item includes its `id`, `code` and `version`. Pending, future-approved and withdrawn versions are excluded. When the feature is disabled, the response has `enabled: false` and no items.
+
 When University eligibility is enabled, publish with `{"eligibilityMode":"university","universityPolicyId":"<approved policy UUID>"}`. The server accepts a policy only from the survey's workspace and binds its exact version to the distribution. University-only collection and the synthetic research consent option require separate distributions.
 
 Guest GET requests return `{"eligibilityRequired":true,"eligibilityMode":"university"}` without survey content. The browser can sign in and return to the same respondent link. A University browser session needs a current grant for that distribution's exact policy to read or submit. Missing or expired grants, withdrawn policies and revoked sessions deny access. The submission stores anonymous answers without a user or grant identifier. The response version still identifies the distribution, so an unusually small or known cohort can make respondents inferable. Release acceptance includes review of cohort size, export access, and proxy and database logging. Suppress sign-in and restricted respondent paths or redact their tokens. Keep session proofs and submission payloads out of SQL bind logs. A revocation blocks authorisation checks that start after it commits. A submission that already passed its database admission check can finish.

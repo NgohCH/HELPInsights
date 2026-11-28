@@ -77,7 +77,9 @@ test("a keyboard creator publishes five guided feedback questions without saving
   await expect(
     page.getByRole("button", { name: "Back to simple creation" }),
   ).toHaveCount(0);
-  await expect(page.getByLabel("Workspace")).toBeDisabled();
+  await expect(
+    page.getByRole("combobox", { name: "Workspace", exact: true }),
+  ).toBeDisabled();
 
   await keyboardActivate(page, previewButton);
   const preview = page.getByRole("region", { name: "Draft preview" });

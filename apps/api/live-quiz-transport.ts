@@ -34,7 +34,11 @@ type Subscription = { refresh: () => void; participant?: string };
 
 export function createLiveRoomTransport(
   resolveRoom: (request: IncomingMessage) => string | undefined,
-  authorize: (room: string, authorization: unknown) => Audience,
+  authorize: (
+    room: string,
+    authorization: unknown,
+    request: IncomingMessage,
+  ) => Audience,
 ) {
   const rooms = new Map<string, Set<Subscription>>();
 
@@ -86,7 +90,7 @@ export function createLiveRoomTransport(
             const { authorization } = object(JSON.parse(message.toString()), [
               "authorization",
             ]);
-            audience = authorize(room, authorization);
+            audience = authorize(room, authorization, request);
           } catch {
             socket.close(1008);
             return;

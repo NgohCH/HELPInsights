@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, signOutUniversity } from "./api.ts";
+import { Retention } from "./retention.tsx";
 
 type Health = {
   status: string;
@@ -29,7 +30,16 @@ export function Operations({
   universitySignIn: boolean;
   developmentSignIn: boolean;
 }) {
+  const query = new URLSearchParams(location.search);
+  const retentionOnly = query.get("view") === "retention";
+  const requestedSurvey = query.get("survey");
+  const initialSurvey =
+    requestedSurvey &&
+    /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(requestedSurvey)
+      ? requestedSurvey
+      : "";
   const [token, setToken] = useState("");
+  const [developmentToken, setDevelopmentToken] = useState<string | null>(null);
   const [institutionalSession, setInstitutionalSession] = useState(false);
   const [view, setView] = useState<Awaited<
     ReturnType<typeof readOperations>
@@ -47,8 +57,10 @@ export function Operations({
         if (signal.aborted || response.status === 401) return;
         if (!response.ok) throw new Error("University session unavailable");
         setInstitutionalSession(true);
-        const operations = await readOperations("", signal);
-        if (!signal.aborted) setView(operations);
+        if (!retentionOnly) {
+          const operations = await readOperations("", signal);
+          if (!signal.aborted) setView(operations);
+        }
       } catch (failure) {
         if (!signal.aborted)
           setError(
@@ -62,15 +74,18 @@ export function Operations({
     }
     void loadUniversitySession();
     return () => controller.abort();
-  }, [universitySignIn]);
+  }, [universitySignIn, retentionOnly]);
 
   async function open(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setView(null);
+    setDevelopmentToken(null);
     setError("");
     try {
-      setView(await readOperations(token));
+      await api("/me", { token });
+      setDevelopmentToken(token);
+      if (!retentionOnly) setView(await readOperations(token));
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : "Operations unavailable",
@@ -87,6 +102,7 @@ export function Operations({
     try {
       await signOutUniversity("/admin");
       setView(null);
+      setInstitutionalSession(false);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Sign-out failed");
       setLoading(false);
@@ -96,6 +112,10 @@ export function Operations({
   return (
     <main className="shell">
       <h1>Operations</h1>
+      <nav aria-label="Operations navigation" className="actions">
+        <a href="/">Workspace</a>
+        {retentionOnly && <a href="/admin">Operations dashboard</a>}
+      </nav>
       {universitySignIn && (
         <p>
           <a href="/admin/settings">Admin Settings</a>
@@ -108,7 +128,16 @@ export function Operations({
       )}
       {universitySignIn && !institutionalSession && !loading && (
         <p>
-          <a href="/auth/university/start?returnTo=admin">
+          <a
+            href={
+              retentionOnly
+                ? "/auth/university/start?returnTo=retention" +
+                  (initialSurvey
+                    ? "&survey=" + encodeURIComponent(initialSurvey)
+                    : "")
+                : "/auth/university/start?returnTo=admin"
+            }
+          >
             Sign in with University account
           </a>
         </p>
@@ -178,6 +207,16 @@ export function Operations({
             </table>
           )}
         </>
+      )}
+      {institutionalSession && (
+        <Retention token="" initialSurvey={initialSurvey} />
+      )}
+      {!institutionalSession && developmentToken !== null && (
+        <Retention
+          key={developmentToken}
+          token={developmentToken}
+          initialSurvey={initialSurvey}
+        />
       )}
     </main>
   );
