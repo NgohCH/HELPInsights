@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.14-development
+  version: 0.2.15-development
   description: Development coverage includes anonymous surveys, CSV export, curated templates, operations, opt-in live rooms, NPS approval, retention, synthetic Registry eligibility and synthetic research consent.
 servers:
 - url: https://survey.example.org/api/v1
@@ -1211,7 +1211,7 @@ paths:
       tags:
       - Administration
       operationId: listAdminIncidents
-      description: Requires a platform operations viewer or operator. Returns the latest 100 platform incident events, newest first, without actor attribution or survey data.
+      description: Requires a platform operations viewer or operator. Returns the latest 100 platform incident events, newest first by recording time, with a correlation ID and observation time for export worker recovery events. Actor attribution and survey data are excluded.
       responses:
         '200':
           description: Redacted incident history
@@ -2504,6 +2504,21 @@ components:
         recordedAt:
           type: string
           format: date-time
+        source:
+          const: export_worker
+          description: Source of an automatically recorded export worker event.
+        episodeId:
+          type: string
+          format: uuid
+          description: Correlates detection and recovery for the same worker interruption.
+        observedAt:
+          type: string
+          format: date-time
+          description: Time of worker detection or database verification of recovery.
+      dependentRequired:
+        source: [episodeId, observedAt]
+        episodeId: [source, observedAt]
+        observedAt: [source, episodeId]
     SurveyRetention:
       type: object
       additionalProperties: false

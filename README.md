@@ -26,7 +26,9 @@ Three interfaces share one application backend:
 The development Operations page at /admin shows API, database and migration
 health and up to 100 recent incidents for a session with an explicit platform
 operations role. Operators can record allowlisted incident events through
-the API. Workspace ownership and survey access use separate permissions. See
+the API. The disposable test stack also records a redacted incident pair after
+the export worker verifies recovery from a PostgreSQL interruption. Workspace
+ownership and survey access use separate permissions. See
 [Operations and security](docs/SECURITY_OPERATIONS.md).
 
 The development survey API exposes workspace-scoped retention status and
@@ -213,7 +215,7 @@ Work is complete only when code, tests, threat/permission review, migration/roll
 
 ## Extended survey interactions and channels
 
-The single full-scope build also specifies accessible drag-and-drop multipage surveys, NPS/matrix/ranking/file/image questions, broader branching rules, in-app OIDC survey launches, email/SMS/QR/embed/reminders, kiosk/offline collection and privacy-governed sentiment analysis. Self-healing operations must record administrator-readable incidents and recovery outcomes. These are **requirements, not implemented capabilities**. Read [Interaction, Channels and Intelligence](docs/INTERACTION_CHANNELS_INTELLIGENCE.md) and the test gates in `HANDOFF.md`.
+The disposable test stack exercises export worker recovery. The full-scope requirements include accessible drag-and-drop multipage surveys, additional question formats, broader branching, in-app OIDC survey launches, email, SMS, QR, embeds, reminders, kiosk and offline collection, privacy-governed sentiment analysis and automated recovery notices. [Interaction, Channels and Intelligence](docs/INTERACTION_CHANNELS_INTELLIGENCE.md) · [Test gates](HANDOFF.md)
 
 ## Guided creation and self-service requirements
 
