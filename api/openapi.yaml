@@ -807,6 +807,61 @@ paths:
                 $ref: '#/components/schemas/Notice'
         '403':
           $ref: '#/components/responses/Forbidden'
+  /admin/tools/template-copy:
+    get:
+      operationId: readTemplateCopySettings
+      description: Requires a University browser session and explicit system administrator authority.
+      security:
+      - universitySession: []
+      responses:
+        '200':
+          description: Current template-copy mode and workspace approvals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateCopySettings'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: changeTemplateCopySettings
+      description: Requires a University system administrator session and the configured same-origin request.
+      security:
+      - universitySession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - type: object
+                additionalProperties: false
+                required: [action, mode]
+                properties:
+                  action: { const: mode }
+                  mode: { enum: [off, all, university, approved] }
+              - type: object
+                additionalProperties: false
+                required: [action, workspaceId, subjectType, subjectId]
+                properties:
+                  action: { enum: [grant, revoke] }
+                  workspaceId: { type: string, format: uuid }
+                  subjectType: { enum: [user, group] }
+                  subjectId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Updated template-copy mode and workspace approvals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateCopySettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /admin/health:
     get:
       tags:
@@ -1271,6 +1326,22 @@ components:
           schema:
             $ref: '#/components/schemas/ApiError'
   schemas:
+    TemplateCopySettings:
+      type: object
+      additionalProperties: false
+      required: [mode, grants]
+      properties:
+        mode: { enum: [off, all, university, approved] }
+        grants:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [workspaceId, subjectType, subjectId]
+            properties:
+              workspaceId: { type: string, format: uuid }
+              subjectType: { enum: [user, group] }
+              subjectId: { type: string, format: uuid }
     LiveLobbySnapshot:
       type: object
       required: [id, mode, state, revision]

@@ -12,6 +12,7 @@ import { featureRoutes } from "./features.ts";
 import { reportRoutes } from "./reports.ts";
 import { templateRoutes } from "./templates.ts";
 import { operationsRoutes } from "./operations.ts";
+import { toolSettingsRoutes } from "./tool-settings.ts";
 import { retentionRoutes } from "./retention.ts";
 import { syntheticRegistry } from "./registry.ts";
 import { syntheticConsentEnabled } from "./research-consent.ts";
@@ -78,6 +79,7 @@ const respondents = respondentRoutes(
   syntheticResearchConsent,
   universityEligibility,
 );
+const toolSettings = toolSettingsRoutes(pool);
 const reports = reportRoutes(pool);
 const features = featureRoutes(pool);
 const templates = templateRoutes(pool);
@@ -124,6 +126,7 @@ const server = createApplication(
     (await respondents(...args)) ||
     (await reports(...args)) ||
     (await operations(...args)) ||
+    (await toolSettings(...args)) ||
     (await retention(...args)) ||
     (liveQuiz ? await liveQuiz.route(...args) : false),
   { javascript, stylesheet, creatorHelp },

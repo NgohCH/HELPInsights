@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { Creator } from "./creator.tsx";
 import { Operations } from "./operations.tsx";
+import { ToolSettings } from "./tool-settings.tsx";
 import { LiveQuiz } from "./live-quiz.tsx";
 import { Respondent } from "./respondent.tsx";
 
@@ -14,6 +15,10 @@ const signInOptions = {
   developmentSignIn: target.dataset.developmentSignIn !== "false",
 };
 if (token) root.render(<Respondent token={token} />);
+else if (location.pathname === "/admin/settings")
+  root.render(
+    <ToolSettings universitySignIn={signInOptions.universitySignIn} />,
+  );
 else if (location.pathname === "/admin")
   root.render(<Operations {...signInOptions} />);
 else if (
