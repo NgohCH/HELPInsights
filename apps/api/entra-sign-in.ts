@@ -17,6 +17,7 @@ type Attempt = {
   nonce: string;
   verifier: string;
   expiresAt: number;
+  returnPath: "/" | "/admin";
 };
 type UniversityProvider = {
   appOrigin: string | ((host?: string) => string | null);
@@ -104,7 +105,12 @@ export function entraSignInRoutes(
         return true;
       }
       const key = randomValue();
-      const attempt = {
+      const requested = new URLSearchParams(
+        (request.url ?? "").slice(startPath.length),
+      ).getAll("returnTo");
+      const attempt: Attempt = {
+        returnPath:
+          requested.length === 1 && requested[0] === "admin" ? "/admin" : "/",
         state: randomValue(),
         nonce: randomValue(),
         verifier: randomValue(),
@@ -188,7 +194,7 @@ export function entraSignInRoutes(
       clearAttempt,
       cookie(universitySessionCookie, token, universitySessionLifetime),
     ]);
-    redirect(response, "/");
+    redirect(response, attempt.returnPath);
     return true;
   };
 }

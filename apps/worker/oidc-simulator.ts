@@ -22,6 +22,8 @@ const invalidSigner = generateKeyPairSync("rsa", {
 const choices = [
   "owner",
   "viewer",
+  "operations-viewer",
+  "survey-creator",
   "wrong nonce",
   "wrong issuer",
   "wrong tenant",
@@ -142,7 +144,13 @@ createServer(async (request, response) => {
           grant.subject === "wrong audience" ? "another-app" : client,
         )
         .setSubject(
-          ["owner", "viewer", "unbound"].includes(grant.subject)
+          [
+            "owner",
+            "viewer",
+            "unbound",
+            "operations-viewer",
+            "survey-creator",
+          ].includes(grant.subject)
             ? grant.subject
             : "owner",
         )
