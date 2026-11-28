@@ -9,10 +9,10 @@ See [`../api/openapi.yaml`](../api/openapi.yaml) for the initial machine-readabl
 ## Authentication and tenancy
 
 - Creator/admin routes require OIDC bearer JWT/session that resolves to an internal principal and authorised organisation/workspace context.
-- Public respondent endpoints use only a published `publicToken`, scoped distribution token or participation capability; **never** a broad admin credential.
+- Respondent endpoints use a published `publicToken` or scoped distribution token. Restricted collection also requires the applicable participation capability or eligible University browser session.
 - Server selects tenant based on verified token/session and membership; request-supplied `organisationId` never grants access.
 - Support scopes/permissions such as `survey:create`, `survey:edit`, `survey:publish`, `response:read_aggregate`, `response:export`, `admin:manage`, `ops:read`, `ops:act` with resource-specific checks.
-- Enforce tool audience, administrator-approved user or group grants and workspace authority on protected operations. Verify group membership through an approved authority. Research tools require University sign-in. Integration management requires a system administrator.
+- Enforce tool audience and workspace authority on protected operations. Check an active administrator-approved user or group grant where the tool policy requires one. Verify group membership through an approved authority. Research tools require University sign-in. Integration management requires a system administrator.
 - Rate limit and use opaque identifiers; return `404` rather than revealing another tenant's protected resources where appropriate.
 
 ## University sign-in and integration acceptance
