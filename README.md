@@ -125,7 +125,9 @@ The local development workflow creates and publishes a single-choice survey, col
 
 For a guided draft, select a workspace with a retention policy and choose **After-class feedback** under **Guided creation**. Edit the five prompts and choice labels, then save and open **Preview draft**. Only **Publish survey** creates an anonymous respondent link. If the saved draft changes elsewhere between preview and publication, publication returns a revision conflict and leaves the existing draft and versions intact.
 
-To restructure a saved draft, open it in **Workspace surveys** and choose **Edit saved draft**. Add and name pages, add supported questions, and move pages or questions with the keyboard-accessible controls. Move feedback announces the new position. The editor blocks changes that would break an existing conditional question. **Save changes** uses the loaded draft revision and leaves published versions intact.
+To restructure a saved draft, open it in **Workspace surveys** and choose **Edit saved draft**. Add and name pages, add supported questions, and move pages or questions with the keyboard-accessible controls. Move feedback announces the new position. The editor blocks changes that would break an existing conditional question or answer-label reference. **Save edits** uses the loaded draft revision and leaves published versions intact.
+
+To reuse an answer label in a later question, open **Edit answer label source** and choose an earlier unconditional single-choice question. **Preview saved draft** and the published response form append the selected option label to the question wording. If the respondent skips the earlier question, the original wording appears on its own. Live Poll and Game Show use the original wording. Analytics and CSV codebooks use the original wording, and responses store option codes.
 
 In the creator, choose a workspace and select **Browse templates** to preview **Event feedback**. A workspace owner or editor can select **Use this template** to start an independent anonymous draft under the workspace’s retention policy. The preview does not open a respondent link.
 
@@ -204,7 +206,7 @@ Work is complete only when code, tests, threat/permission review, migration/roll
 
 ## Extended survey interactions and channels
 
-The single full-scope build also specifies accessible drag-and-drop multipage surveys, NPS/matrix/ranking/file/image questions, safe branching/piping, in-app OIDC survey launches, email/SMS/QR/embed/reminders, kiosk/offline collection and privacy-governed sentiment analysis. Self-healing operations must record administrator-readable incidents and recovery outcomes. These are **requirements, not implemented capabilities**. Read [Interaction, Channels and Intelligence](docs/INTERACTION_CHANNELS_INTELLIGENCE.md) and the test gates in `HANDOFF.md`.
+The single full-scope build also specifies accessible drag-and-drop multipage surveys, NPS/matrix/ranking/file/image questions, broader branching rules, in-app OIDC survey launches, email/SMS/QR/embed/reminders, kiosk/offline collection and privacy-governed sentiment analysis. Self-healing operations must record administrator-readable incidents and recovery outcomes. These are **requirements, not implemented capabilities**. Read [Interaction, Channels and Intelligence](docs/INTERACTION_CHANNELS_INTELLIGENCE.md) and the test gates in `HANDOFF.md`.
 
 ## Guided creation and self-service requirements
 

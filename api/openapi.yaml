@@ -2071,6 +2071,10 @@ components:
           properties:
             questionId: { type: string }
             optionCode: { type: string }
+        titleAnswerSourceId:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$'
+          description: Stable ID of an earlier unconditional single-choice question on the same or a preceding page. The saved draft preview and public response form append the selected option's label as plain text. The title alone is used when no option is selected. Titles in analytics and exports stay static.
         options:
           type: array
           items:

@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import {
+  isUnconditionalChoice,
   parseDefinition,
   type Question,
   type SurveyDefinition,
@@ -21,6 +22,7 @@ const surveyTitle = "survey-title";
 const pageTitle = (id: string) => "page-title-" + id;
 const questionTitle = (id: string) => "question-title-" + id;
 const optionLabel = (id: string, index: number) => "option-" + id + "-" + index;
+const answerSourceField = (id: string) => "answer-source-" + id;
 const newId = (prefix: string) =>
   prefix + crypto.randomUUID().replaceAll("-", "");
 
@@ -38,6 +40,7 @@ export function SavedDraftEditor({
   onCancel: () => void;
 }) {
   const [draft, setDraft] = useState(initial);
+  const [activeAnswerSource, setActiveAnswerSource] = useState("");
   const [wording, setWording] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [announcement, setAnnouncement] = useState("");
@@ -126,6 +129,110 @@ export function SavedDraftEditor({
         ", position " +
         (toIndex + 1) +
         ".",
+    );
+  }
+
+  const orderedQuestions = draft.pages.flatMap((page, pageIndex) =>
+    page.questions.map((question, questionIndex) => ({
+      question,
+      position: "Page " + (pageIndex + 1) + ", question " + (questionIndex + 1),
+    })),
+  );
+
+  const precedingSources = new Map<string, number>();
+  const answerSources: typeof orderedQuestions = [];
+  for (const entry of orderedQuestions) {
+    precedingSources.set(entry.question.id, answerSources.length);
+    if (isUnconditionalChoice(entry.question)) answerSources.push(entry);
+  }
+  const sourcesById = new Map(
+    answerSources.map((entry) => [entry.question.id, entry]),
+  );
+  function setAnswerSource(
+    pageId: string,
+    questionId: string,
+    sourceId: string,
+  ) {
+    setError("");
+    setAnnouncement("");
+    nextFocus.current = answerSourceField(questionId);
+    setDraft((current) => ({
+      ...current,
+      pages: current.pages.map((page) =>
+        page.id !== pageId
+          ? page
+          : {
+              ...page,
+              questions: page.questions.map((question) =>
+                question.id === questionId
+                  ? { ...question, titleAnswerSourceId: sourceId || undefined }
+                  : question,
+              ),
+            },
+      ),
+    }));
+  }
+
+  function answerSourceControl(page: Page, question: Question) {
+    const count = precedingSources.get(question.id) ?? 0;
+    if (!count) return null;
+    const expanded = activeAnswerSource === question.id;
+    const name = answerSourceField(question.id);
+    const summary = sourcesById.get(question.titleAnswerSourceId ?? "");
+    const summaryId = summary && !expanded ? name + "-summary" : undefined;
+    const hintId = name + "-hint";
+    return (
+      <>
+        <button
+          type="button"
+          className="secondary"
+          aria-expanded={expanded}
+          aria-controls={expanded ? name : undefined}
+          aria-describedby={summaryId}
+          onClick={() => setActiveAnswerSource(expanded ? "" : question.id)}
+        >
+          Edit answer label source
+        </button>
+        {summary && summaryId && (
+          <small id={summaryId}>
+            Using {summary.position} —{" "}
+            {value(questionTitle(summary.question.id), summary.question.title)}
+          </small>
+        )}
+        {expanded && (
+          <>
+            <label>
+              Append answer label from
+              <select
+                id={name}
+                name={name}
+                value={question.titleAnswerSourceId ?? ""}
+                aria-describedby={hintId}
+                onChange={(event) =>
+                  setAnswerSource(
+                    page.id,
+                    question.id,
+                    event.currentTarget.value,
+                  )
+                }
+              >
+                <option value="">No answer label</option>
+                {answerSources
+                  .slice(0, count)
+                  .map(({ question: source, position }) => (
+                    <option key={source.id} value={source.id}>
+                      {position} —{" "}
+                      {value(questionTitle(source.id), source.title)}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <small id={hintId}>
+              If no option is selected, the question uses its own wording.
+            </small>
+          </>
+        )}
+      </>
     );
   }
 
@@ -234,6 +341,7 @@ export function SavedDraftEditor({
                     required
                   />
                 </label>
+                {answerSourceControl(page, question)}
                 {question.type === "single_choice" &&
                   question.options.map((option, optionIndex) => (
                     <label key={option.code}>
