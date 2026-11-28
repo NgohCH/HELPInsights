@@ -25,6 +25,8 @@ const choices = [
   "operations-viewer",
   "survey-creator",
   "eligibility-student",
+  "settings-admin",
+  "settings-member",
   "wrong nonce",
   "wrong issuer",
   "wrong tenant",
@@ -152,6 +154,8 @@ createServer(async (request, response) => {
             "operations-viewer",
             "survey-creator",
             "eligibility-student",
+            "settings-admin",
+            "settings-member",
           ].includes(grant.subject)
             ? grant.subject
             : "owner",

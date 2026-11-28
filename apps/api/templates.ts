@@ -82,6 +82,18 @@ export function templateRoutes(pool: Pool) {
         const body = object(payload, ["workspaceId", "revision"]);
         const workspaceId = uuid(body.workspaceId, "Workspace");
         await requireEditor(client, workspaceId);
+        const {
+          rows: [permission],
+        } = await client.query<{ allowed: boolean }>(
+          "SELECT public.template_copy_allowed($1, $2) AS allowed",
+          [proof, workspaceId],
+        );
+        if (!permission?.allowed)
+          throw new HttpError(
+            403,
+            "FORBIDDEN",
+            "Template copying is unavailable for this workspace",
+          );
         if (
           typeof body.revision !== "number" ||
           !Number.isSafeInteger(body.revision) ||

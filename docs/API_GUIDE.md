@@ -27,6 +27,14 @@ For each client, record the owning department, purpose, environment, identity ty
 
 The development API verifies signed delegated OAuth access tokens on `GET /api/v1/me` and `GET /api/v1/workspaces`. Configure the approved issuer, an exact API audience, the delegated scope and RSA public keys. The request needs an explicit issuer and subject binding to an existing local user. The workspaces endpoint reads that user's PostgreSQL memberships. The server ignores roles and groups in the token for application permissions. These routes also accept the existing development session. See the [runtime configuration](../README.md#institutional-oauth-development-scope).
 
+## Creator tool settings
+
+At `/admin/settings`, a signed-in University account with an explicit system administrator assignment can configure template copying. `GET /api/v1/admin/tools/template-copy` returns the current mode and scoped approvals. `POST` applies a mode change, an individual or group grant, or a revocation. Settings writes require the configured same-origin request. The administrator provides the workspace ID and the existing user or approved identity group ID. The database records the acting administrator and effective changes.
+
+Modes are disabled, all eligible creators, University creators, and approved users and groups. Template copying always requires workspace owner or editor authority. In approved mode, a direct user grant or current membership in a granted group must apply to the destination workspace. Preview remains a separate read operation. The migration preserves existing copying for eligible creators in all mode.
+
+The first slice uses identity groups and system administrator assignments provisioned by an authorised database operator. Live group synchronisation, broader tool enforcement and integration settings are tracked separately.
+
 ## University-only distributions
 
 When University eligibility is enabled, publish with `{"eligibilityMode":"university","universityPolicyId":"<approved policy UUID>"}`. The server accepts a policy only from the survey's workspace and binds its exact version to the distribution. University-only collection and the synthetic research consent option require separate distributions.

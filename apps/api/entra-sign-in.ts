@@ -113,9 +113,11 @@ export function entraSignInRoutes(
         returnPath:
           destination === "admin"
             ? "/admin"
-            : /^\/respond\/[A-Za-z0-9_-]{43}$/.test(destination)
-              ? destination
-              : "/",
+            : destination === "settings"
+              ? "/admin/settings"
+              : /^\/respond\/[A-Za-z0-9_-]{43}$/.test(destination)
+                ? destination
+                : "/",
         state: randomValue(),
         nonce: randomValue(),
         verifier: randomValue(),

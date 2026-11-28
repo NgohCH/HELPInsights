@@ -96,6 +96,11 @@ export function Operations({
   return (
     <main className="shell">
       <h1>Operations</h1>
+      {universitySignIn && (
+        <p>
+          <a href="/admin/settings">Admin Settings</a>
+        </p>
+      )}
       {institutionalSession && (
         <button type="button" disabled={loading} onClick={() => void signOut()}>
           Sign out
