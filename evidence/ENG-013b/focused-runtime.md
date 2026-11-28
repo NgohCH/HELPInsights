@@ -1,6 +1,6 @@
 # ENG-013b focused runtime evidence
 
-Status **VERIFIED_LOCAL** with focused local evidence and passing hosted runtime. The baseline was GitHub commit `1eb6414d50d0c990912e5cdca758b4630cec0b05` on `feat/survey-answer-piping`. This records focused verification. The controller owns the independent review, full runtime gate and publication of any PR.
+Status **VERIFIED_INTEGRATION** with passing local and hosted runtime. The baseline was GitHub commit `1eb6414d50d0c990912e5cdca758b4630cec0b05` on `feat/survey-answer-piping`. This records focused verification. The controller owns the independent review, full runtime gate and publication of any PR.
 
 The local Windows runner used Docker Engine 29.9.2, Compose v5.6.1, PostgreSQL 16.16, Node 24.22.1, Corepack 0.36.0, pnpm 10.34.9 and Playwright 1.65.1. The test projects started from the checked-out code with disposable PostgreSQL volumes, loopback ports and synthetic fixture data.
 
@@ -23,4 +23,8 @@ The new field is optional and requires no schema migration. Removing a reference
 
 ## Independent review and hosted runtime
 
-Exact source `2e504170e38511ad431da4937a665e01b5b9db18`, tree `1df189f3185ff8e5e60e2af5210231a97a97834c`. The [documentation contract](https://github.com/NgohCH/HELPInsights/actions/runs/46141274154) and [full hosted runtime](https://github.com/NgohCH/HELPInsights/actions/runs/46141274155) both passed. The runtime recorded 32 unit tests, 61 PostgreSQL integration tests, two security tests and 38 Chromium tests, with disposable cleanup confirmed for `helpinsights-test-6fdd5fe60b85`. Independent Standards and Spec checks confirmed one mounted source picker, plain-text rendering, safe ordering and stable answer codes. Maximum-size browser timing, direct keyboard Tab-order coverage and a complete local cumulative regression remain open.
+Exact source `2e504170e38511ad431da4937a665e01b5b9db18`, tree `1df189f3185ff8e5e60e2af5210231a97a97834c`. The [documentation contract](https://github.com/NgohCH/HELPInsights/actions/runs/46141274154) and [full hosted runtime](https://github.com/NgohCH/HELPInsights/actions/runs/46141274155) both passed. The runtime recorded 32 unit tests, 61 PostgreSQL integration tests, two security tests and 38 Chromium tests, with disposable cleanup confirmed for `helpinsights-test-6fdd5fe60b85`. Independent Standards and Spec checks confirmed one mounted source picker, plain-text rendering, safe ordering and stable answer codes. Maximum-size browser timing and direct keyboard Tab-order coverage remain open.
+
+## Complete local regression
+
+On exact revision `763231bcf9332c7fe6b445830641ce1e640aa95a`, `corepack pnpm test` passed all 32 tests. An exclusive `corepack pnpm test:stack` passed all 61 real PostgreSQL integrations, two security tests and 38 Chromium tests in disposable project `helpinsights-test-e2225191972d`. The application volume was removed. Passive socket diagnostics recorded one retried readiness socket closure during the planned database restart. The readiness case and the complete run passed.
