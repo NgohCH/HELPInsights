@@ -1,8 +1,10 @@
 import {
+  Fragment,
   useLayoutEffect,
   useRef,
   useState,
   type ChangeEvent,
+  type DragEvent,
   type FormEvent,
 } from "react";
 import {
@@ -18,6 +20,18 @@ import {
 
 type Page = SurveyDefinition["pages"][number];
 type QuestionType = Question["type"];
+type MoveSelection = { pageId: string; beforeQuestionId: string };
+type DragSource =
+  | { kind: "page"; pageId: string }
+  | { kind: "question"; pageId: string; questionId: string };
+type DropPosition =
+  | { kind: "page"; index: number }
+  | { kind: "question"; pageId: string; index: number };
+const draftDragType = "application/x-helpinsights-survey-reorder";
+
+function indexAfterRemoval(insertionIndex: number, sourceIndex: number) {
+  return sourceIndex < insertionIndex ? insertionIndex - 1 : insertionIndex;
+}
 const surveyTitle = "survey-title";
 const pageTitle = (id: string) => "page-title-" + id;
 const questionTitle = (id: string) => "question-title-" + id;
@@ -41,9 +55,15 @@ export function SavedDraftEditor({
 }) {
   const [draft, setDraft] = useState(initial);
   const [activeAnswerSource, setActiveAnswerSource] = useState("");
+  const [moveDestination, setMoveDestination] = useState<
+    MoveSelection & { questionId: string }
+  >();
   const [wording, setWording] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [announcement, setAnnouncement] = useState("");
+  const [dragKind, setDragKind] = useState<DragSource["kind"]>();
+  const [activeDrop, setActiveDrop] = useState<string>();
+  const dragSource = useRef<DragSource>(null);
   const form = useRef<HTMLFormElement>(null);
   const nextFocus = useRef(surveyTitle);
 
@@ -84,6 +104,7 @@ export function SavedDraftEditor({
       const updated = editSurveyStructure(draft, action);
       nextFocus.current = focus;
       setDraft(updated);
+      setMoveDestination(undefined);
       setAnnouncement(message);
     } catch (failure) {
       setError(
@@ -99,9 +120,20 @@ export function SavedDraftEditor({
     change({ kind: "add-page", pageId: id }, pageTitle(id), "Page added.");
   }
 
+  function movePage(page: Page, pageIndex: number, toIndex: number) {
+    change(
+      { kind: "move-page", pageId: page.id, toIndex },
+      pageTitle(page.id),
+      titleOf(page, pageIndex) +
+        " moved to page position " +
+        (toIndex + 1) +
+        ".",
+    );
+  }
+
   function moveQuestion(
-    page: Page,
-    question: Question,
+    pageId: string,
+    questionId: string,
     toPageId: string,
     toIndex: number,
   ) {
@@ -118,17 +150,108 @@ export function SavedDraftEditor({
     change(
       {
         kind: "move-question",
-        pageId: page.id,
-        questionId: question.id,
+        pageId,
+        questionId,
         toPageId,
         toIndex,
       },
-      questionTitle(question.id),
+      questionTitle(questionId),
       "Question moved to " +
         destinationLabel +
         ", position " +
         (toIndex + 1) +
         ".",
+    );
+  }
+
+  function clearDrag() {
+    dragSource.current = null;
+    setDragKind(undefined);
+    setActiveDrop(undefined);
+  }
+
+  function dragHandle(source: DragSource) {
+    return (
+      <span
+        className="draft-drag-handle"
+        draggable={!saving}
+        aria-hidden="true"
+        onDragStart={(event) => {
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData(draftDragType, source.kind);
+          dragSource.current = source;
+          setDragKind(source.kind);
+        }}
+        onDragEnd={clearDrag}
+      >
+        Drag {source.kind}
+      </span>
+    );
+  }
+
+  function canDrop(event: DragEvent, destination: DropPosition) {
+    return (
+      !saving &&
+      dragSource.current?.kind === destination.kind &&
+      event.dataTransfer.types.includes(draftDragType)
+    );
+  }
+
+  function drop(event: DragEvent, destination: DropPosition) {
+    const source = dragSource.current;
+    if (!source || !canDrop(event, destination)) return;
+
+    event.preventDefault();
+    clearDrag();
+
+    const pageIndex = draft.pages.findIndex(({ id }) => id === source.pageId);
+    const page = draft.pages[pageIndex];
+    if (!page) return;
+
+    if (source.kind === "page" && destination.kind === "page") {
+      const toIndex = indexAfterRemoval(destination.index, pageIndex);
+      if (toIndex !== pageIndex) movePage(page, pageIndex, toIndex);
+    }
+
+    if (source.kind === "question" && destination.kind === "question") {
+      const sourceIndex = page.questions.findIndex(
+        ({ id }) => id === source.questionId,
+      );
+      if (sourceIndex < 0) return;
+      const samePage = source.pageId === destination.pageId;
+      const toIndex = samePage
+        ? indexAfterRemoval(destination.index, sourceIndex)
+        : destination.index;
+      if (!samePage || toIndex !== sourceIndex) {
+        moveQuestion(
+          source.pageId,
+          source.questionId,
+          destination.pageId,
+          toIndex,
+        );
+      }
+    }
+  }
+
+  function dropSlot(id: string, destination: DropPosition) {
+    return (
+      <div
+        className="draft-drop-slot"
+        aria-hidden="true"
+        data-testid={id}
+        data-drop-kind={destination.kind}
+        data-active={activeDrop === id || undefined}
+        onDragOver={(event) => {
+          if (!canDrop(event, destination)) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          setActiveDrop(id);
+        }}
+        onDragLeave={() =>
+          setActiveDrop((current) => (current === id ? undefined : current))
+        }
+        onDrop={(event) => drop(event, destination)}
+      />
     );
   }
 
@@ -278,7 +401,11 @@ export function SavedDraftEditor({
 
   return (
     <form ref={form} onSubmit={save} aria-busy={saving}>
-      <fieldset className="creator-inputs" disabled={saving}>
+      <fieldset
+        className="creator-inputs"
+        disabled={saving}
+        data-dragging={dragKind}
+      >
         <label>
           Saved survey title
           <input
@@ -287,134 +414,174 @@ export function SavedDraftEditor({
             required
           />
         </label>
+        <p className="draft-drag-hint" aria-hidden="true">
+          Drag a page or question by its handle, then drop on a highlighted
+          line.
+        </p>
         {draft.pages.map((page, pageIndex) => (
-          <fieldset key={page.id}>
-            <legend>{titleOf(page, pageIndex)}</legend>
-            <label>
-              Page title
-              <input
-                {...textField(pageTitle(page.id), page.title)}
-                maxLength={160}
-              />
-            </label>
-            <div className="actions">
-              <OrderControls
-                item="page"
-                index={pageIndex}
-                count={draft.pages.length}
-                move={(toIndex) =>
-                  change(
-                    { kind: "move-page", pageId: page.id, toIndex },
-                    pageTitle(page.id),
-                    titleOf(page, pageIndex) +
-                      " moved to page position " +
-                      (toIndex + 1) +
-                      ".",
-                  )
-                }
-              />
-              <button
-                type="button"
-                className="secondary"
-                disabled={draft.pages.length === 1}
-                onClick={() =>
-                  change(
-                    { kind: "remove-page", pageId: page.id },
-                    pageTitle(
-                      draft.pages[pageIndex === 0 ? 1 : pageIndex - 1].id,
-                    ),
-                    "Page removed.",
-                  )
-                }
-              >
-                Remove page
-              </button>
-            </div>
-            {page.questions.map((question, index) => (
-              <fieldset key={question.id}>
-                <legend>Question {index + 1}</legend>
-                <label>
-                  Question wording
-                  <input
-                    {...textField(questionTitle(question.id), question.title)}
-                    maxLength={300}
-                    required
-                  />
-                </label>
-                {answerSourceControl(page, question)}
-                {question.type === "single_choice" &&
-                  question.options.map((option, optionIndex) => (
-                    <label key={option.code}>
-                      Option {optionIndex + 1} wording
+          <Fragment key={page.id}>
+            {dropSlot("drop-page-before-" + page.id, {
+              kind: "page",
+              index: pageIndex,
+            })}
+            <fieldset>
+              <legend>{titleOf(page, pageIndex)}</legend>
+              <label>
+                Page title
+                <input
+                  {...textField(pageTitle(page.id), page.title)}
+                  maxLength={160}
+                />
+              </label>
+              <div className="actions">
+                {dragHandle({ kind: "page", pageId: page.id })}
+                <OrderControls
+                  item="page"
+                  index={pageIndex}
+                  count={draft.pages.length}
+                  move={(toIndex) => movePage(page, pageIndex, toIndex)}
+                />
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={draft.pages.length === 1}
+                  onClick={() =>
+                    change(
+                      { kind: "remove-page", pageId: page.id },
+                      pageTitle(
+                        draft.pages[pageIndex === 0 ? 1 : pageIndex - 1].id,
+                      ),
+                      "Page removed.",
+                    )
+                  }
+                >
+                  Remove page
+                </button>
+              </div>
+              {page.questions.map((question, index) => (
+                <Fragment key={question.id}>
+                  {dropSlot("drop-question-before-" + question.id, {
+                    kind: "question",
+                    pageId: page.id,
+                    index,
+                  })}
+                  <fieldset>
+                    <legend>Question {index + 1}</legend>
+                    <label>
+                      Question wording
                       <input
                         {...textField(
-                          optionLabel(question.id, optionIndex),
-                          option.label,
+                          questionTitle(question.id),
+                          question.title,
                         )}
-                        maxLength={160}
+                        maxLength={300}
                         required
                       />
                     </label>
-                  ))}
-                <div className="actions">
-                  <OrderControls
-                    item="question"
-                    index={index}
-                    count={page.questions.length}
-                    move={(toIndex) =>
-                      moveQuestion(page, question, page.id, toIndex)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() =>
-                      change(
-                        {
-                          kind: "remove-question",
-                          pageId: page.id,
-                          questionId: question.id,
-                        },
-                        pageTitle(page.id),
-                        "Question removed.",
-                      )
-                    }
-                  >
-                    Remove question
-                  </button>
-                </div>
-                {draft.pages.length > 1 && (
-                  <MoveDestination
-                    options={draft.pages.flatMap((target, targetIndex) =>
-                      target.id === page.id
-                        ? []
-                        : [
+                    {answerSourceControl(page, question)}
+                    {question.type === "single_choice" &&
+                      question.options.map((option, optionIndex) => (
+                        <label key={option.code}>
+                          Option {optionIndex + 1} wording
+                          <input
+                            {...textField(
+                              optionLabel(question.id, optionIndex),
+                              option.label,
+                            )}
+                            maxLength={160}
+                            required
+                          />
+                        </label>
+                      ))}
+                    <div className="actions">
+                      {dragHandle({
+                        kind: "question",
+                        pageId: page.id,
+                        questionId: question.id,
+                      })}
+                      <OrderControls
+                        item="question"
+                        index={index}
+                        count={page.questions.length}
+                        move={(toIndex) =>
+                          moveQuestion(page.id, question.id, page.id, toIndex)
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() =>
+                          change(
                             {
-                              id: target.id,
-                              title: titleOf(target, targetIndex),
-                              length: target.questions.length,
+                              kind: "remove-question",
+                              pageId: page.id,
+                              questionId: question.id,
                             },
-                          ],
+                            pageTitle(page.id),
+                            "Question removed.",
+                          )
+                        }
+                      >
+                        Remove question
+                      </button>
+                    </div>
+                    {draft.pages.length > 1 && (
+                      <MoveDestination
+                        options={draft.pages.flatMap((target, targetIndex) =>
+                          target.id === page.id
+                            ? []
+                            : [
+                                {
+                                  id: target.id,
+                                  title: titleOf(target, targetIndex),
+                                  questions: target.questions,
+                                },
+                              ],
+                        )}
+                        selection={
+                          moveDestination?.questionId === question.id
+                            ? moveDestination
+                            : undefined
+                        }
+                        onSelect={(selection) =>
+                          setMoveDestination({
+                            ...selection,
+                            questionId: question.id,
+                          })
+                        }
+                        questionWording={(target) =>
+                          value(questionTitle(target.id), target.title)
+                        }
+                        move={(toPageId, toIndex) =>
+                          moveQuestion(page.id, question.id, toPageId, toIndex)
+                        }
+                      />
                     )}
-                    move={(toPageId, toIndex) =>
-                      moveQuestion(page, question, toPageId, toIndex)
-                    }
-                  />
-                )}
-              </fieldset>
-            ))}
-            <QuestionAdder
-              canAuthorNps={canAuthorNps}
-              add={(question) =>
-                change(
-                  { kind: "add-question", pageId: page.id, question },
-                  questionTitle(question.id),
-                  "Question added.",
-                )
-              }
-            />
-          </fieldset>
+                  </fieldset>
+                </Fragment>
+              ))}
+              {dropSlot("drop-questions-end-" + page.id, {
+                kind: "question",
+                pageId: page.id,
+                index: page.questions.length,
+              })}
+              <QuestionAdder
+                canAuthorNps={canAuthorNps}
+                add={(question) =>
+                  change(
+                    { kind: "add-question", pageId: page.id, question },
+                    questionTitle(question.id),
+                    "Question added.",
+                  )
+                }
+              />
+            </fieldset>
+          </Fragment>
         ))}
+        {dropSlot("drop-pages-end", {
+          kind: "page",
+          index: draft.pages.length,
+        })}
         <button type="button" className="secondary" onClick={addPage}>
           Add page
         </button>
@@ -470,20 +637,35 @@ function OrderControls({
 
 function MoveDestination({
   options,
+  selection,
+  onSelect,
+  questionWording,
   move,
 }: {
-  options: { id: string; title: string; length: number }[];
+  options: { id: string; title: string; questions: Question[] }[];
+  selection?: MoveSelection;
+  onSelect: (selection: MoveSelection) => void;
+  questionWording: (question: Question) => string;
   move: (id: string, toIndex: number) => void;
 }) {
-  const [chosen, setChosen] = useState("");
-  const target = options.find(({ id }) => id === chosen);
+  const target = options.find(({ id }) => id === selection?.pageId);
+  const beforeQuestionId = selection?.beforeQuestionId ?? "";
+  const toIndex =
+    (beforeQuestionId
+      ? target?.questions.findIndex(({ id }) => id === beforeQuestionId)
+      : target?.questions.length) ?? -1;
   return (
     <>
       <label>
         Destination page
         <select
           value={target?.id ?? ""}
-          onChange={(event) => setChosen(event.currentTarget.value)}
+          onChange={(event) =>
+            onSelect({
+              pageId: event.currentTarget.value,
+              beforeQuestionId: "",
+            })
+          }
         >
           <option value="">Choose a page</option>
           {options.map(({ id, title }) => (
@@ -493,12 +675,33 @@ function MoveDestination({
           ))}
         </select>
       </label>
+      {target && target.questions.length > 0 && (
+        <label>
+          Position on destination page
+          <select
+            value={beforeQuestionId}
+            onChange={(event) =>
+              onSelect({
+                pageId: target.id,
+                beforeQuestionId: event.currentTarget.value,
+              })
+            }
+          >
+            <option value="">End of page</option>
+            {target.questions.map((question, index) => (
+              <option value={question.id} key={question.id}>
+                Before question {index + 1} — {questionWording(question)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <button
         type="button"
         className="secondary"
-        disabled={!target}
+        disabled={toIndex < 0}
         onClick={() => {
-          if (target) move(target.id, target.length);
+          if (target && toIndex >= 0) move(target.id, toIndex);
         }}
       >
         Move to page

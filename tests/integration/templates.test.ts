@@ -18,6 +18,8 @@ function templateFixture() {
     fetch(api + path, {
       method,
       headers: {
+        // Synchronous SQL fixture calls can outlast a loopback keep-alive socket.
+        Connection: "close",
         ...(token ? { Authorization: "Bearer " + token } : {}),
         ...(body ? { "Content-Type": "application/json" } : {}),
         ...(etag ? { "If-Match": etag } : {}),

@@ -212,3 +212,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 - [Worker recovery](../evidence/ENG-017a/7e455f94fe8baad7c3a5f5851e87cd29a869c068.md) passed focused local database, restore and Chromium, and a full independent hosted run.
 
 - The complete local and hosted cumulative gates passed on exact revision `3c7303e9d82a57e3b1940f3067b83a353016d87b`. Each recorded 32 unit, 65 PostgreSQL integration, two security and 43 Chromium tests. [Cumulative verification report](../evidence/ENG-INTEGRATION/b6ac3e48c721c8aefb481177f25a686f86e896a5.md).
+
+## ENG-006h pointer and exact accessible placement
+
+- Focused real Chromium passed eight cases and confirmed PostgreSQL order, metadata and immutable-version preservation. Exact source `7b677e66ccfea09d2cefb3599a5d857f2c37e749` also passed full hosted runtime. [Verification report](../evidence/ENG-006h/7b677e66ccfea09d2cefb3599a5d857f2c37e749.md).

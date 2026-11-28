@@ -44,6 +44,7 @@
 | ENG-007c results and exports by publication | VERIFIED_INTEGRATION | Exact local revision a997d306c709 passed 27 unit, 60 real PostgreSQL integration, two security and 38 Chromium tests. The repaired app and test source passed hosted runtime. [Evidence](../evidence/ENG-007c/b4df81598781914738f88aa7d4589de2df9ca2a2.md). |
 | ENG-017a export worker recovery in cumulative operations | VERIFIED_LOCAL | Focused PostgreSQL, restore and Chromium passed. Exact hosted source 13f1bd467e08 passed 27 unit, 64 PostgreSQL integration, two security and 39 Chromium tests. [Evidence](../evidence/ENG-017a/7e455f94fe8baad7c3a5f5851e87cd29a869c068.md). |
 | Cumulative synthetic workspace | VERIFIED_INTEGRATION | Exact revision 3c7303e9d82a passed 32 unit, 65 real PostgreSQL integration, two security and 43 Chromium tests locally and on GitHub. [Evidence](../evidence/ENG-INTEGRATION/b6ac3e48c721c8aefb481177f25a686f86e896a5.md). |
+| ENG-006h pointer and exact accessible placement | VERIFIED_LOCAL | Focused PostgreSQL and Chromium, independent review and full hosted runtime passed. Exact hosted source 7b677e66ccfe passed 32 unit, 65 PostgreSQL, two security and 48 Chromium tests. The full local cumulative gate remains open. [Evidence](../evidence/ENG-006h/7b677e66ccfea09d2cefb3599a5d857f2c37e749.md). |
 | Remaining platform features | NOT_STARTED | See the uncompleted features and prerequisites in [the task graph](TASK_GRAPH.md). |
 | Production release | BLOCKED | Branch protection, required evidence and authorised approval remain pending. |
 

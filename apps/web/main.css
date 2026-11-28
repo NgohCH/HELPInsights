@@ -119,6 +119,43 @@ fieldset {
 .creator-inputs > p {
   margin: 0;
 }
+.draft-drag-hint,
+.draft-drag-handle,
+.draft-drop-slot {
+  display: none;
+}
+@media (any-pointer: fine) {
+  .draft-drag-hint,
+  .draft-drop-slot {
+    display: block;
+  }
+  .draft-drag-handle {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.45rem 0.7rem;
+    border: 1px dashed var(--primary);
+    border-radius: 0.45rem;
+    color: var(--primary);
+    font-weight: 650;
+    cursor: grab;
+    user-select: none;
+  }
+  .draft-drag-handle:active {
+    cursor: grabbing;
+  }
+  .draft-drop-slot {
+    block-size: 1rem;
+    margin-block: -0.5rem;
+    border-radius: 0.3rem;
+  }
+  [data-dragging="page"] [data-drop-kind="page"],
+  [data-dragging="question"] [data-drop-kind="question"] {
+    background: #d8e6f8;
+  }
+  .draft-drop-slot[data-active] {
+    background: var(--primary);
+  }
+}
 legend {
   font-weight: 680;
   padding: 0 0.4rem;
