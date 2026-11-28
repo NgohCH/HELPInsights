@@ -82,26 +82,37 @@ export function CaseHandoff() {
             autoComplete="off"
             required
             ref={tokenInput}
+            disabled={pending}
           />
         </label>
         <div className="columns">
           <label>
             Survey ID
-            <input name="survey" autoComplete="off" required />
+            <input
+              name="survey"
+              autoComplete="off"
+              required
+              disabled={pending}
+            />
           </label>
           <label>
             Survey version ID
-            <input name="version" autoComplete="off" required />
+            <input
+              name="version"
+              autoComplete="off"
+              required
+              disabled={pending}
+            />
           </label>
         </div>
         <label>
           Synthetic basis reference
-          <input name="basis" autoComplete="off" required />
+          <input name="basis" autoComplete="off" required disabled={pending} />
         </label>
         <div className="columns">
           <label>
             Category
-            <select name="category" required defaultValue="">
+            <select name="category" required defaultValue="" disabled={pending}>
               <option value="">Choose a category</option>
               {Object.entries(caseCategories).map(([id, name]) => (
                 <option key={id} value={id}>
@@ -112,7 +123,12 @@ export function CaseHandoff() {
           </label>
           <label>
             Priority
-            <select name="priority" required defaultValue="normal">
+            <select
+              name="priority"
+              required
+              defaultValue="normal"
+              disabled={pending}
+            >
               {Object.entries(casePriorities).map(([id, name]) => (
                 <option key={id} value={id}>
                   {name}
@@ -126,6 +142,7 @@ export function CaseHandoff() {
             type="checkbox"
             ref={approvalInput}
             checked={approved}
+            disabled={pending}
             onChange={(event) => setApproved(event.target.checked)}
           />
           I approve this synthetic handoff

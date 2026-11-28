@@ -33,9 +33,37 @@ test("a reviewer explicitly approves a redacted synthetic handoff in the browser
   await expect(queue).toBeDisabled();
   await page.getByLabel("Priority").selectOption("normal");
   await approval.check();
-  await queue.focus();
-  await page.keyboard.press("Enter");
+  const responseReady = Promise.withResolvers<number>();
+  const releaseResponse = Promise.withResolvers<void>();
+  await page.route("**" + fixture.path, async (route) => {
+    const response = await route.fetch();
+    responseReady.resolve(response.status());
+    await releaseResponse.promise;
+    await route.fulfill({ response });
+  });
+  const approvalFields = [
+    page.getByLabel("Development session token"),
+    page.getByLabel("Survey ID", { exact: true }),
+    page.getByLabel("Survey version ID"),
+    page.getByLabel("Synthetic basis reference"),
+    page.getByLabel("Category"),
+    page.getByLabel("Priority"),
+    approval,
+  ];
+  try {
+    await queue.focus();
+    await page.keyboard.press("Enter");
+    expect(await responseReady.promise).toBe(202);
+    await expect(queue).toBeDisabled();
+    for (const field of approvalFields) await expect(field).toBeDisabled();
+    await expect(
+      page.getByRole("link", { name: "Survey workspace" }),
+    ).toBeEnabled();
+  } finally {
+    releaseResponse.resolve();
+  }
   await expect(page.getByRole("status")).toContainText("Handoff queued");
+  for (const field of approvalFields) await expect(field).toBeEnabled();
   await expect(
     page.getByText(
       "Review a campus facilities concern identified in the synthetic exercise.",
