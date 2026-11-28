@@ -251,7 +251,9 @@ test("a stale saved draft cannot replace a University-only publication", async (
     .getByLabel("University eligibility policy")
     .selectOption(policyId);
   await publish.click();
-  await expect(details.getByText("Version 2")).toBeVisible();
+  await expect(
+    details.getByRole("list").getByText("Version 2", { exact: true }),
+  ).toBeVisible();
   expect(
     sql(
       "SELECT string_agg(d.eligibility_mode, ',' ORDER BY v.version) FROM public.distributions d JOIN public.survey_versions v ON v.id = d.survey_version_id WHERE v.survey_id = '" +
