@@ -16,7 +16,7 @@ test("only an appointed workspace reviewer with an active exact-version basis ca
           "/versions/" +
           randomUUID() +
           "/case-handoffs",
-        { method: "POST" },
+        { method: "POST", headers: { Connection: "close" } },
       )
     ).status,
     401,
@@ -31,6 +31,8 @@ test("only an appointed workspace reviewer with an active exact-version basis ca
     fetch(base + fixture.path, {
       method: "POST",
       headers: {
+        // Synchronous SQL fixture calls can outlast a loopback keep-alive socket.
+        Connection: "close",
         Authorization: "Bearer " + token,
         "Content-Type": "application/json",
         "Idempotency-Key": key,
@@ -45,6 +47,7 @@ test("only an appointed workspace reviewer with an active exact-version basis ca
     {
       method: "POST",
       headers: {
+        Connection: "close",
         Authorization: "Bearer " + fixture.token,
         "Content-Type": "application/json",
         "Idempotency-Key": randomUUID(),

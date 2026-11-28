@@ -45,6 +45,8 @@ function setup() {
     fetch(base + path, {
       method,
       headers: {
+        // Synchronous SQL fixture calls can outlast a loopback keep-alive socket.
+        Connection: "close",
         ...(token ? { Authorization: "Bearer " + token } : {}),
         ...(body ? { "Content-Type": "application/json" } : {}),
         ...headers,
