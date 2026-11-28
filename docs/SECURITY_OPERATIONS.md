@@ -48,8 +48,7 @@ containing a fixed component, state and severity. PostgreSQL adds server time,
 event ID and authenticated audit attribution. API responses omit the audit
 actor and the database schema accepts only fixed event codes. Platform
 operations membership is empty at installation and gives no workspace or
-survey permissions. Automated detection, incident lifecycle correlation,
-notices and role provisioning are later scopes.
+survey permissions. Notice delivery and role provisioning are separate scopes.
 
 The application database role can append the three event fields and select the
 redacted projection under row-level security. Mutation of history or audit
@@ -57,6 +56,33 @@ attribution requires database-owner privileges. The migration is additive.
 Retain both tables when reverting the application. The previous runtime
 compares exact migration history for readiness, so a rollback needs a
 compatible build or a coordinated, explicitly approved database restore.
+
+## Export worker recovery
+
+ENG-017a keeps one episode in memory when the export worker observes an
+allowlisted PostgreSQL transport failure. The worker retries its polling cycle
+with a backoff capped at 2.4 seconds. A polling transaction must commit before
+the worker records recovery. The three-attempt budget for individual export
+jobs remains separate.
+
+The export database role can execute one restricted recording function. It
+appends a detected event and a recovered event together. The events share an
+episode ID and contain fixed classifications and observation times. A repeated
+write with the same episode ID leaves the pair unchanged. The application role
+can read the redacted projection under the existing operations policy and
+continues to append attributed manual events. Incident output excludes error
+messages, connection details, survey identifiers, job identifiers, answers and
+session credentials.
+
+The disposable Compose test profile sets `HELPINSIGHTS_EXPORT_INCIDENTS=1`.
+The default runtime leaves incident recording disabled. The worker stops
+retrying on shutdown and keeps retrying within the backoff cap during a
+prolonged outage. An episode becomes visible after PostgreSQL recovers, and it
+can be lost if the worker process exits sooner. Unrecognised errors may leave
+no incident. An interrupted acknowledgement retries the same episode ID.
+Revision 024 extends incident records in place and retains prior attribution.
+Rolling back to an earlier runtime requires a schema-compatible build or an
+approved restore because readiness checks migration names and checksums.
 
 ## Safe operational workflows
 

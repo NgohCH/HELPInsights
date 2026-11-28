@@ -39,6 +39,42 @@ Triage rules:
 
 `survey.action.requested.v1` carries `eventId`, `organisationId`, `surveyId`, `surveyVersionId`, `createdAt`, `category`, `priority`, `sanitisedSummary`, `consentOrLawfulBasisRef`, `originMode` and optional privacy-safe aggregate context. Do not include `respondentId` in anonymous mode. Include an idempotency key; receiver deduplicates. All payload fields must be policy-controlled and reviewed.
 
+## Synthetic case handoff development slice
+
+In the disposable test stack, open **Synthetic case handoff** from the
+workspace home. The test fixture supplies an appointed reviewer token, the
+survey and version IDs, and the synthetic basis reference. Choose an
+allowlisted category and priority, confirm approval and queue the event.
+The page and endpoint require both `NODE_ENV=test` and
+`HELPINSIGHTS_DEV_CASE_HANDOFF=synthetic`, set by the test Compose overlay.
+
+PostgreSQL requires the reviewer to be a member of that workspace and the
+active fixture basis to match the exact published anonymous survey version.
+PostgreSQL generates the category summary and stores the verified reviewer
+privately. The receipt carries opaque survey, version and basis identifiers
+and a standard summary. It contains no raw response, response or respondent
+identifier, reviewer identity or token. Events stay queued in PostgreSQL.
+The synthetic fixture does not establish participant consent.
+
+A matching retry receives the same event while the reviewer and basis are
+still authorised. If the reviewer appointment or basis has been revoked
+since a lost receipt, the retry is denied. A trusted reconciliation
+process is needed before enabling delivery.
+
+Migration 023 adds the outbox after the cumulative integration settings
+migration. The basis and audit event deliberately avoid foreign keys into
+the survey collection so eligible core deletion can proceed. A disposal
+tombstone prevents approval against restored survey rows. The audit event
+retains minimal attribution after core deletion. Define a separate
+outbox/basis retention and reconciliation policy, and review whether survey
+identifiers or timing can identify small cohorts before any provider use.
+
+To turn off the test path, remove the test flag and restart the app. The
+schema stays applied. Keep the additive migration in the ledger. Any future
+external ticket connector, delivery simulator, reviewer provisioning,
+welfare referrals, real lawful basis and delivery audit require separate
+work and governance.
+
 ## Stage 1B acceptance gate
 
 - End-to-end feedback cases processed using agreed roles: review, assignment, deadline, evidence and resolution verification.

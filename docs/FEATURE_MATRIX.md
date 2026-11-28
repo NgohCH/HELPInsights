@@ -1,8 +1,8 @@
-> **v2.2 verification status:** Every feature below is DESIGN-SPECIFIED, NOT IMPLEMENTED and NOT TESTED in this package. `docs/TEST_MATRIX.md` defines mandatory positive/negative checks and `docs/CONTINUOUS_TESTING.md` governs the continuous/no-deferral policy. Feature owners must add stable IDs, task links, test paths, CI SHA and evidence before claiming completion.
+> This matrix defines the development scope and acceptance criteria. [Build status](BUILD_STATUS.md) records verified slices and open gates. [Test matrix](TEST_MATRIX.md) and [continuous testing](CONTINUOUS_TESTING.md) define the required evidence.
 
 # Full-scope implementation and acceptance matrix
 
-This file tracks **development scope for all stages**. Production enablement is controlled independently by deployment gates. Initial status: **NOT IMPLEMENTED / NOT VERIFIED** for all items unless proven by repository test evidence.
+This file tracks **development scope for all stages**. Production enablement is controlled independently by deployment gates. Consult the exact-revision evidence linked from the build status when checking implementation progress.
 
 | Module | Must deliver | Evidence to collect | Production gate |
 |---|---|---|---|
@@ -27,7 +27,7 @@ ENG-016a covers one voluntary, fixed synthetic notice on each opted-in test dist
 
 The separate tables reduce direct data linkage. Privileged database transaction metadata and small cohorts can still support correlation. Academic consent wording, ethics approval, study authoring and retention, withdrawal, reproducible assignment, research scoring and export, longitudinal linking and production activation require separate evidence and approval.
 
-## Extended full-scope feature matrix (all NOT IMPLEMENTED / NOT VERIFIED until tested)
+## Extended full-scope feature matrix
 
 | Module | Required end-to-end proof | Release control |
 |---|---|---|
@@ -61,7 +61,7 @@ All rows start **NOT IMPLEMENTED / NOT VERIFIED** until code and real runtime ev
 
 ## Live Quiz Arena — required full-scope delivery and acceptance
 
-**Initial status: NOT IMPLEMENTED / NOT VERIFIED.** Every row requires a real containerized runtime and evidence; cannot be closed by static review alone.
+Every Live Quiz Arena work package requires evidence from the containerized runtime. The build status identifies exercised workflows and limits.
 
 | Feature | Expected behaviour | Required verification | WP |
 |---|---|---|---|

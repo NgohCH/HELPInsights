@@ -43,6 +43,7 @@ export function createApplication(
   gameShow = false,
   universitySignIn = false,
   developmentSignIn = true,
+  syntheticCaseHandoff = false,
 ) {
   return createServer(
     { requestTimeout: 15000, headersTimeout: 10000 },
@@ -59,6 +60,7 @@ export function createApplication(
       const path = request.url?.split("?", 1)[0] ?? "";
       const publicPage =
         /^\/respond\/[A-Za-z0-9_-]{43}$/.test(path) ||
+        (syntheticCaseHandoff && path === "/case-handoff") ||
         (liveQuiz &&
           (path === "/live/host" ||
             path === "/live/join" ||
@@ -142,6 +144,8 @@ export function createApplication(
               liveQuiz +
               '" data-game-show="' +
               gameShow +
+              '" data-synthetic-case-handoff="' +
+              syntheticCaseHandoff +
               '"',
           ),
         );

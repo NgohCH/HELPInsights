@@ -2,6 +2,7 @@ import type { Answer } from "../../packages/survey-runtime/answers.ts";
 import { useState } from "react";
 import {
   isQuestionVisible,
+  renderQuestionTitle,
   type SurveyDefinition,
 } from "../../packages/survey-runtime/definition.ts";
 
@@ -36,6 +37,11 @@ export function QuestionFields({
   const [choices, setChoices] = useState<ReadonlyMap<string, string>>(
     new Map(),
   );
+  const questionsById = new Map(
+    definition.pages.flatMap(({ questions }) =>
+      questions.map((question) => [question.id, question] as const),
+    ),
+  );
   return definition.pages.map((page) => {
     const visibleQuestions = page.questions.filter((question) =>
       isQuestionVisible(question, choices),
@@ -44,11 +50,12 @@ export function QuestionFields({
     return (
       <section key={page.id} aria-label={page.title || undefined}>
         {page.title && <PageHeading>{page.title}</PageHeading>}
-        {visibleQuestions.map((question) =>
-          question.type === "single_choice" ? (
+        {visibleQuestions.map((question) => {
+          const title = renderQuestionTitle(question, questionsById, choices);
+          return question.type === "single_choice" ? (
             <fieldset key={question.id}>
               <legend>
-                {question.title}
+                {title}
                 {question.required && (
                   <span className="required"> Required</span>
                 )}
@@ -75,7 +82,7 @@ export function QuestionFields({
             </fieldset>
           ) : (
             <label key={question.id}>
-              {question.title}
+              {title}
               <input
                 type={question.type === "short_text" ? "text" : "number"}
                 name={question.id}
@@ -100,8 +107,8 @@ export function QuestionFields({
                 </span>
               )}
             </label>
-          ),
-        )}
+          );
+        })}
       </section>
     );
   });

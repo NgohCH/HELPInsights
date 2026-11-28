@@ -192,3 +192,23 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 ## ENG-006g publication from saved surveys
 
 - Application source `2adf2c09d2ec74710b96b66276f284e3a4e69b2f` passed 27 unit, 60 real PostgreSQL integration, two security and 36 Chromium tests. The report records the delayed-response regression, keyboard focus, stale University-only draft refusal and disposable cleanup. [Verification report](../evidence/ENG-006g/2adf2c09d2ec74710b96b66276f284e3a4e69b2f.md).
+
+## ENG-013b answer-label piping
+
+- Application source `2e504170e38511ad431da4937a665e01b5b9db18` passed one focused PostgreSQL integration test, two Chromium journeys and ten selected model and regression tests locally. Full local and hosted runtimes and independent review passed. The record covers picker scaling, hidden-answer clearing and rollback requirements. [Verification report](../evidence/ENG-013b/focused-runtime.md).
+
+## ENG-015b live presenter recovery
+
+- Source `06d4b3ef680357f3c5c94b35d43c9ac4ae140c3b` passed the full hosted runtime. The recorded local browser tests used the original room, PostgreSQL and the existing guest WebSocket, with independent review of authority and focus. [Verification report](../evidence/ENG-015b/06d4b3ef680357f3c5c94b35d43c9ac4ae140c3b.md).
+
+## ENG-012a case handoff in the cumulative workspace
+
+- Final verification revision `bf7e55c03766c98f7e8fa31b7f8ab4423d85e368` passed the full hosted runtime. Focused local evidence records the seeded upgrade, reviewer and basis checks, duplicate approval, redacted receipt and held-response UI repair. [Verification report](../evidence/ENG-012a/9534446e740e6858958cdff0b59a5559ff03397d.md).
+
+## Cumulative synthetic workspace
+
+- Exact application source `b6ac3e48c721c8aefb481177f25a686f86e896a5` passed ten focused Chromium workflows in one real PostgreSQL and WebSocket stack. [Cumulative verification report](../evidence/ENG-INTEGRATION/b6ac3e48c721c8aefb481177f25a686f86e896a5.md)
+- [Versioned reporting](../evidence/ENG-007c/b4df81598781914738f88aa7d4589de2df9ca2a2.md) passed its complete local and hosted runs after the earlier local socket resets.
+- [Worker recovery](../evidence/ENG-017a/7e455f94fe8baad7c3a5f5851e87cd29a869c068.md) passed focused local database, restore and Chromium, and a full independent hosted run.
+
+- The complete local and hosted cumulative gates passed on exact revision `3c7303e9d82a57e3b1940f3067b83a353016d87b`. Each recorded 32 unit, 65 PostgreSQL integration, two security and 43 Chromium tests. [Cumulative verification report](../evidence/ENG-INTEGRATION/b6ac3e48c721c8aefb481177f25a686f86e896a5.md).

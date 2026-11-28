@@ -79,11 +79,17 @@ export function reportRoutes(pool: Pool) {
                 "includeAttachments",
               ])
             : null;
+        const queryVersions = body
+          ? []
+          : new URL(request.url!, "http://localhost").searchParams.getAll(
+              "surveyVersionId",
+            );
+        if (queryVersions.length > 1)
+          throw new InvalidInput("Choose one survey version");
+        const versionId = body ? body.surveyVersionId : queryVersions[0];
         const result = await withActor(pool, proof, async (client, actor) => {
           const requestedVersion =
-            body?.surveyVersionId === undefined
-              ? null
-              : uuid(body.surveyVersionId, "Survey version");
+            versionId === undefined ? null : uuid(versionId, "Survey version");
           const version = await reportVersion(client, id, requestedVersion);
           if (body) {
             if (

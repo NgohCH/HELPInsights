@@ -26,7 +26,9 @@ Three interfaces share one application backend:
 The development Operations page at /admin shows API, database and migration
 health and up to 100 recent incidents for a session with an explicit platform
 operations role. Operators can record allowlisted incident events through
-the API. Workspace ownership and survey access use separate permissions. See
+the API. The disposable test stack also records a redacted incident pair after
+the export worker verifies recovery from a PostgreSQL interruption. Workspace
+ownership and survey access use separate permissions. See
 [Operations and security](docs/SECURITY_OPERATIONS.md).
 
 The development survey API exposes workspace-scoped retention status and
@@ -125,13 +127,17 @@ The local development workflow creates and publishes a single-choice survey, col
 
 For a guided draft, select a workspace with a retention policy and choose **After-class feedback** under **Guided creation**. Edit the five prompts and choice labels, then save and open **Preview draft**. Only **Publish survey** creates an anonymous respondent link. If the saved draft changes elsewhere between preview and publication, publication returns a revision conflict and leaves the existing draft and versions intact.
 
-To restructure a saved draft, open it in **Workspace surveys** and choose **Edit saved draft**. Add and name pages, add supported questions, and move pages or questions with the keyboard-accessible controls. Move feedback announces the new position. The editor blocks changes that would break an existing conditional question. **Save changes** uses the loaded draft revision and leaves published versions intact.
+To restructure a saved draft, open it in **Workspace surveys** and choose **Edit saved draft**. Add and name pages, add supported questions, and move pages or questions with the keyboard-accessible controls. Move feedback announces the new position. The editor blocks changes that would break an existing conditional question or answer-label reference. **Save edits** uses the loaded draft revision and leaves published versions intact.
+
+To reuse an answer label in a later question, open **Edit answer label source** and choose an earlier unconditional single-choice question. **Preview saved draft** and the published response form append the selected option label to the question wording. If the respondent skips the earlier question, the original wording appears on its own. Live Poll and Game Show use the original wording. Analytics and CSV codebooks use the original wording, and responses store option codes.
 
 In the creator, choose a workspace and select **Browse templates** to preview **Event feedback**. A workspace owner or editor can select **Use this template** to start an independent anonymous draft under the workspace’s retention policy. The preview does not open a respondent link.
 
 The development **Feature catalogue** lets workspace owners and editors request NPS authoring for anonymous surveys. A delegated workspace reviewer can approve time-limited access or deny the request. Approval unlocks 0–10 NPS questions for authoring and publishing.
 
 To publish a reopened draft, choose **Publish saved draft** and select who can respond. A University-only publication requires an approved workspace policy. Each publication has its own respondent link. **End response collection** closes the survey's ordinary respondent links after confirmation. The previously collected responses and published versions are retained.
+
+Open a saved survey and use **Reporting publication** to choose an earlier version. **View results** applies the publication's own question wording and privacy thresholds. **Export JASP CSV** uses the displayed publication and remains available after collection closes for authorised users.
 
 During authoring, **Show a follow-up when** lets you attach a required text question to one choice. The saved preview uses the same rule as the published form. Exported blanks can mean a question was hidden or was visible and unanswered. The analytics response count covers the entire published version.
 
@@ -150,6 +156,11 @@ corepack pnpm test:stack
 ```
 
 The Playwright journey creates its own development session and workspace, submits answers, restarts PostgreSQL, checks stored answers directly in SQL, and reconciles the browser chart and downloaded ZIP. The test retains the chart screenshot and sample archive under `test-results/`. See [build status](docs/BUILD_STATUS.md) for implementation and release scope.
+
+In the disposable test stack, open **Synthetic case handoff** from the
+workspace home and use the appointed reviewer token, published version and
+synthetic basis provided by the fixture. Approval queues a redacted event
+in PostgreSQL. [Project Listen case handoff](docs/PROJECT_LISTEN.md#synthetic-case-handoff-development-slice)
 
 ### Institutional OAuth development scope
 
@@ -179,6 +190,8 @@ The disposable stack enables University-only collection for synthetic tests. Aft
 
 The disposable test stack enables Live Poll and Game Show. After publishing a compatible public survey, choose **Present a Live Poll** or **Present a Game Show** in the creator workspace. The presenter uses the current sign-in and the published version automatically. Share the eight-digit PIN with a synthetic participant at `/live/join` within 30 minutes. Local development can also open `/live/host` with a development session token and the version ID.
 
+If you reload the same creator tab, choose **Resume live presentation** to return to your latest active Live Poll or Game Show. The app checks the current University sign-in and opens that room. The plaintext join PIN is available when you first open the lobby. Reloading clears it from the presenter screen. Guests can keep using a shared PIN until it expires.
+
 The presenter can start, pause, resume, end and archive the poll. The presenter and guest see committed state changes over a same-origin WebSocket. A disconnected tab reconnects to the current PostgreSQL state. Refresh lobby also reopens the connection. Guest credentials stay in the current page and expire after eight hours. Once running, the presenter opens and advances questions in published order. Each guest can cast one vote per question and see their own receipt. The presenter sees turnout in groups of five and may close the question to reveal exact counts when the category and nonvoter groups meet the privacy threshold. See the [voting test criteria](docs/LIVE_POLL_VOTING_TEST_CRITERIA.md) and [remaining Live Quiz Arena release gates](docs/LIVE_QUIZ_ARENA.md).
 
 ### Local timed Game Show
@@ -204,7 +217,7 @@ Work is complete only when code, tests, threat/permission review, migration/roll
 
 ## Extended survey interactions and channels
 
-The single full-scope build also specifies accessible drag-and-drop multipage surveys, NPS/matrix/ranking/file/image questions, safe branching/piping, in-app OIDC survey launches, email/SMS/QR/embed/reminders, kiosk/offline collection and privacy-governed sentiment analysis. Self-healing operations must record administrator-readable incidents and recovery outcomes. These are **requirements, not implemented capabilities**. Read [Interaction, Channels and Intelligence](docs/INTERACTION_CHANNELS_INTELLIGENCE.md) and the test gates in `HANDOFF.md`.
+The disposable test stack exercises export worker recovery. The full-scope requirements include accessible drag-and-drop multipage surveys, additional question formats, broader branching, in-app OIDC survey launches, email, SMS, QR, embeds, reminders, kiosk and offline collection, privacy-governed sentiment analysis and automated recovery notices. [Interaction, Channels and Intelligence](docs/INTERACTION_CHANNELS_INTELLIGENCE.md) · [Test gates](HANDOFF.md)
 
 ## Guided creation and self-service requirements
 

@@ -6,6 +6,7 @@ export type Question = {
   title: string;
   required: boolean;
   visibleWhen?: QuestionVisibility;
+  titleAnswerSourceId?: string;
 } & (
   | { type: "single_choice"; options: Option[] }
   | { type: "short_text" | "number" | "nps" }
@@ -96,6 +97,26 @@ export function isQuestionVisible(
   );
 }
 
+export function isUnconditionalChoice(
+  question: Question,
+): question is Extract<Question, { type: "single_choice" }> {
+  return question.type === "single_choice" && !question.visibleWhen;
+}
+
+export function renderQuestionTitle(
+  question: Question,
+  questionsById: ReadonlyMap<string, Question>,
+  answers: ReadonlyMap<string, unknown>,
+): string {
+  const sourceId = question.titleAnswerSourceId;
+  if (!sourceId) return question.title;
+  const source = questionsById.get(sourceId);
+  if (!source || !isUnconditionalChoice(source)) return question.title;
+  const selected = answers.get(sourceId);
+  const option = source.options.find(({ code }) => code === selected);
+  return option ? question.title + " — " + option.label : question.title;
+}
+
 export function parseDefinition(value: unknown): SurveyDefinition {
   const input = object(value, [
     "schemaVersion",
@@ -117,6 +138,7 @@ export function parseDefinition(value: unknown): SurveyDefinition {
           "required",
           "options",
           "visibleWhen",
+          "titleAnswerSourceId",
         ]);
         if (typeof q.required !== "boolean")
           throw new InvalidInput("Question required must be a boolean");
@@ -128,6 +150,9 @@ export function parseDefinition(value: unknown): SurveyDefinition {
           ...(q.visibleWhen === undefined
             ? {}
             : { visibleWhen: parseVisibility(q.visibleWhen) }),
+          ...(q.titleAnswerSourceId === undefined
+            ? {}
+            : { titleAnswerSourceId: code(q.titleAnswerSourceId, true) }),
         };
         if (q.type === "single_choice") {
           const options = collection(q.options, 2, 20).map((option) => {
@@ -183,7 +208,13 @@ export function parseDefinition(value: unknown): SurveyDefinition {
         throw new InvalidInput(
           "Visibility requires an earlier unconditional choice and one of its options",
         );
-    } else if (question.type === "single_choice") {
+    }
+    const sourceId = question.titleAnswerSourceId;
+    if (sourceId && !controllers.has(sourceId))
+      throw new InvalidInput(
+        "An answer label requires an earlier unconditional single-choice question",
+      );
+    if (isUnconditionalChoice(question)) {
       controllers.set(
         question.id,
         new Set(question.options.map((option) => option.code)),

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import pg from "pg";
@@ -15,7 +16,46 @@ const pool = new pg.Pool({
   connectionTimeoutMillis: 2_000,
   statement_timeout: 10_000,
 });
-pool.on("error", () => console.error("Export worker connection interrupted"));
+const recordIncidents = process.env.HELPINSIGHTS_EXPORT_INCIDENTS === "1";
+const regularPollDelay = 300;
+const maxPollDelay = 2_400;
+const transportCodes = new Set([
+  "08000",
+  "08001",
+  "08003",
+  "08006",
+  "57P01",
+  "57P02",
+  "57P03",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EPIPE",
+  "ETIMEDOUT",
+]);
+const transportMessages = new Set([
+  "Connection terminated unexpectedly",
+  "Connection terminated due to connection timeout",
+]);
+let pendingEpisode: { id: string; detectedAt: Date } | undefined;
+
+function isTransportFailure(error: unknown) {
+  if (!(error instanceof Error)) return false;
+  const code = (error as NodeJS.ErrnoException).code;
+  return code === undefined
+    ? transportMessages.has(error.message)
+    : transportCodes.has(code);
+}
+
+function observeTransportFailure(error: unknown) {
+  if (recordIncidents && isTransportFailure(error)) {
+    pendingEpisode ??= { id: randomUUID(), detectedAt: new Date() };
+  }
+}
+
+pool.on("error", (error) => {
+  observeTransportFailure(error);
+  console.error("Export worker connection interrupted");
+});
 
 const shutdown = new AbortController();
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
@@ -70,6 +110,8 @@ function processExport() {
           );
         }
       } catch (error) {
+        // Transport failures abort the transaction without charging a job attempt.
+        if (isTransportFailure(error)) throw error;
         await client.query("ROLLBACK TO SAVEPOINT process_job");
         await client.query(
           `
@@ -93,6 +135,7 @@ function processExport() {
 }
 
 try {
+  let pollDelay = regularPollDelay;
   while (!shutdown.signal.aborted) {
     try {
       await processExport();
@@ -100,12 +143,30 @@ try {
         "/tmp/helpinsights-export-worker.ready",
         String(Date.now()),
       );
-    } catch {
+      // Retain the episode until the recording transaction commits.
+      const episode = pendingEpisode;
+      if (episode && !shutdown.signal.aborted) {
+        await withTransaction(pool, (client) =>
+          client.query("SELECT public.record_export_worker_recovery($1, $2)", [
+            episode.id,
+            episode.detectedAt,
+          ]),
+        );
+        pendingEpisode = undefined;
+      }
+      pollDelay = regularPollDelay;
+    } catch (error) {
+      observeTransportFailure(error);
       console.error("Export worker could not finish a polling cycle");
+      pollDelay = pendingEpisode
+        ? Math.min(pollDelay * 2, maxPollDelay)
+        : regularPollDelay;
     }
-    await delay(300, undefined, { signal: shutdown.signal }).catch((error) => {
-      if (!shutdown.signal.aborted) throw error;
-    });
+    await delay(pollDelay, undefined, { signal: shutdown.signal }).catch(
+      (error) => {
+        if (!shutdown.signal.aborted) throw error;
+      },
+    );
   }
 } finally {
   await pool.end();

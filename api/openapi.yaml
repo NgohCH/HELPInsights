@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Independent Survey Platform API
-  version: 0.2.13-development
+  version: 0.2.15-development
   description: Development coverage includes anonymous surveys, CSV export, curated templates, operations, opt-in live rooms, NPS approval, retention, synthetic Registry eligibility and synthetic research consent.
 servers:
 - url: https://survey.example.org/api/v1
@@ -498,6 +498,66 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PublishedVersion'
+  /surveys/{surveyId}/versions/{surveyVersionId}/case-handoffs:
+    parameters:
+    - $ref: '#/components/parameters/SurveyId'
+    - name: surveyVersionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    post:
+      tags:
+      - Survey
+      operationId: approveSyntheticCaseHandoff
+      description: Available only in the disposable synthetic test runtime. Requires an appointed reviewer and an active synthetic basis for the exact published anonymous survey version. The outbox stores a redacted receipt without external delivery.
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyntheticCaseApproval'
+      responses:
+        '202':
+          description: Same approved outbox receipt for the original request and matching retries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyntheticCaseHandoff'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          description: Request body is too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '415':
+          description: Request body must be JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /surveys/{surveyId}/close:
     parameters:
     - $ref: '#/components/parameters/SurveyId'
@@ -744,6 +804,14 @@ paths:
       - Reporting
       operationId: getSurveyAnalytics
       description: Aggregated metrics only, subject to permission and small-cell suppression.
+      parameters:
+      - name: surveyVersionId
+        in: query
+        required: false
+        description: An immutable publication belonging to this survey. Defaults to the newest publication.
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           description: Authorised aggregates
@@ -751,8 +819,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SurveyAnalytics'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /surveys/{surveyId}/exports:
     parameters:
     - $ref: '#/components/parameters/SurveyId'
@@ -1151,7 +1223,7 @@ paths:
       tags:
       - Administration
       operationId: listAdminIncidents
-      description: Requires a platform operations viewer or operator. Returns the latest 100 platform incident events, newest first, without actor attribution or survey data.
+      description: Requires a platform operations viewer or operator. Returns the latest 100 platform incident events, newest first by recording time, with a correlation ID and observation time for export worker recovery events. Actor attribution and survey data are excluded.
       responses:
         '200':
           description: Redacted incident history
@@ -1757,6 +1829,65 @@ components:
           format: uuid
         displayName:
           type: string
+    CaseHandoffCategory:
+      type: string
+      enum: [course_materials, campus_facilities, service_process]
+    CaseHandoffPriority:
+      type: string
+      enum: [normal, high]
+    SyntheticCaseApproval:
+      type: object
+      additionalProperties: false
+      required: [reviewDecision, category, priority, consentOrLawfulBasisRef]
+      properties:
+        reviewDecision:
+          const: approved
+        category:
+          $ref: '#/components/schemas/CaseHandoffCategory'
+        priority:
+          $ref: '#/components/schemas/CaseHandoffPriority'
+        consentOrLawfulBasisRef:
+          type: string
+          format: uuid
+    SyntheticCaseHandoff:
+      type: object
+      additionalProperties: false
+      required: [eventId, eventType, organisationId, surveyId, surveyVersionId, createdAt, category, priority, sanitisedSummary, consentOrLawfulBasisRef, originMode, idempotencyKey, status]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        eventType:
+          const: survey.action.requested.v1
+        organisationId:
+          type: string
+          format: uuid
+        surveyId:
+          type: string
+          format: uuid
+        surveyVersionId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        category:
+          $ref: '#/components/schemas/CaseHandoffCategory'
+        priority:
+          $ref: '#/components/schemas/CaseHandoffPriority'
+        sanitisedSummary:
+          type: string
+          description: Standard summary generated from the allowed category.
+        consentOrLawfulBasisRef:
+          type: string
+          format: uuid
+        originMode:
+          const: anonymous_aggregate
+        idempotencyKey:
+          type: string
+          format: uuid
+        status:
+          const: queued
     Workspace:
       type: object
       required:
@@ -2071,6 +2202,10 @@ components:
           properties:
             questionId: { type: string }
             optionCode: { type: string }
+        titleAnswerSourceId:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$'
+          description: Stable ID of an earlier unconditional single-choice question on the same or a preceding page. The saved draft preview and public response form append the selected option's label as plain text. The title alone is used when no option is selected. Titles in analytics and exports stay static.
         options:
           type: array
           items:
@@ -2381,6 +2516,21 @@ components:
         recordedAt:
           type: string
           format: date-time
+        source:
+          const: export_worker
+          description: Source of an automatically recorded export worker event.
+        episodeId:
+          type: string
+          format: uuid
+          description: Correlates detection and recovery for the same worker interruption.
+        observedAt:
+          type: string
+          format: date-time
+          description: Time of worker detection or database verification of recovery.
+      dependentRequired:
+        source: [episodeId, observedAt]
+        episodeId: [source, observedAt]
+        observedAt: [source, episodeId]
     SurveyRetention:
       type: object
       additionalProperties: false
