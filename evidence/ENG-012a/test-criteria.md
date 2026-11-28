@@ -23,6 +23,13 @@ ticket creation.
 Expected red is the missing route and page. Use only synthetic data in
 uniquely labelled disposable local Docker/PostgreSQL.
 
+## Pending approval
+
+Hold the real API's 202 reply before Chromium receives it. Expect every
+approval field and the submit button to be disabled while the POST is
+pending. The workspace navigation remains available. Release the real
+receipt and check that the fields can be edited again.
+
 ## Cumulative application integration
 
 - Reach the triage form from the home workspace's synthetic case handoff
