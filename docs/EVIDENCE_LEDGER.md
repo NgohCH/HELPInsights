@@ -195,7 +195,7 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 ## ENG-013b answer-label piping
 
-- Application source `2e504170e38511ad431da4937a665e01b5b9db18` passed one focused PostgreSQL integration test, two Chromium journeys and ten selected model and regression tests locally. Full hosted runtime and independent review passed. The record covers picker scaling, hidden-answer clearing and rollback requirements. [Verification report](../evidence/ENG-013b/focused-runtime.md).
+- Application source `2e504170e38511ad431da4937a665e01b5b9db18` passed one focused PostgreSQL integration test, two Chromium journeys and ten selected model and regression tests locally. Full local and hosted runtimes and independent review passed. The record covers picker scaling, hidden-answer clearing and rollback requirements. [Verification report](../evidence/ENG-013b/focused-runtime.md).
 
 ## ENG-015b live presenter recovery
 
