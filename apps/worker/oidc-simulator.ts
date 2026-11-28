@@ -19,7 +19,7 @@ const publicJwk = {
 const invalidSigner = generateKeyPairSync("rsa", {
   modulusLength: 2048,
 }).privateKey;
-const choices = [
+const accountSubjects = [
   "owner",
   "viewer",
   "operations-viewer",
@@ -27,14 +27,66 @@ const choices = [
   "eligibility-student",
   "settings-admin",
   "settings-member",
+  "research-admin",
+  "research-creator",
+  "integration-admin",
+  "integration-creator",
+  "unbound",
+];
+const creatorGroup = "CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC";
+const creatorGroupClaims = new Map<string, Record<string, unknown>>([
+  [
+    "creator group present",
+    {
+      groups: [
+        creatorGroup,
+        creatorGroup,
+        "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      ],
+    },
+  ],
+  ["creator group removed", { groups: [] }],
+  ["creator group stale", { groups: [creatorGroup] }],
+  ["creator group same time", { groups: [creatorGroup] }],
+  ["creator group hasgroups", { groups: [creatorGroup], hasgroups: true }],
+  ["creator group too large", { groups: Array(201).fill(creatorGroup) }],
+  [
+    "creator group overage",
+    {
+      groups: [creatorGroup],
+      _claim_names: { groups: "src1" },
+      _claim_sources: {
+        src1: { endpoint: "https://unused.example.test/groups" },
+      },
+    },
+  ],
+  [
+    "creator group malformed",
+    { groups: [creatorGroup, "Synthetic department"] },
+  ],
+  ["creator group missing", {}],
+]);
+const choices = [
+  ...accountSubjects,
+  ...creatorGroupClaims.keys(),
   "wrong nonce",
   "wrong issuer",
   "wrong tenant",
   "wrong audience",
   "wrong signature",
   "expired",
-  "unbound",
 ];
+let lastCreatorGroupIssue = 0;
+function issuedAt(subject: string) {
+  const now = Math.floor(Date.now() / 1000);
+  if (!creatorGroupClaims.has(subject)) return now;
+  if (subject === "creator group stale") return lastCreatorGroupIssue - 180;
+  if (subject === "creator group same time") return lastCreatorGroupIssue;
+  // Separate ordinary test refreshes even when the browser signs in twice in one second.
+  lastCreatorGroupIssue = Math.max(now, lastCreatorGroupIssue + 1);
+  return lastCreatorGroupIssue;
+}
+
 const grants = new Map<string, { query: URLSearchParams; subject: string }>();
 
 async function form(request: IncomingMessage) {
@@ -136,6 +188,7 @@ createServer(async (request, response) => {
             ? "incorrect"
             : grant.query.get("nonce"),
         roles: ["workspace-owner"],
+        ...creatorGroupClaims.get(grant.subject),
       })
         .setProtectedHeader({ alg: "RS256", kid: "oidc-fixture" })
         .setIssuer(
@@ -147,20 +200,13 @@ createServer(async (request, response) => {
           grant.subject === "wrong audience" ? "another-app" : client,
         )
         .setSubject(
-          [
-            "owner",
-            "viewer",
-            "unbound",
-            "operations-viewer",
-            "survey-creator",
-            "eligibility-student",
-            "settings-admin",
-            "settings-member",
-          ].includes(grant.subject)
+          accountSubjects.includes(grant.subject)
             ? grant.subject
-            : "owner",
+            : creatorGroupClaims.has(grant.subject)
+              ? "creator-policy-member"
+              : "owner",
         )
-        .setIssuedAt()
+        .setIssuedAt(issuedAt(grant.subject))
         .setExpirationTime(grant.subject === "expired" ? "1 minute ago" : "5m")
         .sign(grant.subject === "wrong signature" ? invalidSigner : privateKey);
       response.writeHead(200, { "Content-Type": "application/json" });

@@ -11,7 +11,13 @@ const attemptLifetime = 300;
 export const universitySessionLifetime = 1800;
 const opaqueValue = /^[A-Za-z0-9_-]{43}$/;
 
-type Principal = { issuer: string; subject: string };
+type Principal = {
+  issuer: string;
+  subject: string;
+  groupIds: string[];
+  issuedAt: number;
+  expiresAt: number;
+};
 type Attempt = {
   state: string;
   nonce: string;

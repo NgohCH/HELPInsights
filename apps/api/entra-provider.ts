@@ -3,6 +3,22 @@ import * as oidc from "openid-client";
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/;
 const syntheticIssuer = "http://oidc-simulator:3002";
 
+function entraGroupIds(claims: Record<string, unknown>) {
+  const names = claims._claim_names;
+  const groups = claims.groups;
+  if (
+    Object.hasOwn(claims, "hasgroups") ||
+    (names !== null &&
+      typeof names === "object" &&
+      Object.hasOwn(names, "groups")) ||
+    !Array.isArray(groups) ||
+    groups.length > 200 ||
+    !groups.every((id) => typeof id === "string" && uuid.test(id.toLowerCase()))
+  )
+    return [];
+  return [...new Set(groups.map((id: string) => id.toLowerCase()))];
+}
+
 export function universityBrowserOrigin(env: NodeJS.ProcessEnv, host?: string) {
   if (
     env.NODE_ENV === "test" &&
@@ -99,10 +115,18 @@ export function entraProvider(env: NodeJS.ProcessEnv) {
           !claims ||
           claims.tid !== tenant ||
           claims.aud !== clientId ||
+          !Number.isSafeInteger(claims.iat) ||
+          !Number.isSafeInteger(claims.exp) ||
           !/^[\x21-\x7e]{1,255}$/.test(claims.sub)
         )
           return null;
-        return { issuer, subject: claims.sub };
+        return {
+          issuer,
+          subject: claims.sub,
+          groupIds: entraGroupIds(claims),
+          issuedAt: claims.iat,
+          expiresAt: claims.exp,
+        };
       } catch {
         return null;
       }

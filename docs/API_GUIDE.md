@@ -33,7 +33,17 @@ At `/admin/settings`, a signed-in University account with an explicit system adm
 
 Modes are disabled, all eligible creators, University creators, and approved users and groups. Template copying always requires workspace owner or editor authority. In approved mode, a direct user grant or current membership in a granted group must apply to the destination workspace. Preview remains a separate read operation. The migration preserves existing copying for eligible creators in all mode.
 
-The first slice uses identity groups and system administrator assignments provisioned by an authorised database operator. Live group synchronisation, broader tool enforcement and integration settings are tracked separately.
+The same page lets system administrators configure synthetic research consent. Its modes are disabled, University creators, and approved users and groups. Research consent requires a University browser session and a destination workspace owner or editor in every mode. The server checks policy before publication and again when attaching the consent notice in the publication transaction. A withdrawn grant blocks subsequent research publications. Existing distributions retain their consent notice and participation requirements. General publication and standard anonymous exports retain their own authorization.
+
+An approved group can use a local roster or a mapped Entra issuer and group object ID. Entra-backed grants use verified ID token claims captured during browser sign-in. A fresh sign-in can withdraw group access from earlier sessions. Conflicting claims with the same issue time retain only their common approved groups. The snapshot expires by the earlier of token expiry and 30 minutes. Missing, invalid and overage claims give no Entra group grants. A mapping change clears the old roster and session snapshots. Configure the approved app to emit group object IDs and include overage in institutional acceptance. [Microsoft Entra group claims](https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/how-to-connect-fed-group-claims)
+
+## Integration client management
+
+At `/admin/settings`, an explicit system administrator can register a pending client, approve it, assign its workspace and operations, renew its credential, and revoke it. The API provides the same controls at `/api/v1/admin/integrations` with exact-origin writes. Registration uses a caller-supplied UUID and a retry with that ID returns 409 after the first commit. Renewal requires the listed credential version. Concurrent requests using the same version can produce only one replacement credential. If the one-time response is lost, reload the client list and renew at the current version. Revocation ends the client lifecycle.
+
+An installed integration sends its opaque credential in the Authorization bearer header. Workspace name and survey status are the supported reads. Each client is scoped to one workspace and an explicit subset of those operations. Separate departments or environments can register distinct clients. Pending, expired and revoked credentials fail authentication. A credential has a 90-day lifetime, and a successful renewal replaces it immediately. Only its digest is stored. Protect the one-time response and avoid recording the Authorization header on any proxy or application log.
+
+The disposable stack enables the test environment automatically. A development deployment can select `HELPINSIGHTS_INTEGRATION_ENV=development`. Production can enable the route with `NODE_ENV=production` and `HELPINSIGHTS_INTEGRATION_ENV=production` after release approval. University sign-in must be configured to enable these endpoints. Stored integration state is environment-scoped. Live Entra, MFA, connector onboarding and tenant policy acceptance follow the University release procedure.
 
 ## University-only distributions
 
@@ -74,7 +84,7 @@ For synthetic Registry tests, `X-Survey-Capability` authorises access to the sel
 
 ## Synthetic research consent
 
-In the disposable test runtime, authorised creators can send `{"researchConsent":"synthetic"}` when publishing a single-choice survey. The public survey payload then includes the immutable `researchConsent` notice. Before sending answers on that link, the respondent supplies `consent` with its exact `versionId` and `accepted: true`. Missing, declined or mismatched consent returns 403. Open links keep their existing form and request shape. A publication can use one synthetic restriction. The consent option accepts open eligibility, and a Registry-gated publication cannot include consent. The `Idempotency-Key` still identifies a single response retry.
+In the disposable test runtime, University creators with workspace authority and research consent tool access can send `{"researchConsent":"synthetic"}` when publishing a single-choice survey. The public survey payload then includes the immutable `researchConsent` notice. Before sending answers on that link, the respondent supplies `consent` with its exact `versionId` and `accepted: true`. Missing, declined or mismatched consent returns 403. Open links keep their existing form and request shape. A publication can use one synthetic restriction. The consent option accepts open eligibility, and a Registry-gated publication cannot include consent. The `Idempotency-Key` still identifies a single response retry.
 
 ## JASP-oriented export contract
 

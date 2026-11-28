@@ -1,3 +1,4 @@
+import type { PoolClient } from "pg";
 import type { SurveyDefinition } from "../../packages/survey-runtime/definition.ts";
 
 export type ResearchConsent = {
@@ -24,4 +25,15 @@ export function supportsSyntheticConsent(definition: SurveyDefinition) {
     questions.length > 0 &&
     questions.every((item) => item.type === "single_choice")
   );
+}
+export async function researchConsentAllowed(
+  client: PoolClient,
+  proof: Buffer,
+  workspaceId: string,
+) {
+  const result = await client.query<{ allowed: boolean }>(
+    "SELECT public.creator_tool_allowed($1, $2, $3) AS allowed",
+    [proof, workspaceId, "research-consent"],
+  );
+  return result.rows[0]?.allowed === true;
 }

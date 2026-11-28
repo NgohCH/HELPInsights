@@ -202,7 +202,7 @@ test("the synthetic publication path rejects invalid options and non-choice data
     ],
   });
   assert.equal(
-    (await shortText.request({ researchConsent: "synthetic" })).status,
+    (await shortText.request({ researchConsent: "synthetic" }, true)).status,
     400,
   );
   assert.equal(

@@ -1,5 +1,26 @@
 import assert from "node:assert/strict";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { definition, surveyFixture } from "./survey.ts";
+
+export function universityResearchAuthor(
+  fixture: ReturnType<typeof surveyFixture>,
+) {
+  const subject = randomUUID();
+  const token = randomBytes(32).toString("base64url");
+  const hash = createHash("sha256").update(token).digest("hex");
+  fixture.sql(`
+    INSERT INTO public.institutional_principal_bindings (issuer, subject, user_id)
+    SELECT 'http://oidc-simulator:3002', '${subject}', user_id
+    FROM public.workspace_memberships WHERE workspace_id = '${fixture.workspace}' AND role = 'owner';
+    SET ROLE helpinsights_identity;
+    SELECT public.issue_university_session('http://oidc-simulator:3002', '${subject}', decode('${hash}', 'hex'));
+  `);
+  return {
+    Cookie: "__Host-helpinsights-session=" + token,
+    Origin: fixture.stack.baseUrl(),
+    "Content-Type": "application/json",
+  };
+}
 
 export function researchFixture() {
   const fixture = surveyFixture();
@@ -28,10 +49,13 @@ export function researchFixture() {
     });
     assert.equal(created.status, 201);
     const { id } = await created.json();
-    const request = (body?: object) =>
+    let university: ReturnType<typeof universityResearchAuthor> | undefined;
+    const request = (body?: object, useUniversity = false) =>
       fetch(base + "/surveys/" + id + "/publish", {
         method: "POST",
-        headers: author,
+        headers: useUniversity
+          ? (university ??= universityResearchAuthor(fixture))
+          : author,
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
     const saved = await fetch(base + "/surveys/" + id + "/draft", {
@@ -49,6 +73,7 @@ export function researchFixture() {
   ) {
     const response = await request(
       consent ? { researchConsent: "synthetic" } : undefined,
+      consent,
     );
     assert.equal(response.status, 201);
     const version: { id: string; publicToken: string } = await response.json();

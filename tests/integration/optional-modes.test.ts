@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
 import test from "node:test";
 import { registryFixture } from "../fixtures/registry.ts";
+import { universityResearchAuthor } from "../fixtures/research-consent.ts";
 import { definition } from "../fixtures/survey.ts";
 
 test("one publication cannot mix synthetic Registry eligibility and research consent", async () => {
-  const { createDraft, request, sql } = registryFixture();
+  const fixture = registryFixture();
+  const { createDraft, request, sql } = fixture;
   const { id, headers } = await createDraft();
   const url = "/surveys/" + id + "/publish";
   const mixed = await request(url, "POST", {
@@ -31,7 +33,7 @@ test("one publication cannot mix synthetic Registry eligibility and research con
     "draft|0",
   );
   const consent = await request(url, "POST", {
-    headers,
+    headers: universityResearchAuthor(fixture),
     body: { eligibilityMode: "open", researchConsent: "synthetic" },
   });
   assert.equal(consent.status, 201);
@@ -68,9 +70,12 @@ async function checkConsentInsertion(
   eligibilityMode: "registry-synthetic" | "open",
   definition: unknown,
 ) {
-  const { ownerToken, sql, createDraft } = registryFixture();
+  const fixture = registryFixture();
+  const { sql, createDraft } = fixture;
   const { id: survey } = await createDraft();
-  const actorHash = createHash("sha256").update(ownerToken).digest("hex");
+  const { Cookie } = universityResearchAuthor(fixture);
+  const proof = Cookie.slice("__Host-helpinsights-session=".length);
+  const actorHash = createHash("sha256").update(proof).digest("hex");
   const distribution = randomBytes(32).toString("hex");
   const definitionJson = JSON.stringify(definition);
   assert.equal(
@@ -90,10 +95,12 @@ async function checkConsentInsertion(
       SELECT decode('${distribution}', 'hex'), id, '${eligibilityMode}' FROM public.survey_versions WHERE survey_id = '${survey}';
     DO $test$
     BEGIN
-      INSERT INTO public.research_consent_versions (survey_version_id, study_key, revision, notice)
-      SELECT id, 'synthetic-consent-study', 1, 'Synthetic notice' FROM public.survey_versions WHERE survey_id = '${survey}';
+      PERFORM public.attach_synthetic_research_consent(
+        decode('${actorHash}', 'hex'), id, 'synthetic-consent-study', 'Synthetic notice'
+      ) FROM public.survey_versions WHERE survey_id = '${survey}';
       RAISE EXCEPTION 'Expected consent policy database restriction';
     EXCEPTION WHEN insufficient_privilege THEN
+      IF SQLERRM <> 'Research consent requires an open test distribution with choice questions' THEN RAISE; END IF;
       NULL;
     END
     $test$;

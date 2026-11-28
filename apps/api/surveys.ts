@@ -12,6 +12,7 @@ import {
 import { requireSurveyFeatureAccess } from "./feature-entitlements.ts";
 import { sendJson } from "./application.ts";
 import {
+  researchConsentAllowed,
   supportsSyntheticConsent,
   syntheticConsentNotice,
   syntheticStudyKey,
@@ -371,6 +372,14 @@ export function surveyRoutes(
                 "UNAVAILABLE",
                 "Synthetic research consent is unavailable",
               );
+            if (
+              !(await researchConsentAllowed(client, proof, survey.workspaceId))
+            )
+              throw new HttpError(
+                403,
+                "FORBIDDEN",
+                "University research tool access is required",
+              );
             if (!supportsSyntheticConsent(draft))
               throw new InvalidInput(
                 "Synthetic consent surveys support only single-choice questions",
@@ -391,16 +400,16 @@ export function surveyRoutes(
             [digest(publicToken), version.id, eligibilityMode, policyId],
           );
           if (researchConsent === "synthetic") {
-            await client.query(
-              `INSERT INTO public.research_consent_versions
-                (survey_version_id, study_key, revision, notice) VALUES ($1, $2, $3, $4)`,
-              [
-                version.id,
-                syntheticStudyKey,
-                version.version,
-                syntheticConsentNotice,
-              ],
+            const { rows } = await client.query<{ attached: boolean }>(
+              "SELECT public.attach_synthetic_research_consent($1, $2, $3, $4) AS attached",
+              [proof, version.id, syntheticStudyKey, syntheticConsentNotice],
             );
+            if (!rows[0]?.attached)
+              throw new HttpError(
+                403,
+                "FORBIDDEN",
+                "University research tool access is required",
+              );
           }
           await client.query(
             "UPDATE public.surveys SET status = 'published' WHERE id = $1",

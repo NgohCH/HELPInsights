@@ -34,6 +34,16 @@ test("the database archive restores organisation data and migration checksums in
       SELECT 'organisation:' || id || ':' || name FROM public.organisations
       UNION ALL
       SELECT 'migration:' || name || ':' || checksum FROM public.schema_migrations
+      UNION ALL
+      SELECT 'integration:' || id || ':' || status || ':' || credential_version || ':' || workspace_id
+      FROM public.integration_clients
+      UNION ALL
+      SELECT 'integration-audit:' || client_id || ':' || actor_id || ':' || action FROM public.integration_client_audit
+      UNION ALL
+      SELECT 'tool:' || tool || ':' || mode FROM public.creator_tool_settings
+      UNION ALL
+      SELECT 'tool-grant:' || tool || ':' || workspace_id || ':' || subject_type || ':' || subject_id
+      FROM public.creator_tool_grants
       ORDER BY 1
     `;
     const rows = (database: string) =>
