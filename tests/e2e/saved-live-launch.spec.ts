@@ -5,7 +5,7 @@ import {
   pipingDraft,
   secondLabel,
 } from "../fixtures/answer-piping.ts";
-import { surveyFixture } from "../fixtures/survey.ts";
+import { definition, surveyFixture } from "../fixtures/survey.ts";
 
 const liveSocket = (page: Page, room: string) =>
   page.waitForEvent("websocket", {
@@ -316,6 +316,119 @@ test("saved survey launches its immutable public version while ordinary collecti
     await mobile.close();
     sql(`DELETE FROM public.institutional_principal_bindings
       WHERE issuer = 'http://oidc-simulator:3002' AND subject = 'unbound'
+        AND user_id IN (SELECT user_id FROM public.workspace_memberships
+                        WHERE workspace_id = '${workspace}' AND role = 'owner')`);
+  }
+});
+
+test("a fast return to the original publication still offers recovery of its displaced room", async ({
+  page,
+}) => {
+  const { sql, workspace, ownerToken, retentionPolicy } = surveyFixture();
+  const subject = "unbound";
+  const headers = { Authorization: "Bearer " + ownerToken };
+  const titles = ["Synthetic room switch A", "Synthetic room switch B"];
+  for (const title of titles) {
+    const created = await page.request.post("/api/v1/surveys", {
+      headers,
+      data: {
+        workspaceId: workspace,
+        retentionPolicyId: retentionPolicy,
+        title,
+        privacyMode: "anonymous",
+      },
+    });
+    expect(created.status()).toBe(201);
+    const { id } = await created.json();
+    const endpoint = "/api/v1/surveys/" + id;
+    const saved = await page.request.put(endpoint + "/draft", {
+      headers: { ...headers, "If-Match": created.headers().etag },
+      data: { ...definition, title },
+    });
+    expect(saved.status()).toBe(200);
+    const publication = await page.request.post(endpoint + "/publish", {
+      headers: { ...headers, "If-Match": saved.headers().etag },
+      data: { eligibilityMode: "open" },
+    });
+    expect(publication.status()).toBe(201);
+  }
+  sql(`
+    INSERT INTO public.institutional_principal_bindings (issuer, subject, user_id)
+    SELECT 'http://oidc-simulator:3002', '${subject}', user_id
+    FROM public.workspace_memberships WHERE workspace_id = '${workspace}' AND role = 'owner';
+  `);
+  try {
+    await page.goto("/");
+    await page
+      .getByRole("link", { name: "Sign in with University account" })
+      .click();
+    await page.getByRole("button", { name: subject, exact: true }).click();
+    const list = page.getByRole("region", { name: "Workspace surveys" });
+    const details = list.getByRole("region", { name: "Saved survey details" });
+    const present = async (title: string) => {
+      await list.getByRole("button", { name: "Open " + title }).click();
+      await details
+        .getByRole("button", { name: "Present a Live Poll" })
+        .click();
+    };
+    const openLobby = page.getByRole("button", { name: "Open live lobby" });
+    const returnToSurvey = page.getByRole("button", {
+      name: "Return to survey",
+    });
+    await present(titles[0]);
+    const creating = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/live-sessions") &&
+        response.request().method() === "POST",
+    );
+    await openLobby.click();
+    const created = await creating;
+    expect(created.status()).toBe(201);
+    const room = await created.json();
+    await page.getByRole("button", { name: "Start live poll" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Live Poll running" }),
+    ).toBeVisible();
+    await returnToSurvey.click();
+
+    const responseReady = Promise.withResolvers<number>();
+    const releaseSnapshot = Promise.withResolvers<void>();
+    await page.route("**/api/v1/live-sessions/" + room.id, async (route) => {
+      const response = await route.fetch();
+      responseReady.resolve(response.status());
+      await releaseSnapshot.promise;
+      await route.fulfill({ response });
+    });
+    try {
+      await present(titles[1]);
+      expect(await responseReady.promise).toBe(200);
+      await returnToSurvey.click();
+      await present(titles[0]);
+      await expect(openLobby).toBeVisible();
+      await returnToSurvey.click();
+    } finally {
+      releaseSnapshot.resolve();
+    }
+
+    const resume = page.getByRole("button", {
+      name: "Resume live presentation",
+    });
+    await expect(resume).toBeVisible();
+    const connecting = liveSocket(page, room.id);
+    await resume.click();
+    await connecting;
+    await page.getByRole("button", { name: "Pause live poll" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Live Poll paused" }),
+    ).toBeVisible();
+    expect(
+      sql(
+        `SELECT id, state FROM public.live_sessions l WHERE l.quiz_version_id = '${room.quizVersionId}'`,
+      ),
+    ).toBe(room.id + "|paused");
+  } finally {
+    sql(`DELETE FROM public.institutional_principal_bindings
+      WHERE issuer = 'http://oidc-simulator:3002' AND subject = '${subject}'
         AND user_id IN (SELECT user_id FROM public.workspace_memberships
                         WHERE workspace_id = '${workspace}' AND role = 'owner')`);
   }
