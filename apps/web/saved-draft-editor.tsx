@@ -20,6 +20,7 @@ import {
 
 type Page = SurveyDefinition["pages"][number];
 type QuestionType = Question["type"];
+type MoveSelection = { pageId: string; beforeQuestionId: string };
 type DragSource =
   | { kind: "page"; pageId: string }
   | { kind: "question"; pageId: string; questionId: string };
@@ -54,6 +55,9 @@ export function SavedDraftEditor({
 }) {
   const [draft, setDraft] = useState(initial);
   const [activeAnswerSource, setActiveAnswerSource] = useState("");
+  const [moveDestination, setMoveDestination] = useState<
+    MoveSelection & { questionId: string }
+  >();
   const [wording, setWording] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [announcement, setAnnouncement] = useState("");
@@ -100,6 +104,7 @@ export function SavedDraftEditor({
       const updated = editSurveyStructure(draft, action);
       nextFocus.current = focus;
       setDraft(updated);
+      setMoveDestination(undefined);
       setAnnouncement(message);
     } catch (failure) {
       setError(
@@ -529,10 +534,24 @@ export function SavedDraftEditor({
                                 {
                                   id: target.id,
                                   title: titleOf(target, targetIndex),
-                                  length: target.questions.length,
+                                  questions: target.questions,
                                 },
                               ],
                         )}
+                        selection={
+                          moveDestination?.questionId === question.id
+                            ? moveDestination
+                            : undefined
+                        }
+                        onSelect={(selection) =>
+                          setMoveDestination({
+                            ...selection,
+                            questionId: question.id,
+                          })
+                        }
+                        questionWording={(target) =>
+                          value(questionTitle(target.id), target.title)
+                        }
                         move={(toPageId, toIndex) =>
                           moveQuestion(page.id, question.id, toPageId, toIndex)
                         }
@@ -618,20 +637,35 @@ function OrderControls({
 
 function MoveDestination({
   options,
+  selection,
+  onSelect,
+  questionWording,
   move,
 }: {
-  options: { id: string; title: string; length: number }[];
+  options: { id: string; title: string; questions: Question[] }[];
+  selection?: MoveSelection;
+  onSelect: (selection: MoveSelection) => void;
+  questionWording: (question: Question) => string;
   move: (id: string, toIndex: number) => void;
 }) {
-  const [chosen, setChosen] = useState("");
-  const target = options.find(({ id }) => id === chosen);
+  const target = options.find(({ id }) => id === selection?.pageId);
+  const beforeQuestionId = selection?.beforeQuestionId ?? "";
+  const toIndex =
+    (beforeQuestionId
+      ? target?.questions.findIndex(({ id }) => id === beforeQuestionId)
+      : target?.questions.length) ?? -1;
   return (
     <>
       <label>
         Destination page
         <select
           value={target?.id ?? ""}
-          onChange={(event) => setChosen(event.currentTarget.value)}
+          onChange={(event) =>
+            onSelect({
+              pageId: event.currentTarget.value,
+              beforeQuestionId: "",
+            })
+          }
         >
           <option value="">Choose a page</option>
           {options.map(({ id, title }) => (
@@ -641,12 +675,33 @@ function MoveDestination({
           ))}
         </select>
       </label>
+      {target && target.questions.length > 0 && (
+        <label>
+          Position on destination page
+          <select
+            value={beforeQuestionId}
+            onChange={(event) =>
+              onSelect({
+                pageId: target.id,
+                beforeQuestionId: event.currentTarget.value,
+              })
+            }
+          >
+            <option value="">End of page</option>
+            {target.questions.map((question, index) => (
+              <option value={question.id} key={question.id}>
+                Before question {index + 1} — {questionWording(question)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <button
         type="button"
         className="secondary"
-        disabled={!target}
+        disabled={toIndex < 0}
         onClick={() => {
-          if (target) move(target.id, target.length);
+          if (target && toIndex >= 0) move(target.id, toIndex);
         }}
       >
         Move to page

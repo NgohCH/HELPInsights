@@ -361,3 +361,107 @@ test.describe("touch-equivalent editing", () => {
     expect(stored()).toEqual(before);
   });
 });
+
+for (const touch of [false, true]) {
+  const inputMethod = touch ? "touch" : "keyboard";
+  test.describe(inputMethod + " exact cross-page placement", () => {
+    test.use({
+      hasTouch: touch,
+      isMobile: touch,
+      viewport: touch
+        ? { width: 412, height: 915 }
+        : { width: 1366, height: 1000 },
+    });
+
+    test("can place a visibility controller before its dependent question", async ({
+      page,
+    }) => {
+      const { editor, stored } = await openSavedDraft(page);
+      const before = stored();
+      const feedback = editor.getByRole("group", {
+        name: "Feedback",
+        exact: true,
+      });
+      const attendance = editor.getByRole("group", {
+        name: "Attendance",
+        exact: true,
+      });
+      const followUp = editor.getByRole("group", {
+        name: "Follow-up",
+        exact: true,
+      });
+      const destination = feedback.getByRole("combobox", {
+        name: "Destination page",
+        exact: true,
+      });
+      const position = feedback.getByLabel("Position on destination page");
+
+      if (touch) {
+        await destination.selectOption("attendance");
+      } else {
+        await destination.press("a");
+        await expect(destination).toHaveValue("attendance");
+      }
+      await expect(position).toBeVisible({ timeout: 3_000 });
+      await expect(position).toHaveValue("");
+
+      // Opening a different destination should leave one list of positions.
+      await followUp.getByLabel("Destination page").selectOption("feedback");
+      await expect(position).toHaveCount(0);
+      await expect(
+        editor.getByLabel("Position on destination page"),
+      ).toHaveCount(1);
+
+      if (touch) {
+        await destination.selectOption("attendance");
+        await position.selectOption("adjustment");
+        await feedback.getByRole("button", { name: "Move to page" }).tap();
+      } else {
+        await destination.press("a");
+        await expect(destination).toHaveValue("attendance");
+        await position.press("b");
+        await expect(position).toHaveValue("adjustment");
+        await feedback
+          .getByRole("button", { name: "Move to page" })
+          .press("Enter");
+      }
+
+      await expect(
+        attendance.getByLabel("Question wording").first(),
+      ).toHaveValue("How was the timing?");
+      await expect(
+        attendance.getByLabel("Question wording").nth(1),
+      ).toHaveValue("What would you change?");
+      await expect(
+        attendance.getByLabel("Question wording").first(),
+      ).toBeFocused();
+      expect(stored()).toEqual(before);
+
+      await editor
+        .getByRole("button", { name: "Save edits", exact: true })
+        .click();
+      await expect(
+        editor.getByRole("button", { name: "Edit saved draft" }),
+      ).toBeVisible();
+      const [originalFeedback, originalAttendance, originalFollowUp] =
+        definition.pages;
+      expect(stored()).toEqual({
+        revision: before.revision + 1,
+        draft: {
+          ...definition,
+          pages: [
+            { ...originalFeedback, questions: [] },
+            {
+              ...originalAttendance,
+              questions: [
+                originalFeedback.questions[0],
+                ...originalAttendance.questions,
+              ],
+            },
+            originalFollowUp,
+          ],
+        },
+      });
+    });
+  });
+}
