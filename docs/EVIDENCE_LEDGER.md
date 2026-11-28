@@ -195,4 +195,4 @@ The default sandbox denied access to the local Docker named pipe and GitHub API.
 
 ## ENG-007c publication-specific reporting
 
-- Exact verification revision `b4df81598781914738f88aa7d4589de2df9ca2a2` passed 27 unit tests, four focused Chromium checks on disposable PostgreSQL and the full hosted runtime gate. Two full local reruns stopped on different existing integration cases with `UND_ERR_SOCKET`. The report records the previous history-selector fix, exact runs, container cleanup and the open local gate. [Verification report](../evidence/ENG-007c/b4df81598781914738f88aa7d4589de2df9ca2a2.md).
+- Exact verification revision `b4df81598781914738f88aa7d4589de2df9ca2a2` passed 27 unit tests, four focused Chromium checks on disposable PostgreSQL and the full hosted runtime gate. Two full local reruns stopped on different existing integration cases with `UND_ERR_SOCKET`. The complete local rerun passed on source a997d306c709 after those failures. The report records the history-selector repair, exact runs and cleanup. [Verification report](../evidence/ENG-007c/b4df81598781914738f88aa7d4589de2df9ca2a2.md).
