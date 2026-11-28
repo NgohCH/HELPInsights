@@ -27,10 +27,13 @@ const accountSubjects = [
   "eligibility-student",
   "settings-admin",
   "settings-member",
+  "publish-creator",
+  "publish-eligible",
   "research-admin",
   "research-creator",
   "integration-admin",
   "integration-creator",
+  "live-creator",
   "unbound",
 ];
 const creatorGroup = "CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC";

@@ -119,6 +119,7 @@ const liveQuiz =
         process.env.LIVE_QUIZ_PIN_KEY,
         process.env.LIVE_QUIZ_ORIGIN,
         gameShowEnabled,
+        universityProvider?.appOrigin(),
       )
     : undefined;
 const [javascript, stylesheet, creatorHelp] = await Promise.all([

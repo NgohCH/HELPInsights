@@ -2,6 +2,10 @@
 
 **Status:** Required product capability in the unified autonomous build; **not implemented or verified** by this document. **Activation:** independent release gate after security and runtime evidence. **Design goal:** a Kahoot-style *interaction pattern* with an original interface and no copying of proprietary code, branding, audio or graphic assets.
 
+## Available creator workflow
+
+The disposable app launches Live Poll and Game Show from an authorised creator's public publication. Same-origin presenter connections reuse the creator's University browser session. The participant still uses a lobby PIN and room capability. Live tools use unconditional choice questions. Game Show uses one question and selects the private answer by label.
+
 ## User journeys
 
 **Lecturer/host:** Smart Wizard → Pop Quiz → author/clone questions → choose Live delivery → Game Show / Classroom Learning / Live Poll / Formal Assessment → set timing, audience, access, score, leaderboard and results release → readiness check → publish immutable quiz → start live session → share PIN/QR or sanctioned in-app link → admit/join participants → start/pause/advance/reveal/end → review results and export. A host may abandon and restart a *session* without altering the published quiz definition.

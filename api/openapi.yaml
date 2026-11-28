@@ -171,6 +171,49 @@ paths:
                 $ref: '#/components/schemas/ApiError'
         '503':
           $ref: '#/components/responses/Unavailable'
+  /workspaces/{workspaceId}/university-eligibility-policies:
+    parameters:
+    - $ref: '#/components/parameters/WorkspaceId'
+    get:
+      tags:
+      - Survey
+      operationId: listUniversityEligibilityPolicies
+      description: Workspace owners and editors can list currently approved, unwithdrawn University eligibility policy versions. A disabled feature returns an empty list with enabled set to false.
+      responses:
+        '200':
+          description: Availability and approved policy versions for this workspace
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [enabled, items]
+                properties:
+                  enabled:
+                    type: boolean
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, code, version]
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        code:
+                          type: string
+                        version:
+                          type: integer
+                          minimum: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorised'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/Unavailable'
   /workspaces/{workspaceId}/features/nps:
     parameters:
     - $ref: '#/components/parameters/WorkspaceId'
@@ -324,11 +367,16 @@ paths:
       operationId: getSurvey
       responses:
         '200':
-          description: Survey detail
+          description: Survey detail and capabilities for the current workspace member
+          headers:
+            ETag:
+              description: Current draft revision for conditional writes.
+              schema:
+                type: string
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Survey'
+                $ref: '#/components/schemas/SurveyDetails'
         '404':
           $ref: '#/components/responses/NotFound'
   /surveys/{surveyId}/draft:
@@ -1210,6 +1258,7 @@ paths:
       operationId: createLiveQuizSession
       security:
       - bearerAuth: []
+      - universitySession: []
       summary: Create a Live Poll or Game Show lobby from a published unconditional single-choice version
       description: >
         Development-only and disabled by default. The workspace owner or editor
@@ -1297,6 +1346,7 @@ paths:
       operationId: getLiveQuizSession
       security:
       - bearerAuth: []
+      - universitySession: []
       - liveParticipantAuth: []
       parameters:
       - &id002
@@ -1322,7 +1372,9 @@ paths:
       summary: Retrieve the durable lobby snapshot over a same-origin WebSocket
       description: >
         Send one text frame containing a JSON object with its authorization field
-        set to a Bearer or Participant credential. The server sends the current
+        set to a Bearer or Participant credential. A University presenter sends null
+        in the authorization field and uses the same-origin University session cookie.
+        The server sends the current
         role-filtered state and committed updates as JSON frames with type snapshot.
         A reconnect starts from the current durable state. Lifecycle revisions increase
         but vote receipts and presenter counts may update within a revision. Send commands and votes through the HTTP API.
@@ -1340,6 +1392,7 @@ paths:
       operationId: commandLiveQuizSession
       security:
       - bearerAuth: []
+      - universitySession: []
       summary: Apply a presenter lifecycle command
       description: >
         Commands require the host and the current revision. Start moves a lobby
@@ -1919,6 +1972,22 @@ components:
           - string
           - 'null'
           format: date-time
+    SurveyDetails:
+      allOf:
+      - $ref: '#/components/schemas/Survey'
+      - type: object
+        required: [draft, canEdit, canViewResults]
+        properties:
+          draft:
+            oneOf:
+            - $ref: '#/components/schemas/SurveyDefinition'
+            - type: 'null'
+          canEdit:
+            type: boolean
+            description: The current member is an editor or owner and the survey is editable.
+          canViewResults:
+            type: boolean
+            description: The current member is an analyst or owner and can access results for available published versions.
     SurveyList:
       type: object
       required:

@@ -32,4 +32,11 @@ else if (
       gameShow={location.pathname === "/live/game-host"}
     />,
   );
-else root.render(<Creator {...signInOptions} />);
+else
+  root.render(
+    <Creator
+      {...signInOptions}
+      liveQuizEnabled={target.dataset.liveQuiz === "true"}
+      gameShowEnabled={target.dataset.gameShow === "true"}
+    />,
+  );

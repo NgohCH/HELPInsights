@@ -111,19 +111,28 @@ export function entraSignInRoutes(
         return true;
       }
       const key = randomValue();
-      const requested = new URLSearchParams(
+      const query = new URLSearchParams(
         (request.url ?? "").slice(startPath.length),
-      ).getAll("returnTo");
+      );
+      const requested = query.getAll("returnTo");
       const destination = requested.length === 1 ? requested[0] : "";
+      const surveys = query.getAll("survey");
+      const retentionSurvey =
+        surveys.length === 1 &&
+        /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(surveys[0])
+          ? "&survey=" + encodeURIComponent(surveys[0])
+          : "";
       const attempt: Attempt = {
         returnPath:
-          destination === "admin"
-            ? "/admin"
-            : destination === "settings"
-              ? "/admin/settings"
-              : /^\/respond\/[A-Za-z0-9_-]{43}$/.test(destination)
-                ? destination
-                : "/",
+          destination === "retention"
+            ? "/admin?view=retention" + retentionSurvey + "#survey-retention"
+            : destination === "admin"
+              ? "/admin"
+              : destination === "settings"
+                ? "/admin/settings"
+                : /^\/respond\/[A-Za-z0-9_-]{43}$/.test(destination)
+                  ? destination
+                  : "/",
         state: randomValue(),
         nonce: randomValue(),
         verifier: randomValue(),

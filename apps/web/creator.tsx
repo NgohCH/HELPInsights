@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, signOutUniversity, type Workspace } from "./api.ts";
 import { Results } from "./results.tsx";
+import { WorkspaceSurveys } from "./workspace-surveys.tsx";
+import { LiveQuiz } from "./live-quiz.tsx";
 import { FeatureCatalogue } from "./features.tsx";
 import { DraftPreview } from "./draft-preview.tsx";
+import { PublishAudience, usePublishAudience } from "./publish-audience.tsx";
 import { FeedbackFields, readFeedbackDefinition } from "./guided-feedback.tsx";
 import { TemplateLibrary } from "./templates.tsx";
 import { UserGuide } from "./user-guide.tsx";
@@ -12,13 +15,23 @@ import type {
 } from "../../packages/survey-runtime/definition.ts";
 
 type Draft = { id: string; etag: string };
+type Mode = "poll" | "game";
+type LiveVersion = {
+  id: string;
+  title: string;
+  options?: { code: string; label: string }[];
+};
 
 export function Creator({
   universitySignIn,
   developmentSignIn,
+  liveQuizEnabled,
+  gameShowEnabled,
 }: {
   universitySignIn: boolean;
   developmentSignIn: boolean;
+  liveQuizEnabled: boolean;
+  gameShowEnabled: boolean;
 }) {
   const [institutionalSession, setInstitutionalSession] = useState(false);
   const [token, setToken] = useState("");
@@ -51,16 +64,44 @@ export function Creator({
   const [ready, setReady] = useState(false);
   const [savedDefinition, setSavedDefinition] =
     useState<SurveyDefinition | null>(null);
+  const audience = usePublishAudience(
+    savedDefinition ? workspaceId : "",
+    token,
+  );
   const canOfferResearchConsent =
     institutionalSession &&
     researchWorkspaceId === workspaceId &&
     savedDefinition?.pages.every((page) =>
       page.questions.every((question) => question.type === "single_choice"),
     );
+  const incompatibleAudience =
+    audience.mode === "university" && offerResearchConsent;
+  const publishBlocked =
+    (audience.mode === "university" && !audience.policyId) ||
+    incompatibleAudience ||
+    (offerResearchConsent && !canOfferResearchConsent);
   const [previewDefinition, setPreviewDefinition] =
     useState<SurveyDefinition | null>(null);
   const previewTrigger = useRef<HTMLButtonElement>(null);
   const [publicLink, setPublicLink] = useState("");
+  const [liveVersion, setLiveVersion] = useState<LiveVersion>();
+  const [liveMode, setLiveMode] = useState<Mode>();
+  const [presentations, setPresentations] = useState<
+    Partial<Record<Mode, LiveVersion>>
+  >({});
+
+  function showPresenter(mode: Mode, trigger: HTMLButtonElement) {
+    if (!liveVersion) return;
+    liveTrigger.current = trigger;
+    setPresentations((current) => ({ ...current, [mode]: liveVersion }));
+    setLiveMode(mode);
+  }
+
+  const liveTrigger = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!liveMode) liveTrigger.current?.focus();
+  }, [liveMode]);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -256,20 +297,50 @@ export function Creator({
   }
 
   async function publish() {
-    if (!draft) return;
+    if (!draft || !ready || pending || publishBlocked) return;
     await run(async () => {
-      const { data } = await api<{ publicToken: string }>(
+      const { data } = await api<{ id: string; publicToken: string }>(
         "/surveys/" + draft.id + "/publish",
         {
           token,
           method: "POST",
           headers: { "If-Match": draft.etag },
-          ...(offerResearchConsent
-            ? { body: { researchConsent: "synthetic" } }
-            : {}),
+          body:
+            audience.mode === "university"
+              ? {
+                  eligibilityMode: "university",
+                  universityPolicyId: audience.policyId,
+                }
+              : offerResearchConsent
+                ? { researchConsent: "synthetic" }
+                : undefined,
         },
-      );
+      ).catch((error: unknown) => {
+        if (audience.mode === "university") audience.refresh();
+        throw error;
+      });
       setPublicLink("/respond/" + data.publicToken);
+      const questions = savedDefinition?.pages.flatMap(
+        (page) => page.questions,
+      );
+      const onlyQuestion = questions?.length === 1 ? questions[0] : undefined;
+      setLiveVersion(
+        audience.mode === "open" &&
+          !offerResearchConsent &&
+          savedDefinition &&
+          questions?.length &&
+          questions.every(
+            (item) => item.type === "single_choice" && !item.visibleWhen,
+          )
+          ? {
+              id: data.id,
+              title: savedDefinition.title,
+              ...(onlyQuestion?.type === "single_choice" && {
+                options: onlyQuestion.options,
+              }),
+            }
+          : undefined,
+      );
       setPreviewDefinition(null);
       setReady(false);
       setStatus("Survey published");
@@ -277,337 +348,431 @@ export function Creator({
   }
 
   return (
-    <main className="shell">
-      <header className="brand">
-        <h1>HELPInsights</h1>
-        <button
-          type="button"
-          className="secondary"
-          aria-controls="creator-user-guide"
-          ref={guideButton}
-          aria-expanded={guideTopic !== null}
-          onClick={(event) => openGuide(event.currentTarget)}
-        >
-          Open user guide
-        </button>
-      </header>
-      {guideTopic !== null && (
-        <UserGuide
-          key={guideTopic}
-          topicKey={guideTopic}
-          onClose={closeGuide}
-        />
-      )}
-      {workspaces === null ? (
-        <section className="panel compact" aria-labelledby="workspace-heading">
-          <h2 id="workspace-heading">Open your workspace</h2>
-          {universitySignIn && (
-            <a href="/auth/university/start">Sign in with University account</a>
-          )}
-          {developmentSignIn && (
-            <form onSubmit={signIn}>
-              <label>
-                Development session token
-                <input
-                  autoComplete="off"
-                  type="password"
-                  name="token"
-                  required
-                />
-              </label>
-              <button disabled={pending}>Open workspace</button>
-            </form>
-          )}
-        </section>
-      ) : (
-        <section className="panel" aria-labelledby="create-heading">
-          <h2 id="create-heading">Create survey</h2>
-          {institutionalSession && (
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => void run(() => signOutUniversity("/"))}
-            >
-              Sign out
-            </button>
-          )}
-          <form onSubmit={save} onChange={() => setReady(false)}>
-            <label>
-              Workspace
-              <select
-                value={workspaceId}
-                onChange={(event) => {
-                  setQuestionType("single_choice");
-                  setFollowUpWhen("");
-                  setResearchWorkspaceId("");
-                  setOfferResearchConsent(false);
-                  setWorkspaceId(event.target.value);
-                }}
-                disabled={!!draft || pending}
-                required
-              >
-                {!workspaces.length && (
-                  <option value="">No workspaces available</option>
-                )}
-                {workspaces.map((workspace) => (
-                  <option key={workspace.id} value={workspace.id}>
-                    {workspace.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {!draft &&
-              (guided ? (
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={pending}
-                  onClick={() => setStartingPoint("returned")}
+    <>
+      <main className="shell" hidden={Boolean(liveMode)}>
+        <header className="brand">
+          <h1>HELPInsights</h1>
+          <button
+            type="button"
+            className="secondary"
+            aria-controls="creator-user-guide"
+            ref={guideButton}
+            aria-expanded={guideTopic !== null}
+            onClick={(event) => openGuide(event.currentTarget)}
+          >
+            Open user guide
+          </button>
+        </header>
+        {(workspaces !== null || liveQuizEnabled) && (
+          <nav className="actions" aria-label="Workspace navigation">
+            {workspaces !== null && (
+              <>
+                <a href="#create-heading">Create survey</a>
+                <a href="#workspace-surveys">Workspace surveys</a>
+                <a
+                  href={
+                    "/admin?view=retention" +
+                    (draft ? "&survey=" + encodeURIComponent(draft.id) : "") +
+                    "#survey-retention"
+                  }
                 >
-                  Back to simple creation
-                </button>
-              ) : (
-                <fieldset>
-                  <legend>Guided creation</legend>
-                  <p>
-                    Start with five questions about clarity, pace and improving
-                    the next class.
-                  </p>
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={pending || !workspaceId}
-                    ref={guidedTrigger}
-                    onClick={() => setStartingPoint("feedback")}
-                  >
-                    After-class feedback
-                  </button>
-                </fieldset>
-              ))}
-            {startingPoint !== "simple" && (
-              <FeedbackFields
-                active={guided}
-                pending={pending}
-                hasRetentionPolicy={
-                  !!selectedWorkspace?.defaultRetentionPolicyId
-                }
-              />
+                  Survey retention
+                </a>
+              </>
             )}
-            <div hidden={guided}>
-              <fieldset className="creator-inputs" disabled={guided}>
-                {!draft && (
-                  <TemplateLibrary
-                    token={token}
-                    workspaceId={workspaceId}
-                    pending={pending}
-                    run={run}
-                    onClone={(copy, definition) => {
-                      setDraft(copy);
-                      setStarter(definition);
-                      setQuestionType("single_choice");
-                      setFollowUpWhen("");
-                      setSavedDefinition(definition);
-                      setReady(true);
-                      setStatus("Template copied to a draft");
-                    }}
-                  />
-                )}
+            {liveQuizEnabled && <a href="/live/join">Join a live session</a>}
+          </nav>
+        )}
+        {guideTopic !== null && (
+          <UserGuide
+            key={guideTopic}
+            topicKey={guideTopic}
+            onClose={closeGuide}
+          />
+        )}
+        {workspaces === null ? (
+          <section
+            className="panel compact"
+            aria-labelledby="workspace-heading"
+          >
+            <h2 id="workspace-heading">Open your workspace</h2>
+            {universitySignIn && (
+              <a href="/auth/university/start">
+                Sign in with University account
+              </a>
+            )}
+            {developmentSignIn && (
+              <form onSubmit={signIn}>
                 <label>
-                  Survey title
+                  Development session token
                   <input
-                    key={starter ? "template-title" : "new-title"}
-                    ref={titleInput}
-                    name="title"
-                    maxLength={200}
-                    defaultValue={starter?.title}
+                    autoComplete="off"
+                    type="password"
+                    name="token"
                     required
                   />
                 </label>
-                {canAuthorNps && (
-                  <label>
-                    Question type
-                    <select
-                      value={questionType}
-                      onChange={(event) => {
-                        setQuestionType(
-                          event.target.value === "nps"
-                            ? "nps"
-                            : "single_choice",
-                        );
-                        setFollowUpWhen("");
-                      }}
+                <button disabled={pending}>Open workspace</button>
+              </form>
+            )}
+          </section>
+        ) : (
+          <section className="panel" aria-labelledby="create-heading">
+            <h2 id="create-heading">Create survey</h2>
+            {institutionalSession && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => void run(() => signOutUniversity("/"))}
+              >
+                Sign out
+              </button>
+            )}
+            <form onSubmit={save} onChange={() => setReady(false)}>
+              <label>
+                Workspace
+                <select
+                  value={workspaceId}
+                  onChange={(event) => {
+                    setQuestionType("single_choice");
+                    setFollowUpWhen("");
+                    setResearchWorkspaceId("");
+                    setOfferResearchConsent(false);
+                    setWorkspaceId(event.target.value);
+                  }}
+                  disabled={!!draft || pending}
+                  required
+                >
+                  {!workspaces.length && (
+                    <option value="">No workspaces available</option>
+                  )}
+                  {workspaces.map((workspace) => (
+                    <option key={workspace.id} value={workspace.id}>
+                      {workspace.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {!draft &&
+                (guided ? (
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={pending}
+                    onClick={() => setStartingPoint("returned")}
+                  >
+                    Back to simple creation
+                  </button>
+                ) : (
+                  <fieldset>
+                    <legend>Guided creation</legend>
+                    <p>
+                      Start with five questions about clarity, pace and
+                      improving the next class.
+                    </p>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={pending || !workspaceId}
+                      ref={guidedTrigger}
+                      onClick={() => setStartingPoint("feedback")}
                     >
-                      <option value="single_choice">Single choice</option>
-                      <option value="nps">NPS (0–10)</option>
-                    </select>
-                  </label>
-                )}
-                <fieldset key={starter ? "template-question" : "new-question"}>
-                  <legend>
-                    {questionType === "nps"
-                      ? "NPS question"
-                      : "Single-choice question"}
-                  </legend>
+                      After-class feedback
+                    </button>
+                  </fieldset>
+                ))}
+              {startingPoint !== "simple" && (
+                <FeedbackFields
+                  active={guided}
+                  pending={pending}
+                  hasRetentionPolicy={
+                    !!selectedWorkspace?.defaultRetentionPolicyId
+                  }
+                />
+              )}
+              <div hidden={guided}>
+                <fieldset className="creator-inputs" disabled={guided}>
+                  {!draft && (
+                    <TemplateLibrary
+                      token={token}
+                      workspaceId={workspaceId}
+                      pending={pending}
+                      run={run}
+                      onClone={(copy, definition) => {
+                        setDraft(copy);
+                        setStarter(definition);
+                        setQuestionType("single_choice");
+                        setFollowUpWhen("");
+                        setSavedDefinition(definition);
+                        setReady(true);
+                        setStatus("Template copied to a draft");
+                      }}
+                    />
+                  )}
                   <label>
-                    Question
+                    Survey title
                     <input
-                      name="question"
-                      maxLength={300}
-                      defaultValue={starterQuestion?.title}
+                      key={starter ? "template-title" : "new-title"}
+                      ref={titleInput}
+                      name="title"
+                      maxLength={200}
+                      defaultValue={starter?.title}
                       required
                     />
                   </label>
-                  {questionType === "single_choice" && (
-                    <div className="columns">
-                      <label>
-                        Option 1
-                        <input
-                          name="option1"
-                          maxLength={160}
-                          defaultValue={starterOptions?.[0]?.label}
-                          required
-                        />
-                      </label>
-                      <label>
-                        Option 2
-                        <input
-                          name="option2"
-                          maxLength={160}
-                          defaultValue={starterOptions?.[1]?.label}
-                          required
-                        />
-                      </label>
-                    </div>
+                  {canAuthorNps && (
+                    <label>
+                      Question type
+                      <select
+                        value={questionType}
+                        onChange={(event) => {
+                          setQuestionType(
+                            event.target.value === "nps"
+                              ? "nps"
+                              : "single_choice",
+                          );
+                          setFollowUpWhen("");
+                        }}
+                      >
+                        <option value="single_choice">Single choice</option>
+                        <option value="nps">NPS (0–10)</option>
+                      </select>
+                    </label>
                   )}
-                  {questionType === "single_choice" && (
-                    <>
-                      <div>
-                        <label htmlFor="follow-up-condition">
-                          Show a follow-up when
-                        </label>
-                        <select
-                          id="follow-up-condition"
-                          value={followUpWhen}
-                          onChange={(event) =>
-                            setFollowUpWhen(event.target.value)
-                          }
-                        >
-                          <option value="">No follow-up</option>
-                          <option value="option_1">Option 1 is selected</option>
-                          <option value="option_2">Option 2 is selected</option>
-                        </select>
-                      </div>
-                      {followUpWhen && (
+                  <fieldset
+                    key={starter ? "template-question" : "new-question"}
+                  >
+                    <legend>
+                      {questionType === "nps"
+                        ? "NPS question"
+                        : "Single-choice question"}
+                    </legend>
+                    <label>
+                      Question
+                      <input
+                        name="question"
+                        maxLength={300}
+                        defaultValue={starterQuestion?.title}
+                        required
+                      />
+                    </label>
+                    {questionType === "single_choice" && (
+                      <div className="columns">
                         <label>
-                          Follow-up question
+                          Option 1
                           <input
-                            name="followUpQuestion"
-                            maxLength={300}
+                            name="option1"
+                            maxLength={160}
+                            defaultValue={starterOptions?.[0]?.label}
                             required
                           />
                         </label>
-                      )}
-                    </>
-                  )}
+                        <label>
+                          Option 2
+                          <input
+                            name="option2"
+                            maxLength={160}
+                            defaultValue={starterOptions?.[1]?.label}
+                            required
+                          />
+                        </label>
+                      </div>
+                    )}
+                    {questionType === "single_choice" && (
+                      <>
+                        <div>
+                          <label htmlFor="follow-up-condition">
+                            Show a follow-up when
+                          </label>
+                          <select
+                            id="follow-up-condition"
+                            value={followUpWhen}
+                            onChange={(event) =>
+                              setFollowUpWhen(event.target.value)
+                            }
+                          >
+                            <option value="">No follow-up</option>
+                            <option value="option_1">
+                              Option 1 is selected
+                            </option>
+                            <option value="option_2">
+                              Option 2 is selected
+                            </option>
+                          </select>
+                        </div>
+                        {followUpWhen && (
+                          <label>
+                            Follow-up question
+                            <input
+                              name="followUpQuestion"
+                              maxLength={300}
+                              required
+                            />
+                          </label>
+                        )}
+                      </>
+                    )}
+                  </fieldset>
                 </fieldset>
-              </fieldset>
-            </div>
+              </div>
+              <div className="actions">
+                <button
+                  disabled={
+                    pending ||
+                    !workspaceId ||
+                    (guided && !selectedWorkspace?.defaultRetentionPolicyId)
+                  }
+                >
+                  Save draft
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  ref={previewTrigger}
+                  disabled={pending || !savedDefinition}
+                  onClick={() => setPreviewDefinition(savedDefinition)}
+                >
+                  Preview draft
+                </button>
+              </div>
+            </form>
+            <PublishAudience audience={audience} disabled={pending} />
+            {(canOfferResearchConsent || offerResearchConsent) && (
+              <label>
+                <input
+                  type="checkbox"
+                  checked={offerResearchConsent}
+                  onChange={(event) =>
+                    setOfferResearchConsent(event.target.checked)
+                  }
+                  disabled={
+                    pending ||
+                    (audience.mode === "university" && !offerResearchConsent)
+                  }
+                />
+                Include synthetic research consent
+              </label>
+            )}
+            {offerResearchConsent && !canOfferResearchConsent && (
+              <p>
+                Restore a compatible single-choice draft or clear synthetic
+                consent before publishing.
+              </p>
+            )}
+            {incompatibleAudience && (
+              <p>
+                Clear synthetic research consent or choose anyone with the link
+                before publishing.
+              </p>
+            )}
             <div className="actions">
               <button
-                disabled={
-                  pending ||
-                  !workspaceId ||
-                  (guided && !selectedWorkspace?.defaultRetentionPolicyId)
-                }
-              >
-                Save draft
-              </button>
-              <button
                 type="button"
                 className="secondary"
-                ref={previewTrigger}
-                disabled={pending || !savedDefinition}
-                onClick={() => setPreviewDefinition(savedDefinition)}
-              >
-                Preview draft
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                disabled={
-                  !ready ||
-                  pending ||
-                  (offerResearchConsent && !canOfferResearchConsent)
-                }
+                disabled={!ready || pending || publishBlocked}
                 onClick={publish}
               >
                 Publish survey
               </button>
             </div>
-          </form>
-          {(canOfferResearchConsent || offerResearchConsent) && (
-            <label>
-              <input
-                type="checkbox"
-                checked={offerResearchConsent}
-                onChange={(event) =>
-                  setOfferResearchConsent(event.target.checked)
-                }
-                disabled={pending}
-              />
-              Include synthetic research consent
-            </label>
-          )}
-          {offerResearchConsent && !canOfferResearchConsent && (
-            <p>
-              Restore a compatible single-choice draft or clear synthetic
-              consent before publishing.
-            </p>
-          )}
-          {publicLink && (
-            <div className="link-row">
-              <a href={publicLink}>Open respondent link</a>
-            </div>
-          )}
-        </section>
-      )}
-      {previewDefinition && (
-        <DraftPreview
-          definition={previewDefinition}
-          onHelp={(button) => openGuide(button, "preview")}
-          onClose={() => {
-            setPreviewDefinition(null);
-            previewTrigger.current?.focus();
-          }}
-        />
-      )}
-      {workspaces && workspaceId && (
-        <FeatureCatalogue
-          key={workspaceId}
-          token={token}
-          workspaceId={workspaceId}
-          onAccessChange={(enabled) => {
-            setNpsWorkspaceId(enabled ? workspaceId : null);
-            if (!enabled) {
-              setQuestionType("single_choice");
-              if (questionType === "nps") setReady(false);
-            }
-          }}
-        />
-      )}
-      {draft && publicLink && (
-        <Results key={publicLink} surveyId={draft.id} token={token} />
-      )}
-      {status && (
-        <p className="message" role="status">
-          {status}
-        </p>
-      )}
-      {error && (
-        <p className="message error" role="alert">
-          {error}
-        </p>
-      )}
-    </main>
+            {publicLink && (
+              <div className="link-row">
+                <a href={publicLink}>Open respondent link</a>
+                {liveQuizEnabled && liveVersion && (
+                  <div className="actions">
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={(event) =>
+                        showPresenter("poll", event.currentTarget)
+                      }
+                    >
+                      Present a Live Poll
+                    </button>
+                    {gameShowEnabled && liveVersion.options && (
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={(event) =>
+                          showPresenter("game", event.currentTarget)
+                        }
+                      >
+                        Present a Game Show
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+        {previewDefinition && (
+          <DraftPreview
+            definition={previewDefinition}
+            onHelp={(button) => openGuide(button, "preview")}
+            onClose={() => {
+              setPreviewDefinition(null);
+              previewTrigger.current?.focus();
+            }}
+          />
+        )}
+        {workspaces && workspaceId && (
+          <FeatureCatalogue
+            key={workspaceId}
+            token={token}
+            workspaceId={workspaceId}
+            onAccessChange={(enabled) => {
+              setNpsWorkspaceId(enabled ? workspaceId : null);
+              if (!enabled) {
+                setQuestionType("single_choice");
+                if (questionType === "nps") setReady(false);
+              }
+            }}
+          />
+        )}
+        {workspaces !== null && workspaceId && (
+          <WorkspaceSurveys
+            key={workspaceId}
+            workspaceId={workspaceId}
+            token={token}
+            refreshKey={(draft?.etag ?? "") + publicLink}
+            onHelp={(button) => openGuide(button, "preview")}
+          />
+        )}
+        {draft && publicLink && (
+          <Results key={publicLink} surveyId={draft.id} token={token} />
+        )}
+        {status && (
+          <p className="message" role="status">
+            {status}
+          </p>
+        )}
+        {error && (
+          <p className="message error" role="alert">
+            {error}
+          </p>
+        )}
+      </main>
+      {(["poll", "game"] as const).map((mode) => {
+        const version = presentations[mode];
+        return (
+          version && (
+            <LiveQuiz
+              key={version.id + mode}
+              isHost
+              gameShow={mode === "game"}
+              hidden={mode !== liveMode}
+              prepared={{
+                token,
+                versionId: version.id,
+                title: version.title,
+                options: version.options,
+                returnToSurvey: () => setLiveMode(undefined),
+              }}
+            />
+          )
+        );
+      })}
+    </>
   );
 }

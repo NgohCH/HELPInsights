@@ -138,6 +138,10 @@ export function createApplication(
               universitySignIn +
               '" data-development-sign-in="' +
               developmentSignIn +
+              '" data-live-quiz="' +
+              liveQuiz +
+              '" data-game-show="' +
+              gameShow +
               '"',
           ),
         );

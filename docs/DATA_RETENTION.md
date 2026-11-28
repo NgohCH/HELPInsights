@@ -43,6 +43,13 @@ survey with no finite deadline cannot be disposed. Workspace members can
 read the disposition and deadlines through the survey retention endpoint.
 The `eligible` disposition records an expiry and hold check only.
 
+In Operations (`/admin#survey-retention`), sign in and enter the survey ID
+under **Survey retention**. Workspace members can check the retention
+deadline and see whether a hold is active. An appointed retention reviewer
+also sees the disposal preview and can approve a hold using an evidence
+record UUID and a future UTC expiry. Checking eligibility leaves survey
+data intact.
+
 A workspace member with a separate hold approver appointment can record a
 legal or research hold with a future UTC deadline and an opaque evidence
 reference. PostgreSQL records the verified approver and time. The

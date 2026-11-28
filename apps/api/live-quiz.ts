@@ -12,7 +12,12 @@ import {
   createLiveRoomTransport,
   type LiveSnapshot,
 } from "./live-quiz-transport.ts";
-import { HttpError, readSessionProof, withActor } from "./sessions.ts";
+import {
+  HttpError,
+  readSessionProof,
+  readUniversitySessionProof,
+  withActor,
+} from "./sessions.ts";
 import { digest, jsonBody, writeClientError } from "./surveys.ts";
 
 const collection = "/api/v1/live-sessions";
@@ -36,6 +41,24 @@ function credentials(authorization: unknown) {
     isHost: proof[1].toLowerCase() === "bearer",
     hash: digest(proof[2]),
   };
+}
+
+function browserHost(request: IncomingMessage) {
+  const hash = readUniversitySessionProof(request);
+  if (!hash)
+    throw new HttpError(
+      401,
+      "UNAUTHORISED",
+      "A valid live room credential is required",
+    );
+  return { isHost: true, hash };
+}
+
+function requestCredentials(request: IncomingMessage) {
+  const authorization = request.headers.authorization;
+  return authorization === undefined
+    ? browserHost(request)
+    : credentials(authorization);
 }
 
 function parseGameRule(value: unknown) {
@@ -62,14 +85,20 @@ export function createLiveQuiz(
   pinKey: string | undefined,
   publicOrigin?: string,
   gameShowEnabled = false,
+  universityOrigin?: string | null,
 ) {
   if (!pinKey || Buffer.byteLength(pinKey) < 32)
     throw new Error(
       "LIVE_QUIZ_PIN_KEY must be at least 32 bytes when Live Quiz is enabled",
     );
-  if (publicOrigin) {
-    const url = new URL(publicOrigin);
-    if (url.protocol !== "https:" || url.origin !== publicOrigin)
+  if (publicOrigin && universityOrigin && publicOrigin !== universityOrigin)
+    throw new Error(
+      "LIVE_QUIZ_ORIGIN must match the University browser origin",
+    );
+  const liveOrigin = publicOrigin ?? universityOrigin;
+  if (liveOrigin) {
+    const url = new URL(liveOrigin);
+    if (url.protocol !== "https:" || url.origin !== liveOrigin)
       throw new Error("LIVE_QUIZ_ORIGIN must be an HTTPS origin");
   }
 
@@ -79,7 +108,7 @@ export function createLiveQuiz(
   function originAllowed(request: IncomingMessage) {
     const host = request.headers.host;
     const allowed =
-      publicOrigin ??
+      liveOrigin ??
       (host && /^127\.0\.0\.1:\d+$/.test(host) ? "http://" + host : null);
     return allowed !== null && request.headers.origin === allowed;
   }
@@ -119,8 +148,11 @@ export function createLiveQuiz(
         ? room[1].toLowerCase()
         : undefined;
     },
-    (id, authorization) => {
-      const proof = credentials(authorization);
+    (id, authorization, request) => {
+      const proof =
+        authorization === null
+          ? browserHost(request)
+          : credentials(authorization);
       return {
         read: () => snapshot(id, proof),
         participant: proof.isHost ? undefined : proof.hash.toString("hex"),
@@ -129,7 +161,7 @@ export function createLiveQuiz(
   );
 
   async function command(id: string, request: IncomingMessage) {
-    const proof = credentials(request.headers.authorization);
+    const proof = requestCredentials(request);
     if (!proof.isHost) throw denied();
     const body = object(await jsonBody(request), [
       "command",
@@ -262,7 +294,7 @@ export function createLiveQuiz(
             ? await command(id, request)
             : room[2] === "answers"
               ? await vote(id, request)
-              : await snapshot(id, credentials(request.headers.authorization));
+              : await snapshot(id, requestCredentials(request));
         sendJson(response, 200, body);
         return true;
       }
@@ -292,7 +324,7 @@ export function createLiveQuiz(
         return true;
       }
 
-      const proof = readSessionProof(request, false);
+      const proof = readSessionProof(request);
       const body = object(await jsonBody(request), [
         "quizVersionId",
         "mode",

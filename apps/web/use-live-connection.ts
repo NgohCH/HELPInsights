@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { LiveSnapshot } from "../api/live-quiz-transport.ts";
 
-export type LiveAccess = { id: string; authorization: string };
+export type LiveAccess = { id: string; authorization: string | null };
 
 type Connection = "connecting" | "connected" | "reconnecting" | "forbidden";
 

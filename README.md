@@ -20,7 +20,7 @@ A self-hostable survey platform that combines low-friction authoring and respond
 Three interfaces share one application backend:
 
 1. **User workspace:** survey creation, preview, publishing, distribution, results, exports, retention notices, collaboration.
-2. **Respondent experience:** mobile-first survey completion; no account required for public or genuinely anonymous surveys.
+2. **Respondent experience:** mobile-first survey completion. Public audiences can respond without an account. University-only audiences sign in and can submit anonymous answers.
 3. **Administration centre:** tenants, workspaces, policies, platform health, security and recovery events, notices, audit trails, and controlled operations.
 
 The development Operations page at /admin shows API, database and migration
@@ -169,11 +169,11 @@ Open `/admin/settings` after University sign-in with an explicit system administ
 
 ### University-only survey development
 
-The disposable stack enables the University-only respondent workflow for synthetic tests. The publish API selects an approved policy version in the survey workspace. Respondents sign in and need a current grant for that exact policy. See the [publication and privacy contract](docs/API_GUIDE.md#university-only-distributions).
+The disposable stack enables University-only collection for synthetic tests. After saving a draft, choose **University accounts only** in **Audience** and select an approved policy version from the survey workspace. Respondents sign in and need a current grant for that exact policy. **Anyone with the link** remains the default. [Publication and privacy contract](docs/API_GUIDE.md#university-only-distributions)
 
 ### Local Live Poll lobby
 
-The disposable test stack enables the Live Poll lobby. The normal stack leaves it disabled. Open `/live/host` on the loopback app with a development session token and the ID from an authorised survey's publish response. Use a published version with unconditional single-choice questions. Share the eight-digit PIN with a synthetic guest at `/live/join` within 30 minutes.
+The disposable test stack enables Live Poll and Game Show. After publishing a compatible public survey, choose **Present a Live Poll** or **Present a Game Show** in the creator workspace. The presenter uses the current sign-in and the published version automatically. Share the eight-digit PIN with a synthetic participant at `/live/join` within 30 minutes. Local development can also open `/live/host` with a development session token and the version ID.
 
 The presenter can start, pause, resume, end and archive the poll. The presenter and guest see committed state changes over a same-origin WebSocket. A disconnected tab reconnects to the current PostgreSQL state. Refresh lobby also reopens the connection. Guest credentials stay in the current page and expire after eight hours. Once running, the presenter opens and advances questions in published order. Each guest can cast one vote per question and see their own receipt. The presenter sees turnout in groups of five and may close the question to reveal exact counts when the category and nonvoter groups meet the privacy threshold. See the [voting test criteria](docs/LIVE_POLL_VOTING_TEST_CRITERIA.md) and [remaining Live Quiz Arena release gates](docs/LIVE_QUIZ_ARENA.md).
 
