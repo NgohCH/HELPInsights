@@ -4,6 +4,7 @@ import { api } from "./api.ts";
 import { DraftPreview } from "./draft-preview.tsx";
 import { Results } from "./results.tsx";
 import { SavedDraftEditor } from "./saved-draft-editor.tsx";
+import { SavedPublication } from "./saved-publication.tsx";
 
 type SurveySummary = {
   id: string;
@@ -29,12 +30,16 @@ export function WorkspaceSurveys({
   token,
   refreshKey,
   canAuthorNps,
+  saving,
+  setSaving,
   onHelp,
 }: {
   workspaceId: string;
   token: string;
   refreshKey?: string;
   canAuthorNps: boolean;
+  saving: boolean;
+  setSaving: (value: boolean) => void;
   onHelp: (button: HTMLButtonElement) => void;
 }) {
   const [catalogue, setCatalogue] = useState<SurveyList | null>(null);
@@ -107,7 +112,7 @@ export function WorkspaceSurveys({
               <button
                 className="secondary"
                 type="button"
-                disabled={editing}
+                disabled={editing || saving}
                 onClick={(event) => {
                   trigger.current = event.currentTarget;
                   setSelectedId(survey.id);
@@ -124,7 +129,7 @@ export function WorkspaceSurveys({
         <button
           className="secondary"
           type="button"
-          disabled={loading}
+          disabled={loading || saving}
           onClick={() => void load()}
         >
           Refresh surveys
@@ -133,7 +138,7 @@ export function WorkspaceSurveys({
           <button
             className="secondary"
             type="button"
-            disabled={loading}
+            disabled={loading || saving}
             onClick={() => void load(catalogue.nextCursor!)}
           >
             Load more surveys
@@ -154,6 +159,8 @@ export function WorkspaceSurveys({
           editing={editing}
           setEditing={setEditing}
           canAuthorNps={canAuthorNps}
+          saving={saving}
+          setSaving={setSaving}
           onHelp={onHelp}
           onSave={(saved) =>
             setCatalogue(
@@ -162,7 +169,7 @@ export function WorkspaceSurveys({
                   ...current,
                   items: current.items.map((entry) =>
                     entry.id === saved.id
-                      ? { ...entry, title: saved.title }
+                      ? { ...entry, title: saved.title, status: saved.status }
                       : entry,
                   ),
                 },
@@ -186,6 +193,8 @@ function SavedSurvey({
   editing,
   setEditing,
   canAuthorNps,
+  saving,
+  setSaving,
   onHelp,
   onSave,
   onClose,
@@ -196,6 +205,8 @@ function SavedSurvey({
   editing: boolean;
   setEditing: (editing: boolean) => void;
   canAuthorNps: boolean;
+  saving: boolean;
+  setSaving: (value: boolean) => void;
   onHelp: (button: HTMLButtonElement) => void;
   onSave: (survey: SurveySummary) => void;
   onClose: () => void;
@@ -207,7 +218,10 @@ function SavedSurvey({
   } | null>(null);
   const [reload, setReload] = useState(0);
   const [preview, setPreview] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [publicationNotice, setPublicationNotice] = useState<{
+    message: string;
+    path?: string;
+  } | null>(null);
   const [error, setError] = useState("");
   const heading = useRef<HTMLHeadingElement>(null);
   const previewTrigger = useRef<HTMLButtonElement>(null);
@@ -289,6 +303,7 @@ function SavedSurvey({
               className="secondary"
               type="button"
               ref={previewTrigger}
+              disabled={saving}
               onClick={() => setPreview(true)}
             >
               Preview saved draft
@@ -297,6 +312,7 @@ function SavedSurvey({
           {draft && etag && record?.survey.canEdit && (
             <button
               type="button"
+              disabled={saving}
               onClick={() => {
                 setError("");
                 setPreview(false);
@@ -309,9 +325,10 @@ function SavedSurvey({
           <button
             type="button"
             className="secondary"
-            disabled={!record && !error}
+            disabled={saving || (!record && !error)}
             onClick={() => {
               setRecord(null);
+              setPublicationNotice(null);
               setError("");
               setPreview(false);
               setReload((value) => value + 1);
@@ -319,7 +336,12 @@ function SavedSurvey({
           >
             Reload saved survey
           </button>
-          <button type="button" className="secondary" onClick={onClose}>
+          <button
+            type="button"
+            className="secondary"
+            disabled={saving}
+            onClick={onClose}
+          >
             Close saved survey
           </button>
         </div>
@@ -329,6 +351,60 @@ function SavedSurvey({
         <p className="message error" role="alert">
           {error}
         </p>
+      )}
+      {!editing && !preview && draft && etag && record?.survey.canEdit && (
+        <SavedPublication
+          endpoint={endpoint}
+          workspaceId={workspaceId}
+          token={token}
+          etag={etag}
+          hasQuestions={draft.pages.some((page) => page.questions.length > 0)}
+          acceptingResponses={record.survey.status === "published"}
+          saving={saving}
+          setSaving={setSaving}
+          onPublished={({ publicToken, ...version }) => {
+            const survey = { ...record.survey, status: "published" as const };
+            setRecord({
+              ...record,
+              survey,
+              versions: [version, ...record.versions],
+            });
+            setPublicationNotice({
+              message: "Saved survey published",
+              path: "/respond/" + publicToken,
+            });
+            onSave(survey);
+            heading.current?.focus();
+          }}
+          onEnded={() => {
+            const survey = {
+              ...record.survey,
+              status: "closed" as const,
+              canEdit: false,
+            };
+            setRecord({ ...record, survey });
+            setPublicationNotice({ message: "Response collection ended" });
+            onSave(survey);
+            heading.current?.focus();
+          }}
+          onError={setError}
+        />
+      )}
+      {publicationNotice && (
+        <>
+          <p className="message" role="status">
+            {publicationNotice.message}
+          </p>
+          {publicationNotice.path && (
+            <a
+              role="link"
+              aria-disabled={saving}
+              href={saving ? undefined : publicationNotice.path}
+            >
+              Open new respondent link
+            </a>
+          )}
+        </>
       )}
       {editing && draft && (
         <SavedDraftEditor

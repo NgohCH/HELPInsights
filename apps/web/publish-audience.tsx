@@ -5,8 +5,14 @@ type Policy = { id: string; code: string; version: number };
 type PolicyList = { enabled: boolean; items: Policy[] };
 type PolicyLoad = { workspaceId: string; list: PolicyList | null };
 
-export function usePublishAudience(workspaceId: string, token: string) {
-  const [mode, setMode] = useState<"open" | "university">("open");
+type AudienceMode = "" | "open" | "university";
+
+export function usePublishAudience(
+  workspaceId: string,
+  token: string,
+  initialMode: AudienceMode = "open",
+) {
+  const [mode, setMode] = useState<AudienceMode>(initialMode);
   const [selectedId, setSelectedId] = useState("");
   const [load, setLoad] = useState<PolicyLoad | null>(null);
   const [revision, setRevision] = useState(0);
@@ -49,12 +55,18 @@ export function usePublishAudience(workspaceId: string, token: string) {
 export function PublishAudience({
   audience,
   disabled,
+  requiresSelection = false,
 }: {
   audience: ReturnType<typeof usePublishAudience>;
   disabled: boolean;
+  requiresSelection?: boolean;
 }) {
   const { mode, setMode, policyId, setSelectedId, current, refresh } = audience;
-  if (mode === "open" && (!current || current.list?.enabled === false))
+  if (
+    !requiresSelection &&
+    mode === "open" &&
+    (!current || current.list?.enabled === false)
+  )
     return null;
   const items = current?.list?.items ?? [];
 
@@ -65,12 +77,18 @@ export function PublishAudience({
         Audience
         <select
           value={mode}
-          onChange={(event) =>
-            setMode(event.target.value === "university" ? "university" : "open")
-          }
+          onChange={(event) => setMode(event.target.value as AudienceMode)}
         >
+          {requiresSelection && (
+            <option value="">Choose who can respond</option>
+          )}
           <option value="open">Anyone with the link</option>
-          <option value="university">University accounts only</option>
+          <option
+            value="university"
+            disabled={requiresSelection && current?.list?.enabled === false}
+          >
+            University accounts only
+          </option>
         </select>
       </label>
       {mode === "university" && (
